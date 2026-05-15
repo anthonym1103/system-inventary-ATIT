@@ -6,25 +6,34 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/password/confirm';
 
+const traslate = (key: string, message:string) => {
+
+    if(key === 'password' && message === 'The provided password was incorrect.'){
+        return 'La contraseña ingresada es incorrecta.';
+    }
+    
+    return message;
+};
+
 export default function ConfirmPassword() {
     return (
         <>
-            <Head title="Confirm password" />
+            <Head title="Configuracion" />
 
             <Form {...store.form()} resetOnSuccess={['password']}>
                 {({ processing, errors }) => (
                     <div className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">Contraseña</Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
-                                placeholder="Password"
+                                placeholder="Contraseña..."
                                 autoComplete="current-password"
                                 autoFocus
                             />
 
-                            <InputError message={errors.password} />
+                            <InputError message={traslate('password',errors.password)} />
                         </div>
 
                         <div className="flex items-center">
@@ -34,7 +43,7 @@ export default function ConfirmPassword() {
                                 data-test="confirm-password-button"
                             >
                                 {processing && <Spinner />}
-                                Confirm password
+                                Confirmar contraseña
                             </Button>
                         </div>
                     </div>
@@ -45,7 +54,7 @@ export default function ConfirmPassword() {
 }
 
 ConfirmPassword.layout = {
-    title: 'Confirm your password',
+    title: 'Confirme su contraseña',
     description:
-        'This is a secure area of the application. Please confirm your password before continuing.',
+        'Esta es un area segura de la aplicacion. Porfavor confirme su contraseña antes de continuar',
 };

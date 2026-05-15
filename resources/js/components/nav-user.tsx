@@ -25,9 +25,9 @@ export function NavUser() {
     }
 
     return (
-        <SidebarMenu>
-            <SidebarMenuItem>
-                <DropdownMenu>
+        <SidebarMenu >
+            <SidebarMenuItem >
+                <DropdownMenu >
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton
                             size="lg"

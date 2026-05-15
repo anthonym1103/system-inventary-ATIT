@@ -1,5 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { dashboard, login, register } from '@/routes';
+import AppearanceTabs from '@/components/appearance-tabs';
 
 export default function Welcome({
     canRegister = true,
@@ -11,8 +12,9 @@ export default function Welcome({
     return (
         <>
             <Head title="Welcome" />
+            {/*[#FDFDFC] */}
             <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]">
-                <header className="mb-6 w-full max-w-[335px] text-sm not-has-[nav]:hidden lg:max-w-4xl">
+                <header className="mb-6 w-full max-w-[365px] text-sm not-has-[nav]:hidden lg:max-w-7xl">
                     <nav className="flex items-center justify-end gap-4">
                         {auth.user ? (
                             <Link
@@ -23,18 +25,21 @@ export default function Welcome({
                             </Link>
                         ) : (
                             <>
+                                <div className="w-full lg:max-w-4xl">
+                                    <AppearanceTabs/>
+                                </div>
                                 <Link
                                     href={login()}
-                                    className="inline-block rounded-sm border border-transparent px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
+                                    className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
                                 >
-                                    ACCEDER AL SISTEMA
+                                    Acceder al sistema
                                 </Link>
                                 {canRegister && (
                                     <Link
                                         href={register()}
                                         className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
                                     >
-                                        Register
+                                        Registrarse
                                     </Link>
                                 )}
                             </>
@@ -128,6 +133,7 @@ export default function Welcome({
                                 </li>
                             </ul>
                         </div>
+
                         <div className="relative -mb-px aspect-[335/364] w-full shrink-0 overflow-hidden rounded-t-lg bg-[#fff2f2] lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px] lg:rounded-t-none lg:rounded-r-lg dark:bg-[#1D0002]">
                             {/* Laravel Logo */}
                             <svg

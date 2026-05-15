@@ -9,6 +9,17 @@ import { Label } from '@/components/ui/label';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
+const translate = (key: string, message: string) => {
+    if (key === 'email'){
+        if(message === 'The email field is required.'){
+            return 'El campo de correo electronico es requerido.';
+        }else if(message === "We can't find a user with that email address."){
+            return 'No podemos encontrar ningun usuario con esa direccion de correo electronico'
+        }
+    }
+    return message;
+};
+
 export default function ForgotPassword({ status }: { status?: string }) {
     return (
         <>
@@ -25,7 +36,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">Direccion de correo electronico</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -35,7 +46,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     placeholder="email@example.com"
                                 />
 
-                                <InputError message={errors.email} />
+                                <InputError message={translate('email',errors.email)} />
                             </div>
 
                             <div className="my-6 flex items-center justify-start">
@@ -47,7 +58,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     {processing && (
                                         <LoaderCircle className="h-4 w-4 animate-spin" />
                                     )}
-                                    Email password reset link
+                                    Enviar enlace
                                 </Button>
                             </div>
                         </>
@@ -55,8 +66,8 @@ export default function ForgotPassword({ status }: { status?: string }) {
                 </Form>
 
                 <div className="space-x-1 text-center text-sm text-muted-foreground">
-                    <span>Or, return to</span>
-                    <TextLink href={login()}>log in</TextLink>
+                    <span>O, regresar a</span>
+                    <TextLink href={login()}>Iniciar sesion</TextLink>
                 </div>
             </div>
         </>
@@ -64,6 +75,6 @@ export default function ForgotPassword({ status }: { status?: string }) {
 }
 
 ForgotPassword.layout = {
-    title: 'Forgot password',
-    description: 'Enter your email to receive a password reset link',
+    title: 'Has olvidado tu contraseña',
+    description: 'Ingrese su correo electronico se le enviara un enlace para restablecer su contraseña',
 };

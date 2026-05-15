@@ -21,6 +21,14 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },{
+        title:'Inventario',
+        href: '',
+        icon: null,
+    },{
+        title:'Historial',
+        href: '',
+        icon: null,
     },
 ];
 

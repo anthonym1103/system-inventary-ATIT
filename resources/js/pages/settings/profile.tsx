@@ -9,6 +9,12 @@ import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 
+const translate = (key:string, message:string)=>{
+    if(key === 'name' && message === 'The name field must not be greater than 255 characters.'){
+        return 'El campo del nombre no debe tener más de 255 caracteres.';
+    }
+}
+
 export default function Profile({
     mustVerifyEmail,
     status,
@@ -20,15 +26,15 @@ export default function Profile({
 
     return (
         <>
-            <Head title="Profile settings" />
+            <Head title="Configuracion" />
 
-            <h1 className="sr-only">Profile settings</h1>
+            <h1 className="sr-only">Configuracion del perfil</h1>
 
             <div className="space-y-6">
                 <Heading
                     variant="small"
-                    title="Profile information"
-                    description="Update your name and email address"
+                    title="Informacion del perfil"
+                    description="Actualiza tu nombre y direccion de correo electronico"
                 />
 
                 <Form
@@ -41,7 +47,7 @@ export default function Profile({
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name">Nombre</Label>
 
                                 <Input
                                     id="name"
@@ -55,12 +61,12 @@ export default function Profile({
 
                                 <InputError
                                     className="mt-2"
-                                    message={errors.name}
+                                    message={translate('name',errors.name)}
                                 />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">Direccion de correo electronico</Label>
 
                                 <Input
                                     id="email"
@@ -70,7 +76,7 @@ export default function Profile({
                                     name="email"
                                     required
                                     autoComplete="username"
-                                    placeholder="Email address"
+                                    placeholder="Correo electronico"
                                 />
 
                                 <InputError
@@ -79,26 +85,25 @@ export default function Profile({
                                 />
                             </div>
 
-                            {mustVerifyEmail &&
+                            {mustVerifyEmail ||
                                 auth.user.email_verified_at === null && (
                                     <div>
                                         <p className="-mt-4 text-sm text-muted-foreground">
-                                            Your email address is unverified.{' '}
+                                            Tu direccion de correo electronico no está verificado.{' '}
                                             <Link
                                                 href={send()}
                                                 as="button"
                                                 className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
                                             >
-                                                Click here to resend the
-                                                verification email.
+                                                Click aqui para enviar la verificacion de correo.
                                             </Link>
                                         </p>
 
                                         {status ===
                                             'verification-link-sent' && (
                                             <div className="mt-2 text-sm font-medium text-green-600">
-                                                A new verification link has been
-                                                sent to your email address.
+                                                Se ha enviado un nuevo enlace de verificacion
+                                                a su direccion de correo electronico.
                                             </div>
                                         )}
                                     </div>
@@ -109,7 +114,7 @@ export default function Profile({
                                     disabled={processing}
                                     data-test="update-profile-button"
                                 >
-                                    Save
+                                    Guardar
                                 </Button>
                             </div>
                         </>
@@ -125,7 +130,7 @@ export default function Profile({
 Profile.layout = {
     breadcrumbs: [
         {
-            title: 'Profile settings',
+            title: 'Configuracion del perfil',
             href: edit(),
         },
     ],

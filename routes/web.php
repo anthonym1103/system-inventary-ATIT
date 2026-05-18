@@ -8,6 +8,7 @@ Route::inertia('/', 'welcome', [
 ])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    //Route::post('/profile/avatar',[ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 

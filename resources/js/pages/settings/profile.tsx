@@ -8,8 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
-import { UserInfo } from '@/components/user-info';
-
+import { UpdateAvatarForm } from '@/components/update-avatar-form';
 const translate = (key:string, message:string)=>{
     if(key === 'name' && message === 'The name field must not be greater than 255 characters.'){
         return 'El campo del nombre no debe tener más de 255 caracteres.';
@@ -50,9 +49,7 @@ export default function Profile({
                             <div className="grid gap-2">
                                
 
-                                <div className="bg-red-300 flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                                    <UserInfo user={auth.user} showEmail={false} />
-                                </div>
+                                <UpdateAvatarForm user={auth.user}/>
 
                                 <Label htmlFor="name">Nombre</Label>
 

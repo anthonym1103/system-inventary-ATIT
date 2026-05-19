@@ -2,13 +2,14 @@
 
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
+use App\Http\Controllers\Settings\ProfileController;
 
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
 ])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    //Route::post('/profile/avatar',[ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 

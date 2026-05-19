@@ -11,6 +11,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['name', 'email', 'avatar', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -26,6 +28,22 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
+
+    protected function avatar(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                // Si el campo tiene datos, genera la URL pública de Laravel
+                if ($value) {
+                    return asset('storage/' . $value);
+                }
+            
+                // Opcional: Si no tiene avatar, puedes retornar una imagen por defecto 
+                // o dejar que el Frontend use el <AvatarFallback> con sus iniciales devolviendo null
+                return null; 
+            }
+        );
+    }
     protected function casts(): array
     {
         return [

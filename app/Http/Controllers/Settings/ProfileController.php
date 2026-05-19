@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Redirect;
 
 class ProfileController extends Controller
 {
@@ -58,5 +60,36 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+
+    public function updateAvatar(Request $request)
+    {
+        
+        dd($request->all(), $request->file('avatar'));
+        // 1. Validar que sea una imagen válida y no pase de 2MB
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,gif'],
+        ]);
+
+        $user = $request->user();
+
+        // 2. Eliminar el avatar anterior si existe en el disco público
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        // 3. Guardar el nuevo archivo en la carpeta 'avatars' dentro del disco 'public'
+        // Esto genera un nombre único aleatorio automáticamente
+        
+        $path = $request->file('avatar')->store('avatars', 'public');
+        
+
+        // 4. Guardar la ruta en la base de datos
+        $user->update([
+            'avatar' => $path,
+        ]);
+
+        return Redirect::back()->with('success', 'Avatar actualizado con éxito.');
     }
 }

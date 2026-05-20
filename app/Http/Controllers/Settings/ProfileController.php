@@ -66,7 +66,6 @@ class ProfileController extends Controller
     public function updateAvatar(Request $request)
     {
         
-        dd($request->all(), $request->file('avatar'));
         // 1. Validar que sea una imagen válida y no pase de 2MB
         $request->validate([
             'avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,gif'],

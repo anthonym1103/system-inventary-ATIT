@@ -9,7 +9,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::post('/profile/avatar',[ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

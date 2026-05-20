@@ -11,6 +11,7 @@ Route::inertia('/', 'welcome', [
 Route::middleware(['auth', 'verified'])->group(function () {
     
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::post('/profile/avatar',[ProfileController::class, 'updateAvatar']);
 });
 
 require __DIR__.'/settings.php';

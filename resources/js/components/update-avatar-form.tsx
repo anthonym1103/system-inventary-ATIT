@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Form } from '@inertiajs/react';
+import { Form, router } from '@inertiajs/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInitials } from '@/hooks/use-initials';
 import { Button } from '@/components/ui/button';
@@ -48,29 +48,13 @@ export function UpdateAvatarForm({ user }: Props) {
             <Form
                 action="/profile/avatar"
                 method="post"
+                encType='multipart/form-data'
                 disableWhileProcessing
-                // transformamos los datos antes de enviarlos
-                transform={(data) => {
-                    const formData = new FormData();
-                    //Si hay otros campos de textos automaticos, los agregamos primero
-                    
-                    Object.keys(data).forEach((key) => {
-                        formData.append(key, data[key] as string);
-                    });
-
-                    console.log(avatarFile);
-                    //inyectamos de forma explicita el archivo binario real
-                    if(avatarFile){
-                        formData.append('avatar', avatarFile);
-                        console.log(formData);
-                    }
-
-                    return formData as any;
-                }}
                 onSuccess={() => {
                     // Limpiamos el estado local al subir con éxito
                     setAvatarFile(null);
                     if (fileInputRef.current) fileInputRef.current.value = '';
+                    router.reload({ only: ['user'] }); // Recargamos solo los datos del usuario para actualizar el avatar sin recargar toda la página
                 }}
                 className="flex flex-col sm:flex-row items-center gap-6"
             >

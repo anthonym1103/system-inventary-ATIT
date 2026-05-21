@@ -13,6 +13,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Storage;
+use App\Models\HistorialEquipo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'email', 'avatar', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -29,6 +31,16 @@ class User extends Authenticatable
      * @return array<string, string>
      */
 
+    
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'two_factor_confirmed_at' => 'datetime',
+        ];
+    }
+    
     protected function avatar(): Attribute
     {
         return Attribute::make(
@@ -44,12 +56,10 @@ class User extends Authenticatable
             }
         );
     }
-    protected function casts(): array
+
+    public function historialEquipos(): HasMany
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'two_factor_confirmed_at' => 'datetime',
-        ];
+        return $this->hasMany(HistorialEquipo::class);
     }
-}
+    
+} 

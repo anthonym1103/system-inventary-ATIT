@@ -11,16 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('equipos', function (Blueprint $table) {
+        Schema::create('historial_equipos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ubicacion_id')->constrained('ubicacions')->onDelete('cascade');
-            $table->string('sector');
-            $table->string('tipo');
-            $table->string('condicion');
-            $table->string('marca');
-            $table->string('modelo');
-            $table->string('serial')->unique();
+            $table->foreignId('usuario_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('equipo_id')->constrained('equipos')->onDelete('cascade');
             $table->string('detalle')->nullable();
+            $table->dateTime('fecha_ajuste');
             $table->timestamps();
         });
     }
@@ -30,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('equipos');
+        Schema::dropIfExists('historial_equipos');
     }
 };

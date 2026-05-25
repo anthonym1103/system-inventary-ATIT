@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('telefonos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('encargado_id')->constrained('encargados')->onDelete('cascade');
+            $table->string('encargado_id');
+            $table->foreign('encargado_id')->references('cedula')->on('encargados')->onDelete('cascade');
             $table->string('numero');
             $table->timestamps();
         });

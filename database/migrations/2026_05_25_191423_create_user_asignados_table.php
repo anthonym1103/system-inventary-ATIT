@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('encargados', function (Blueprint $table) {
-            $table->id();
+        Schema::create('user_asignados', function (Blueprint $table) {
+            $table->string('cedula')->primary();
             $table->string('nombre');
             $table->string('apellido');
+            $table->string('gerencia');
             $table->timestamps();
         });
     }
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('encargados');
+        Schema::dropIfExists('user_asignados');
     }
 };

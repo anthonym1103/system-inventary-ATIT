@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Equipo;
+use App\Enums\EstadoRegion;
 
 class Ubicacion extends Model
 {
@@ -15,6 +16,10 @@ class Ubicacion extends Model
     protected $fillable = [
         'estado',
         'locacion',
+    ];
+
+    protected $casts = [
+        'estado' => EstadoRegion::class,
     ];
 
     public function equipos(): HasMany

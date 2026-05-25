@@ -7,16 +7,18 @@ use App\Models\Infraestructura;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-
-class Encargado extends Model
+class UserAsignado extends Model
 {
-    //
-
+    protected $primaryKey = 'cedula';
+    protected $keyType = 'string';
+    public $incrementing = false;
+    
     protected $fillable = [
+        'cedula',
         'nombre',
         'apellido',
+        'gerencia',
     ];
-
 
     public function telefonos():HasMany
     {

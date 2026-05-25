@@ -21,7 +21,6 @@ return new class extends Migration
             $table->string('sistema_operativo');
             $table->string('numero_inventario');
             $table->string('dominio');
-            $table->string('estado');
             $table->string('unidad');
             $table->timestamps();
         });

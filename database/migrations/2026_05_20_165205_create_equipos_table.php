@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Enums\CondicionEquipo;
 
 return new class extends Migration
 {
@@ -14,9 +15,9 @@ return new class extends Migration
         Schema::create('equipos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ubicacion_id')->constrained('ubicacions')->onDelete('cascade');
-            $table->string('sector');
+            $table->string('area');
             $table->string('tipo');
-            $table->string('condicion');
+            $table->string('condicion')->default(CondicionEquipo::OPERATIVO->value);
             $table->string('marca');
             $table->string('modelo');
             $table->string('serial')->unique();

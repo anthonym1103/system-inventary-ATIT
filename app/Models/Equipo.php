@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use App\Models\Ubicacion;
 use App\Models\HistorialEquipo;
 use App\Models\Infraestructura;
+use App\Enums\Area;
+use App\Enums\CondicionEquipo;
+use App\Enums\TipoEquipo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,13 +21,19 @@ class Equipo extends Model
 
     protected $fillable = [
         'ubicacion_id',
-        'sector',
+        'area',
         'tipo',
         'condicion',
         'marca',
         'modelo',
         'serial',
         'detalle',
+    ];
+
+    protected $casts = [
+        'area' => Area::class,
+        'tipo' => TipoEquipo::class,
+        'condicion' => CondicionEquipo::class,
     ];
 
     protected static function booted()

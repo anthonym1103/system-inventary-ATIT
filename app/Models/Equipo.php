@@ -36,10 +36,29 @@ class Equipo extends Model
         'condicion' => CondicionEquipo::class,
     ];
 
+
     protected static function booted()
     {
-        static::deleting(function ($equipo){
+        static::deleting(function ($equipo) {
             $equipo->infraestructura()?->delete();
+        });
+
+        static::updating(function ($equipo) {
+            $cambios = [];
+            foreach ($equipo->getDirty() as $campo => $nuevoValor) {
+                $original = $equipo->getOriginal($campo);
+                if ($original != $nuevoValor) {
+                    $cambios[] = "{$campo}: de '{$original}' a '{$nuevoValor}'";
+                }
+            }
+            if (!empty($cambios)) {
+                HistorialEquipo::create([
+                'usuario_id' => auth()->id(),
+                'equipo_id' => $equipo->id,
+                'detalle' => 'Modificación: ' . implode(', ', $cambios),
+                'fecha_ajuste' => now(),
+                ]);
+            }
         });
     }
 

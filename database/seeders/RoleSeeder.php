@@ -16,9 +16,9 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $permissions =[
-            'sector infraestructura',
-            'sector redes',
-            'sector transmision'
+            'area_infraestructura',
+            'area_redes',
+            'area_transmision'
         ];
 
         foreach($permissions as $permissionName){

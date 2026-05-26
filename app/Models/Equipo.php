@@ -50,11 +50,11 @@ class Equipo extends Model
 
     public function historialEquipos(): HasMany
     {
-        return $this->hasMany(HistorialEquipo::class);
+        return $this->hasMany(HistorialEquipo::class, 'equipo_id');
     }
     
     public function infraestructura(): HasOne
     {
-        return $this->hasOne(Infraestructura::class);
+        return $this->hasOne(Infraestructura::class, 'id');
     }
 }

@@ -27,7 +27,7 @@ class Infraestructura extends Model
 
     public function equipo(): BelongsTo
     {
-        return $this->belongsTo(Equipo::class);
+        return $this->belongsTo(Equipo::class, 'id');
     }
 
     public function userAsignado(): BelongsTo

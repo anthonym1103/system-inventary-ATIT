@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('infraestructuras', function (Blueprint $table) {
             $table->foreignId('id')->primary()->constrained('equipos')->onDelete('cascade');
-            $table->foreignId('asignado')->constrained('user_asignados')->onDelete('cascade');
+            $table->string('asignado');
+            $table->foreign('asignado')->references('cedula')->on('user_asignados')->onDelete('cascade');
             $table->string('año');
             $table->string('ram');
             $table->string('disco');

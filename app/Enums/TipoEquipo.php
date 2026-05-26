@@ -26,12 +26,12 @@ enum TipoEquipo: string
     case TRANSPORTE_MO = 'Transporte M/O';
     case TRANSPORTE_FO = 'Transporte F/O';
 
-    public function modulo(): Sector
+    public function modulo(): Area
     {
         return match($this){
-            self::MICRO_ESCRITORIO, self::PORTATIL, self::IMPRESORA_MULTI, self::IMPRESORA, self::IMPRESORA_PLANOS, self::ESCANER  => Sector::INFRAESTRUCTURA,
-            self::ROUTER, self::SWITCHES, self::ROUTER_WIFI => Sector::REDES,
-            self::RADIO_PORTATIL, self::RADIO_BASE, self::RADIO_MOVIL, self::MULTIPLEXOR, self::TRANSPORTE_MO, self::TRANSPORTE_FO => Sector::TRANSMISION,
+            self::MICRO_ESCRITORIO, self::PORTATIL, self::IMPRESORA_MULTI, self::IMPRESORA, self::IMPRESORA_PLANOS, self::ESCANER  => Area::INFRAESTRUCTURA,
+            self::ROUTER, self::SWITCHES, self::ROUTER_WIFI => Area::REDES,
+            self::RADIO_PORTATIL, self::RADIO_BASE, self::RADIO_MOVIL, self::MULTIPLEXOR, self::TRANSPORTE_MO, self::TRANSPORTE_FO => Area::TRANSMISION,
         };
     }
 
@@ -45,6 +45,7 @@ enum TipoEquipo: string
             self::IMPRESORA => 'Impresora',
             self::IMPRESORA_PLANOS => 'Impresora de Planos Plotter',
             self::ESCANER => 'Escaner',
+            default => $this->value,
         };
     }
 

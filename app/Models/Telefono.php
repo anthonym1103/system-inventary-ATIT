@@ -15,8 +15,8 @@ class Telefono extends Model
         'numero',
     ];
 
-    public function userAsignados(): BelongsTo
+    public function userAsignado(): BelongsTo
     {
-        return $this->belongsTo(UserAsignado::class);
+        return $this->belongsTo(UserAsignado::class, 'asignado');
     }
 }

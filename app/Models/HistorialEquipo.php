@@ -19,11 +19,11 @@ class HistorialEquipo extends Model
         'fecha_ajuste',
     ];
 
-    public function usuarios(): BelongsTo
+    public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
-    public function equipos(): BelongsTo
+    public function equipo(): BelongsTo
     {
         return $this->belongsTo(Equipo::class);
     }

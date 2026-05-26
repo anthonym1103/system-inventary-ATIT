@@ -61,7 +61,7 @@ class User extends Authenticatable
 
     public function historialEquipos(): HasMany
     {
-        return $this->hasMany(HistorialEquipo::class);
+        return $this->hasMany(HistorialEquipo::class, 'usuario_id');
     }
     
 } 

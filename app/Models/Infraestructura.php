@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Equipo;
-use App\Models\Encargado;
+use App\Models\UserAsignado;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,14 +14,14 @@ class Infraestructura extends Model
     public $with = ['equipo'];
 
     protected $fillable = [
-        'encargado_id',
+        'asignado',
         'año',
         'ram',
         'disco',
         'direccion_mac',
+        'sistema_operativo',
         'numero_inventario',
         'dominio',
-        'estado',
         'unidad',
     ];
 
@@ -30,8 +30,8 @@ class Infraestructura extends Model
         return $this->belongsTo(Equipo::class);
     }
 
-    public function encargados(): BelongsTo
+    public function userAsignados(): BelongsTo
     {
-        return $this->belongsTo(Encargado::class);
+        return $this->belongsTo(UserAsignado::class);
     }
 }

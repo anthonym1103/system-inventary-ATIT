@@ -37,8 +37,11 @@ class CreateNewUser implements CreatesNewUsers
         return [
             'name.required' => 'Porfavor, introduce tu nombre.',
             'name.max' => 'El campo del nombre no debe tener más de 255 caracteres.',
+            'name.min' => 'El nombre debe tener al menos 2 caracteres.',
+            'name.regex' => 'El nombre solo puede contener letras, espacios y guiones.',
             'email.required' => 'El email es obligatorio, introduce tu correo.',
             'email.unique' => 'El correo electrónico ya ha sido registrado.',
+            'email.email' => 'Introduce un correo electrónico válido (ej. usuario@dominio.com).',
             'password.required' => 'Debe ingresar una contraseña.',
             'password.min' => 'El campo de contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'El campo de confirmacion de contraseña no coincide.',

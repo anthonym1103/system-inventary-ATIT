@@ -39,7 +39,7 @@ export default function Register() {
                                     tabIndex={1}
                                     autoComplete="name"
                                     name="name"
-                                    placeholder="Nombre Completo"
+                                    placeholder="Ej. Juan Pérez"
                                 />
                                 <InputError
                                     message={errors.name}

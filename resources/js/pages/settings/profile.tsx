@@ -10,8 +10,18 @@ import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import { UpdateAvatarForm } from '@/components/update-avatar-form';
 const translate = (key:string, message:string)=>{
-    if(key === 'name' && message === 'The name field must not be greater than 255 characters.'){
-        return 'El campo del nombre no debe tener más de 255 caracteres.';
+    if(key === 'name'){
+        if(message === 'The name field must not be greater than 255 characters.'){
+            return 'El campo del nombre no debe tener más de 255 caracteres.';
+        }else if(message === 'The name field must be at least 2 characters.'){
+            return 'El nombre debe tener al menos 2 caracteres.';
+        }else if(message === 'The name field format is invalid.'){
+            return 'El nombre solo puede contener letras, espacios y guiones.';
+        }
+    }else if(key === 'email'){
+        if(message === 'The email field must be a valid email address.'){
+            return 'Introduce un correo electrónico válido (ej. usuario@dominio.com)';
+        }
     }
 }
 
@@ -85,7 +95,7 @@ export default function Profile({
 
                                 <InputError
                                     className="mt-2"
-                                    message={errors.email}
+                                    message={translate('email', errors.email)}
                                 />
                             </div>
 

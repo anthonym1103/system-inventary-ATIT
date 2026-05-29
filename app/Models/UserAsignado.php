@@ -5,10 +5,14 @@ namespace App\Models;
 use App\Models\Telefono;
 use App\Models\Infraestructura;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class UserAsignado extends Model
 {
+
+    use HasFactory;
+
     protected $primaryKey = 'cedula';
     protected $keyType = 'string';
     public $incrementing = false;

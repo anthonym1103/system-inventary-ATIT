@@ -5,12 +5,15 @@ namespace App\Models;
 use App\Models\Equipo;
 use App\Models\UserAsignado;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Infraestructura extends Model
 {
     //
-    protected $incrementing = false;
+    use HasFactory;
+
+    public $incrementing = false;
     public $with = ['equipo'];
 
     protected $fillable = [

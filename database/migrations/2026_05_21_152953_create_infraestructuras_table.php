@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('infraestructuras', function (Blueprint $table) {
             $table->foreignId('id')->primary()->constrained('equipos')->onDelete('cascade');
-            $table->string('asignado');
-            $table->foreign('asignado')->references('cedula')->on('user_asignados')->onDelete('cascade');
-            $table->string('año');
+            $table->string('asignado_id');
+            $table->foreign('asignado_id')->references('cedula')->on('user_asignados')->onDelete('cascade');
+            $table->string('anio');
             $table->string('ram');
             $table->string('disco');
             $table->string('direccion_mac');

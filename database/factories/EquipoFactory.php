@@ -3,6 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\Equipo;
+use App\Models\Ubicacion;
+use App\Models\Infraestructura;
+use App\Enums\Area;
+use App\Enums\TipoEquipo;
+use App\Enums\CondicionEquipo;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,10 +20,56 @@ class EquipoFactory extends Factory
      *
      * @return array<string, mixed>
      */
+    protected $model = Equipo::class;
+
     public function definition(): array
     {
+        //Seleccionar un area aleatoria
+        $area = fake()->randomElement(Area::cases())->value;
+        
+        //Obtener tipos posibles para su area
+        $tipos = array_filter(TipoEquipo::cases(), fn($tipo) => $tipo->modulo()->value == $area);
+
+        //Seleccionar un tipo aleatorio
+        $tipo = fake()->randomElement($tipos)->value;
+
         return [
-            //
+            'ubicacion_id' => Ubicacion::inRandomOrder()->first()?->id ?? Ubicacion::factory(),
+            'area' => $area,
+            'tipo' => $tipo,
+            'condicion' => fake()->randomElement(CondicionEquipo::cases())->value,
+            'marca' => fake()->company(),
+            'modelo' => fake()->bothify('Modelo-###'),
+            'serial' => fake()->unique()->uuid(),
+            'detalle' => fake()->optional()->sentence(),
         ];
     }
+
+
+    public function infraestructura(): static
+    {
+        return $this->state(function (array $attributes){
+
+            $tipos = array_filter(TipoEquipo::cases(), fn($tipo) => $tipo->modulo()->value === Area::INFRAESTRUCTURA->value);
+            //Seleccionar un tipo aleatorio
+            $tipo = fake()->randomElement($tipos)->value;
+
+            return [
+                'area' => Area::INFRAESTRUCTURA->value,
+                'tipo' => $tipo,
+            ];
+
+        });
+    }
+
+
+    /*public function configure(): static
+    {
+        return $this->afterCreating(function(Equipo $equipo){
+            
+            if($equipo->area->value === Area::INFRAESTRUCTURA->value){
+                Infraestructura::factory()->create(['id' => $equipo->id]);
+            }
+        });
+    }*/
 }

@@ -6,34 +6,92 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-
+use Spatie\Permission\PermissionRegistrar;
+use App\Models\User;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+    // Áreas existentes
+    private array $areas = ['infraestructura', 'redes', 'transmision'];
+
+    // Posibles cargos por área (jerarquía)
+    private array $cargos = ['gerente', 'tecnico'];
+
+    // Permisos base que se pueden granular después
+    private array $permisosBase = [
+        'ver_equipos',
+        'crear_equipos',
+        'editar_equipos',
+        'eliminar_equipos',
+        'ver_historial',
+        'crear_usuarios',
+        'asignar_roles',
+    ];
+
     public function run(): void
     {
-        $permissions =[
-            'area_infraestructura',
-            'area_redes',
-            'area_transmision'
-        ];
+        //Limpiamos caché de permisos
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        foreach($permissions as $permissionName){
+        //Creamos permisos para cada área + acción
+        foreach($this->permisosBase as $permissionName){
             Permission::create(['name' => $permissionName]);
         }
 
-        $roleAdmin = Role::create(['name' => 'Administrador']);
-        $roleInfra = Role::create(['name' => 'Tecnico de Infraestructura']);
-        $roleRedes = Role::create(['name' => 'Tecnico de Redes y Telecomunicaciones']);
-        $roleTransm = Role::create(['name' => 'Tecnico de Transmision de Datos']);
+        //Creamos roles combinando cargo + área
+        foreach ($this->areas as $area) {
+            foreach ($this->cargos as $cargo) {
+                $roleName = "{$cargo}_{$area}";
+                $role = Role::create(['name' => $roleName]);
 
-        $roleAdmin->givePermissionTo($permissions); //Permiso para ver todos los sectores
-        $roleInfra->givePermissionTo($permissions[0]); //Permiso para ver el sector de infraestructura
-        $roleRedes->givePermissionTo($permissions[1]); //Permiso Para ver el sector de redes y telecomunicaciones
-        $roleTransm->givePermissionTo($permissions[2]); //Permiso para ver el sector de transmision de datos
+                // Asignar permisos según el cargo (definición de jerarquía)
+                $this->assignPermissionsToRole($role, $cargo);
+            }
+        }
 
+
+        $adminRole = Role::create(['name' => 'Administrador']);
+        $adminRole->givePermissionTo(Permission::all());
+
+        //Creamos roles a usuarios de prueba
+        $this->assignRolesToTestUsers();
+    }
+
+    private function assignPermissionsToRole(Role $role, string $cargo): void
+    {
+        // Aquí defines qué permisos tiene cada cargo
+        switch ($cargo) {
+            case 'gerente':
+                // Supervisor tiene todos los permisos de su área
+                $permisosAsignar = [
+                    "ver_equipos",
+                    "ver_historial",
+                    "crear_usuarios",
+                    "asignar_roles",
+                ];
+                break;
+            case 'tecnico':
+                $permisosAsignar = [
+                    "ver_equipos",
+                    "crear_equipos",
+                    "editar_equipos",
+                    "eliminar_equipos",
+                    "ver_historial",
+                ];
+                break;
+            default:
+                $permisosAsignar = [];
+        }
+
+        $role->givePermissionTo($permisosAsignar);
+    }
+
+    private function assignRolesToTestUsers(): void
+    {
+        $user = User::where('email', 'testfirst@gmail.com')->first();
+        if ($user) {
+            $user->assignRole('gerente_infraestructura');
+        }
     }
 }
+

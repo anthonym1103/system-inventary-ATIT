@@ -3,32 +3,30 @@
 namespace App\Models;
 
 use App\Models\Equipo;
-use App\Models\UserAsignado;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Infraestructura extends Model
+class Rede extends Model
 {
-    //
+    /** @use HasFactory<\Database\Factories\RedeFactory> */
     use HasFactory;
 
     public $incrementing = false;
     public $with = ['equipo'];
 
     protected $fillable = [
-        'año',
-        'ram',
-        'disco',
+        'puerto',
+        'puerto_fibra',
+        'contraseña_bios',
+        'direccion_ip',
         'direccion_mac',
-        'sistema_operativo',
-        'numero_inventario',
-        'dominio',
+        'extension',
+        'ubicacion_puerto'
     ];
 
     public function equipo(): BelongsTo
     {
         return $this->belongsTo(Equipo::class, 'id');
     }
-
 }

@@ -4,7 +4,7 @@ namespace App\Enums;
 
 enum Area: string
 {
-    case INFRAESTRUCTURA = 'Infraestructura';
-    case REDES = 'Redes';
-    case TRANSMISION = 'Transmision de Datos';
+    case INFRAESTRUCTURA = 'infraestructura';
+    case REDES = 'redes';
+    case TRANSMISION = 'transmision_datos';
 }

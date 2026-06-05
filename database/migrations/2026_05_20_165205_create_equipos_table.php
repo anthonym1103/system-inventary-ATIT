@@ -15,10 +15,12 @@ return new class extends Migration
         Schema::create('equipos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ubicacion_id')->constrained('ubicacions')->onDelete('cascade');
+            $table->string('asignado_id')->nullable();
+            $table->foreign('asignado_id')->references('cedula')->on('user_asignados')->onDelete('cascade');
             $table->string('area');
             $table->string('tipo');
             $table->string('condicion')->default(CondicionEquipo::OPERATIVO->value);
-            $table->string('marca');
+            $table->string('marca')->nullable();
             $table->string('modelo');
             $table->string('serial')->unique();
             $table->string('detalle')->nullable();

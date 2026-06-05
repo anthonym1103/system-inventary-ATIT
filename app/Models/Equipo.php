@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Models\Ubicacion;
 use App\Models\HistorialEquipo;
 use App\Models\Infraestructura;
+use App\Models\Rede;
+use App\Models\Transmision;
 use App\Enums\Area;
 use App\Enums\CondicionEquipo;
 use App\Enums\TipoEquipo;
@@ -21,6 +23,7 @@ class Equipo extends Model
 
     protected $fillable = [
         'ubicacion_id',
+        'asignado_id',
         'area',
         'tipo',
         'condicion',
@@ -67,6 +70,11 @@ class Equipo extends Model
         return $this->belongsTo(Ubicacion::class);
     }
 
+    public function userAsignado(): BelongsTo
+    {
+        return $this->belongsTo(UserAsignado::class, 'asignado');
+    }
+
     public function historialEquipos(): HasMany
     {
         return $this->hasMany(HistorialEquipo::class, 'equipo_id');
@@ -76,4 +84,16 @@ class Equipo extends Model
     {
         return $this->hasOne(Infraestructura::class, 'id');
     }
+    
+    public function rede(): HasOne
+    {
+        return $this->hasOne(Rede::class, 'id');
+    }
+
+    public function transmision(): HasOne
+    {
+        return $this->hasOne(Transmision::class, 'id');
+    }
+
+    
 }

@@ -11,15 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('infraestructuras', function (Blueprint $table) {
+        Schema::create('transmisions', function (Blueprint $table) {
             $table->foreignId('id')->primary()->constrained('equipos')->onDelete('cascade');
-            $table->string('anio')->nullable();
-            $table->string('ram');
-            $table->string('disco');
-            $table->string('direccion_mac');
-            $table->string('sistema_operativo');
-            $table->string('numero_inventario');
-            $table->string('dominio');
+            $table->string('potencia')->nullable();
+            $table->string('rango_frecuencia')->nullable();
+            $table->string('unidad_usuario')->nullable();
+            $table->string('caracteristicas')->nullable();
+            $table->string('numero_inventario')->nullable();
             $table->timestamps();
         });
     }
@@ -29,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('infraestructuras');
+        Schema::dropIfExists('transmisions');
     }
 };

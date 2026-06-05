@@ -8,11 +8,10 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use App\Models\User;
+use App\Enums\Area;
 
 class RoleSeeder extends Seeder
 {
-    // Áreas existentes
-    private array $areas = ['infraestructura', 'redes', 'transmision'];
 
     // Posibles cargos por área (jerarquía)
     private array $cargos = ['gerente', 'tecnico'];
@@ -38,10 +37,12 @@ class RoleSeeder extends Seeder
             Permission::create(['name' => $permissionName]);
         }
 
+        
         //Creamos roles combinando cargo + área
-        foreach ($this->areas as $area) {
+        $areas = Area::cases();
+        foreach ($areas as $area) {
             foreach ($this->cargos as $cargo) {
-                $roleName = "{$cargo}_{$area}";
+                $roleName = "{$cargo}_{$area->value}";
                 $role = Role::create(['name' => $roleName]);
 
                 // Asignar permisos según el cargo (definición de jerarquía)

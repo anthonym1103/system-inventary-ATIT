@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('infraestructuras', function (Blueprint $table) {
+        Schema::create('redes', function (Blueprint $table) {
             $table->foreignId('id')->primary()->constrained('equipos')->onDelete('cascade');
-            $table->string('anio')->nullable();
-            $table->string('ram');
-            $table->string('disco');
-            $table->string('direccion_mac');
-            $table->string('sistema_operativo');
-            $table->string('numero_inventario');
-            $table->string('dominio');
+            $table->string('puerto')->nullable();
+            $table->string('puerto_fibra')->nullable();
+            $table->string('contraseña_bios')->nullable();
+            $table->string('direccion_ip')->nullable();
+            $table->string('direccion_mac')->nullable();
+            $table->string('extension')->nullable();
+            $table->string('ubicacion_puerto')->nullable();
             $table->timestamps();
         });
     }
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('infraestructuras');
+        Schema::dropIfExists('redes');
     }
 };

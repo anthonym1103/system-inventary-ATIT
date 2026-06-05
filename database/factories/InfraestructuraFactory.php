@@ -23,7 +23,6 @@ class InfraestructuraFactory extends Factory
     {
 
         return [
-            'asignado_id' => UserAsignado::inRandomOrder()->first()?->cedula ?? UserAsignado::factory(),
             'anio' => (string) fake()->year(),
             'ram' => fake()->randomElement(['2GB','4GB','8GB','16GB']),
             'disco' => fake()->randomElement(['256GB SSD','512GB SSD','256GB HDD']),
@@ -31,7 +30,6 @@ class InfraestructuraFactory extends Factory
             'sistema_operativo' => fake()->randomElement(['Windows 10','Windows 7','Windows 11']),
             'numero_inventario' => fake()->unique()->numerify('INV-####'),
             'dominio' => fake()->domainName(),
-            'unidad' => fake()->word(),
     
         ];
     }

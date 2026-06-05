@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Ubicacion;
 use App\Models\UserAsignado;
-use App\Models\Infraestructura;
 use App\Models\Equipo;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -24,14 +23,14 @@ class DatabaseSeeder extends Seeder
  
         $asignados = UserAsignado::factory(10)->create();
 
-        Equipo::factory(35)->infraestructura()->afterMaking(function ($equipo) use ($ubicaciones){
+        Equipo::factory(35)->afterMaking(function ($equipo) use ($ubicaciones, $asignados){
             $equipo->ubicacion_id = $ubicaciones->random()->id;
-            })->create()->each(function($equipo) use ($asignados){
-                Infraestructura::factory()->create([
-                    'id' => $equipo->id,
-                    'asignado_id' => $asignados->random()->cedula,
-                ]);
-            });
+            if($equipo->area->value === 'infraestructura' || $equipo->tipo->value === 'telefono_analogico' || $equipo->tipo->value === 'telefono_digital'){
+                $equipo->asignado_id = $asignados->random()->cedula;
+            }else{
+                $equipo->asignado_id = null;
+            }
+            })->create();
 
         User::factory()->create([
             'name' => 'Anthony Medina',

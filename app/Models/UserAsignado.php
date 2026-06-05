@@ -2,8 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Telefono;
-use App\Models\Infraestructura;
+use App\Models\Equipo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,16 +20,12 @@ class UserAsignado extends Model
         'cedula',
         'nombre',
         'apellido',
+        'telefono',
         'gerencia',
     ];
 
-    public function telefonos():HasMany
+    public function equipo():HasMany
     {
-        return $this->hasMany(Telefono::class);
-    }
-
-    public function infraestructura():HasMany
-    {
-        return $this->hasMany(Infraestructura::class);
+        return $this->hasMany(Equipo::class);
     }
 }

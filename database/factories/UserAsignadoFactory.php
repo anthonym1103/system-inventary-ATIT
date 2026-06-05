@@ -25,6 +25,7 @@ class UserAsignadoFactory extends Factory
             'cedula' => fake()->unique()->numerify('V########'),
             'nombre' => fake()->firstName(),
             'apellido' => fake()->lastName(),
+            'telefono' => fake()->unique()->numerify('+58041########'),
             'gerencia' => fake()->randomElement(['Gerencia ATIT', 'Gerencia de Operaciones']),
         ];
     }

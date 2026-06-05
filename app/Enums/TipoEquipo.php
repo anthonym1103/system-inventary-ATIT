@@ -11,27 +11,32 @@ enum TipoEquipo: string
     case IMPRESORA_MULTI = 'impresora_multi';
     case IMPRESORA = 'impresora';
     case IMPRESORA_PLANOS = 'impresora_planos';
-    case ESCANER = 'Escaner';
+    case SCANNER = 'scanner';
 
     //Equipos del area de redes
-    case ROUTER = 'Router';
-    case SWITCHES = 'Switches';
-    case ROUTER_WIFI = 'Router Wifi';
-
+    case ROUTER = 'router';
+    case SWITCHES = 'switch';
+    case ROUTER_WIFI = 'router_wifi';
+    case TELEFONO_ANALOGICO = 'telefono_analogico';
+    case TELEFONO_DIGITAL = 'telefono_digital';
+    
     //Equipos del area de transmision
-    case RADIO_PORTATIL = 'Radio Portatil';
-    case RADIO_BASE = 'Radio Base';
-    case RADIO_MOVIL = 'Radio Movil';
-    case MULTIPLEXOR = 'Multiplexor acceso';
-    case TRANSPORTE_MO = 'Transporte M/O';
-    case TRANSPORTE_FO = 'Transporte F/O';
+    case RADIO_PORTATIL = 'radio_portatil';
+    case RADIO_BASE = 'radio_base';
+    case RADIO_MOVIL = 'radio_movil';
+    case MULTIPLEXOR = 'multiplexor_acceso';
+    case TRANSPORTE_MO = 'transporte_m/o';
+    case TRANSPORTE_FO = 'transporte_f/o';
+    case REPETIDOR_VHF = 'repetidor_vhf';
+    case ESTACION_MOVIL = 'estacion_movil_mts';
+    case SERVIDOR_MTS = 'servidor_mts';
 
     public function modulo(): Area
     {
         return match($this){
-            self::MICRO_ESCRITORIO, self::PORTATIL, self::SERVIDOR, self::IMPRESORA_MULTI, self::IMPRESORA, self::IMPRESORA_PLANOS, self::ESCANER  => Area::INFRAESTRUCTURA,
-            self::ROUTER, self::SWITCHES, self::ROUTER_WIFI => Area::REDES,
-            self::RADIO_PORTATIL, self::RADIO_BASE, self::RADIO_MOVIL, self::MULTIPLEXOR, self::TRANSPORTE_MO, self::TRANSPORTE_FO => Area::TRANSMISION,
+            self::MICRO_ESCRITORIO, self::PORTATIL, self::SERVIDOR, self::IMPRESORA_MULTI, self::IMPRESORA, self::IMPRESORA_PLANOS, self::SCANNER  => Area::INFRAESTRUCTURA,
+            self::ROUTER, self::SWITCHES, self::ROUTER_WIFI, self::TELEFONO_ANALOGICO, self::TELEFONO_DIGITAL => Area::REDES,
+            self::RADIO_PORTATIL, self::RADIO_BASE, self::RADIO_MOVIL, self::MULTIPLEXOR, self::TRANSPORTE_MO, self::TRANSPORTE_FO, self::REPETIDOR_VHF, self::ESTACION_MOVIL, self::SERVIDOR_MTS => Area::TRANSMISION,
         };
     }
 
@@ -44,7 +49,21 @@ enum TipoEquipo: string
             self::IMPRESORA_MULTI => 'Impresora Multifuncional',
             self::IMPRESORA => 'Impresora',
             self::IMPRESORA_PLANOS => 'Impresora de Planos Plotter',
-            self::ESCANER => 'Escaner',
+            self::SCANNER => 'Scanner',
+            self::ROUTER => 'Router',
+            self::SWITCHES => 'Switch',
+            self::ROUTER_WIFI => 'Router Wifi',
+            self::TELEFONO_ANALOGICO => 'Telefono Analogico',
+            self::TELEFONO_DIGITAL => 'Telefono Digital',
+            self::RADIO_PORTATIL => 'Radio Portatil ',
+            self::RADIO_BASE => 'Radio Base',
+            self::RADIO_MOVIL => 'Radio Movil',
+            self::MULTIPLEXOR => 'Multiplexor Acceso',
+            self::TRANSPORTE_MO => 'Transporte M/O',
+            self::TRANSPORTE_FO => 'Transporte F/O',
+            self::REPETIDOR_VHF => 'Repetidor VHF',
+            self::ESTACION_MOVIL => 'Estacion Movil MTS',
+            self::SERVIDOR_MTS => 'Servidor MTS',
             default => $this->value,
         };
     }

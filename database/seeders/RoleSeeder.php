@@ -90,9 +90,19 @@ class RoleSeeder extends Seeder
     private function assignRolesToTestUsers(): void
     {
         $user = User::where('email', 'testfirst@gmail.com')->first();
-        if ($user) {
-            $user->assignRole('gerente_infraestructura');
+        if ($user ) {
+            if($user->area === Area::INFRAESTRUCTURA->value){
+                $user->assignRole('gerente_infraestructura');
+            }elseif ($user->area === Area::REDES->value){
+                $user->assignRole('gerente_redes');
+            }else{
+                $user->assignRole('gerente_transmision_datos');
+            }
         }
     }
+
+    //esperanza problema en el corporativo con el equipo
+
+    //irisbel se llevo un cable
 }
 

@@ -5,13 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Equipo;
 use App\Models\HistorialEquipo;
 use App\Models\Infraestructura;
+use App\Models\Rede;
+use App\Models\Transmision;
 use App\Models\Ubicacion;
 use App\Models\UserAsignado;
 use App\Enums\Area;
 use App\Enums\TipoEquipo;
+use App\Enums\CondicionEquipo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class EquipoController extends Controller
 {
@@ -22,7 +26,7 @@ class EquipoController extends Controller
     {
         $user = Auth::user();
         $query = Equipo::query();
-
+        
         // 1. Filtrar por área según los permisos del usuario
         $allowedAreas = $this->getUserAllowedAreas($user);
         if (!empty($allowedAreas) && !$user->hasRole('Administrador')) {
@@ -50,8 +54,10 @@ class EquipoController extends Controller
             $query->where('ubicacion_id', $request->ubicacion_id);
         }
 
-        // 5. Cargar relaciones necesarias para la tabla
-        $query->with(['ubicacion', 'infraestructura.userAsignado']);
+        // 5. Cargar relaciones necesarias para la tabla (solo las comunes o las que apliquen)
+        // Por simplicidad, cargamos las relaciones polimórficas? No, son hasOne separados.
+        // En la tabla se pueden mostrar datos de la relación según el área.
+        $query->with(['ubicacion', 'infraestructura.userAsignado', 'rede', 'transmision']);
 
         $equipos = $query->paginate(15)->withQueryString();
 
@@ -95,31 +101,45 @@ class EquipoController extends Controller
                 ['value' => 'Operativo', 'label' => 'Operativo'],
                 ['value' => 'No operativo', 'label' => 'No operativo'],
             ],
+            // Para los selects de asignados (solo aplica a infraestructura o teléfonos)
+            'asignados' => UserAsignado::all(['cedula', 'nombre', 'apellido']),
         ]);
     }
 
     /**
-     * Almacena un nuevo equipo y su infraestructura si aplica.
+     * Almacena un nuevo equipo y sus datos específicos según área.
      */
     public function store(Request $request)
     {
         $user = Auth::user();
         $allowedAreas = $this->getUserAllowedAreas($user);
 
-        // Validación común del equipo
+        // Validar área y tipo
+        $request->validate([
+            'area' => ['required', 'string', Rule::in($allowedAreas)],
+            'tipo' => ['required', 'string', function ($attribute, $value, $fail) use ($request) {
+                $tipoEnum = TipoEquipo::tryFrom($value);
+                if (!$tipoEnum || $tipoEnum->modulo()->value !== $request->area) {
+                    $fail('El tipo seleccionado no pertenece al área indicada.');
+                }
+            }],
+        ]);
+
+        // Reglas base del equipo
         $rules = [
             'ubicacion_id' => 'required|exists:ubicacions,id',
-            'area' => 'required|string|in:' . implode(',', $allowedAreas),
-            'tipo' => 'required|string',
             'condicion' => 'required|string|in:Operativo,No operativo',
-            'marca' => 'required|string|max:255',
+            'marca' => 'nullable|string|max:255',
             'modelo' => 'required|string|max:255',
             'serial' => 'required|string|unique:equipos,serial',
             'detalle' => 'nullable|string',
         ];
 
-        // Si el área es Infraestructura, añadir validaciones de infraestructura
-        if ($request->area === Area::INFRAESTRUCTURA->value) {
+        // Reglas específicas por área (condicionales según tipo)
+        $area = $request->area;
+        $tipo = $request->tipo;
+
+        if ($area === Area::INFRAESTRUCTURA->value) {
             $rules = array_merge($rules, [
                 'asignado' => 'nullable|exists:user_asignados,cedula',
                 'año' => 'nullable|string',
@@ -129,34 +149,55 @@ class EquipoController extends Controller
                 'sistema_operativo' => 'nullable|string',
                 'numero_inventario' => 'nullable|string',
                 'dominio' => 'nullable|string',
-                'unidad' => 'nullable|string',
             ]);
+        } elseif ($area === Area::REDES->value) {
+            // Definir reglas según tipo de equipo de redes
+            $rules = array_merge($rules, $this->getRedesValidationRules($tipo));
+        } elseif ($area === Area::TRANSMISION->value) {
+            $rules = array_merge($rules, $this->getTransmisionValidationRules($tipo));
         }
 
         $validated = $request->validate($rules);
 
         // Crear equipo
-        $equipo = Equipo::create($request->only([
-            'ubicacion_id', 'area', 'tipo', 'condicion', 'marca', 'modelo', 'serial', 'detalle'
-        ]));
+        $equipo = Equipo::create([
+            'ubicacion_id' => $request->ubicacion_id,
+            'asignado_id' => $request->asignado ?? null, // solo para infraestructura o teléfonos
+            'area' => $request->area,
+            'tipo' => $request->tipo,
+            'condicion' => $request->condicion,
+            'marca' => $request->marca,
+            'modelo' => $request->modelo,
+            'serial' => $request->serial,
+            'detalle' => $request->detalle,
+        ]);
 
-        // Si es infraestructura, crear el registro relacionado
-        if ($request->area === Area::INFRAESTRUCTURA->value) {
+        // Crear registro específico del área
+        if ($area === Area::INFRAESTRUCTURA->value) {
             Infraestructura::create([
                 'id' => $equipo->id,
                 'asignado' => $request->asignado,
-                'año' => $request->año,
+                'anio' => $request->año,
                 'ram' => $request->ram,
                 'disco' => $request->disco,
                 'direccion_mac' => $request->direccion_mac,
                 'sistema_operativo' => $request->sistema_operativo,
                 'numero_inventario' => $request->numero_inventario,
                 'dominio' => $request->dominio,
-                'unidad' => $request->unidad,
             ]);
+        } elseif ($area === Area::REDES->value) {
+            Rede::create(array_merge(
+                ['id' => $equipo->id],
+                $this->filterRedesData($request, $tipo)
+            ));
+        } elseif ($area === Area::TRANSMISION->value) {
+            Transmision::create(array_merge(
+                ['id' => $equipo->id],
+                $this->filterTransmisionData($request, $tipo)
+            ));
         }
 
-        // Registrar historial de creación
+        // Registrar historial
         HistorialEquipo::create([
             'usuario_id' => $user->id,
             'equipo_id' => $equipo->id,
@@ -176,11 +217,16 @@ class EquipoController extends Controller
         $user = Auth::user();
         $this->authorizeArea($user, $equipo->area);
 
-        $equipo->load([
-            'ubicacion',
-            'infraestructura.userAsignado',
-            'historialEquipos.usuario'
-        ]);
+        // Cargar la relación correspondiente según el área
+        if ($equipo->area === Area::INFRAESTRUCTURA->value) {
+            $equipo->load('infraestructura.userAsignado');
+        } elseif ($equipo->area === Area::REDES->value) {
+            $equipo->load('rede');
+        } elseif ($equipo->area === Area::TRANSMISION->value) {
+            $equipo->load('transmision');
+        }
+
+        $equipo->load('ubicacion', 'historialEquipos.usuario');
 
         return Inertia::render('equipos/Show', [
             'equipo' => $equipo,
@@ -195,9 +241,16 @@ class EquipoController extends Controller
         $user = Auth::user();
         $this->authorizeArea($user, $equipo->area);
 
-        $equipo->load('infraestructura');
+        // Cargar la relación correspondiente según el área
+        if ($equipo->area === Area::INFRAESTRUCTURA->value) {
+            $equipo->load('infraestructura');
+        } elseif ($equipo->area === Area::REDES->value) {
+            $equipo->load('rede');
+        } elseif ($equipo->area === Area::TRANSMISION->value) {
+            $equipo->load('transmision');
+        }
 
-        // Tipos permitidos para esta área
+        // Tipos permitidos para esta área (solo los de su área)
         $tiposDisponibles = [];
         foreach (TipoEquipo::cases() as $tipo) {
             if ($tipo->modulo()->value === $equipo->area) {
@@ -208,7 +261,15 @@ class EquipoController extends Controller
             }
         }
 
-        return Inertia::render('equipos/Edit', [
+        // Datos adicionales para el formulario según área
+        $extraData = [];
+        if ($equipo->area === Area::INFRAESTRUCTURA->value) {
+            $extraData['asignados'] = UserAsignado::all(['cedula', 'nombre', 'apellido']);
+        } elseif ($equipo->area === Area::REDES->value) {
+            // Posiblemente no se necesite nada extra
+        }
+
+        return Inertia::render('equipos/Edit', array_merge([
             'equipo' => $equipo,
             'ubicaciones' => Ubicacion::all(['id', 'estado', 'locacion']),
             'tipos' => $tiposDisponibles,
@@ -216,14 +277,11 @@ class EquipoController extends Controller
                 ['value' => 'Operativo', 'label' => 'Operativo'],
                 ['value' => 'No operativo', 'label' => 'No operativo'],
             ],
-            'asignados' => $equipo->area === Area::INFRAESTRUCTURA->value
-                ? UserAsignado::all(['cedula', 'nombre', 'apellido'])
-                : [],
-        ]);
+        ], $extraData));
     }
 
     /**
-     * Actualiza el equipo y su infraestructura si corresponde.
+     * Actualiza el equipo y sus datos específicos.
      */
     public function update(Request $request, Equipo $equipo)
     {
@@ -234,14 +292,16 @@ class EquipoController extends Controller
         $rules = [
             'ubicacion_id' => 'sometimes|exists:ubicacions,id',
             'condicion' => 'sometimes|string|in:Operativo,No operativo',
-            'marca' => 'sometimes|string|max:255',
+            'marca' => 'nullable|string|max:255',
             'modelo' => 'sometimes|string|max:255',
-            'serial' => 'sometimes|string|unique:equipos,serial,' . $equipo->id,
+            'serial' => ['sometimes', 'string', Rule::unique('equipos', 'serial')->ignore($equipo->id)],
             'detalle' => 'nullable|string',
         ];
 
-        // Si el equipo pertenece a infraestructura, añadir reglas de infraestructura
-        if ($equipo->area === Area::INFRAESTRUCTURA->value) {
+        $area = $equipo->area;
+        $tipo = $equipo->tipo; // El tipo no debería cambiar, pero si se permite, habría que validar
+
+        if ($area === Area::INFRAESTRUCTURA->value) {
             $rules = array_merge($rules, [
                 'asignado' => 'nullable|exists:user_asignados,cedula',
                 'año' => 'nullable|string',
@@ -251,48 +311,54 @@ class EquipoController extends Controller
                 'sistema_operativo' => 'nullable|string',
                 'numero_inventario' => 'nullable|string',
                 'dominio' => 'nullable|string',
-                'unidad' => 'nullable|string',
             ]);
+        } elseif ($area === Area::REDES->value) {
+            $rules = array_merge($rules, $this->getRedesValidationRules($tipo, false));
+        } elseif ($area === Area::TRANSMISION->value) {
+            $rules = array_merge($rules, $this->getTransmisionValidationRules($tipo, false));
         }
 
-        $validated = $request->validate($rules);
+        $request->validate($rules);
 
         // Actualizar campos del equipo
         $equipo->update($request->only([
             'ubicacion_id', 'condicion', 'marca', 'modelo', 'serial', 'detalle'
         ]));
 
-        // Manejar infraestructura
-        if ($equipo->area === Area::INFRAESTRUCTURA->value) {
+        // Manejar actualización del registro específico
+        if ($area === Area::INFRAESTRUCTURA->value) {
             $infra = $equipo->infraestructura ?: new Infraestructura(['id' => $equipo->id]);
             $infra->fill($request->only([
-                'asignado', 'año', 'ram', 'disco', 'direccion_mac', 'sistema_operativo',
-                'numero_inventario', 'dominio', 'unidad'
+                'asignado', 'anio', 'ram', 'disco', 'direccion_mac', 'sistema_operativo',
+                'numero_inventario', 'dominio',
             ]));
             $infra->save();
-        } else {
-            // Si no es infraestructura pero tiene un registro huérfano, lo eliminamos
-            if ($equipo->infraestructura) {
-                $equipo->infraestructura->delete();
-            }
+        } elseif ($area === Area::REDES->value) {
+            $rede = $equipo->rede ?: new Rede(['id' => $equipo->id]);
+            $redeData = $this->filterRedesData($request, $tipo);
+            $rede->fill($redeData);
+            $rede->save();
+        } elseif ($area === Area::TRANSMISION->value) {
+            $trans = $equipo->transmision ?: new Transmision(['id' => $equipo->id]);
+            $transData = $this->filterTransmisionData($request, $tipo);
+            $trans->fill($transData);
+            $trans->save();
         }
 
         // El historial de cambios se registra automáticamente mediante el evento `updating` del modelo.
-        // Si prefieres hacerlo manualmente, descomenta el bloque comentado en el modelo y elimina el evento.
 
         return redirect()->route('equipos.index')
             ->with('success', 'Equipo actualizado correctamente.');
     }
 
     /**
-     * Elimina el equipo (y su infraestructura por cascade).
+     * Elimina el equipo (y sus relaciones por cascade).
      */
     public function destroy(Equipo $equipo)
     {
         $user = Auth::user();
         $this->authorizeArea($user, $equipo->area);
 
-        // Registrar en historial antes de eliminar
         HistorialEquipo::create([
             'usuario_id' => $user->id,
             'equipo_id' => $equipo->id,
@@ -306,8 +372,137 @@ class EquipoController extends Controller
             ->with('success', 'Equipo eliminado.');
     }
 
+    // ------------------------------------------------------------------------
+    // Métodos privados auxiliares
+    // ------------------------------------------------------------------------
+
     /**
-     * Devuelve las áreas (valores) a las que el usuario tiene permiso.
+     * Devuelve las reglas de validación para equipos de redes según el tipo.
+     */
+    private function getRedesValidationRules(string $tipo, bool $required = true): array
+    {
+        $rules = [
+            'puerto' => 'nullable|string',
+            'puerto_fibra' => 'nullable|string',
+            'contraseña_bios' => 'nullable|string',
+            'direccion_ip' => 'nullable|ip',
+            'direccion_mac' => 'nullable|regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/',
+            'extension' => 'nullable|string',
+            'ubicacion_puerto' => 'nullable|string',
+        ];
+
+        // Según el tipo, algunos campos pueden ser requeridos o no.
+        // Ejemplo: teléfono analógico no tiene IP ni MAC, pero puede tener extensión.
+        // Aquí definimos qué campos son requeridos (si required=true) o simplemente permitimos nulos.
+        // Para mantener flexibilidad, no hacemos campos requeridos a menos que sea estrictamente necesario.
+        // El frontend se encargará de mostrar/ocultar, y el backend permite nulos.
+        // Si quisiéramos exigir ciertos campos según tipo, podríamos hacer:
+        if ($tipo === 'telefono_analogico') {
+            // Por ejemplo, extensión podría ser requerida
+            if ($required) {
+                $rules['extension'] = 'required|string';
+            }
+            // Eliminar reglas que no aplican
+            $rules['direccion_ip'] = 'prohibited';
+            $rules['direccion_mac'] = 'prohibited';
+        } elseif ($tipo === 'telefono_digital') {
+            if ($required) {
+                $rules['direccion_ip'] = 'required|ip';
+                $rules['extension'] = 'required|string';
+            }
+            $rules['puerto_fibra'] = 'prohibited';
+            $rules['ubicacion_puerto'] = 'prohibited';
+        } else {
+            // routers, switches, router_wifi
+            if ($required) {
+                $rules['direccion_ip'] = 'required|ip';
+                $rules['direccion_mac'] = 'required|regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/';
+            }
+            $rules['extension'] = 'prohibited';
+            $rules['ubicacion_puerto'] = 'prohibited';
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Filtra los datos recibidos para el modelo Rede según el tipo.
+     * Solo toma los campos que aplican, evitando guardar valores null en columnas que no deben tenerlos.
+     */
+    private function filterRedesData(Request $request, string $tipo): array
+    {
+        $data = [];
+        $allowedFields = ['puerto', 'puerto_fibra', 'contraseña_bios', 'direccion_ip', 'direccion_mac', 'extension', 'ubicacion_puerto'];
+
+        foreach ($allowedFields as $field) {
+            if ($request->has($field)) {
+                $data[$field] = $request->input($field);
+            }
+        }
+
+        // Limpiar según tipo (opcional: eliminar campos que no deben persistir)
+        if ($tipo === 'telefono_analogico') {
+            unset($data['direccion_ip'], $data['direccion_mac']);
+        } elseif ($tipo === 'telefono_digital') {
+            unset($data['puerto_fibra'], $data['ubicacion_puerto']);
+        } else {
+            unset($data['extension'], $data['ubicacion_puerto']);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Devuelve las reglas de validación para equipos de transmisión según el tipo.
+     */
+    private function getTransmisionValidationRules(string $tipo, bool $required = true): array
+    {
+        $rules = [
+            'potencia' => 'nullable|string',
+            'rango_frecuencia' => 'nullable|string',
+            'unidad_usuario' => 'nullable|string',
+            'caracteristicas' => 'nullable|string',
+            'numero_inventario' => 'nullable|string',
+        ];
+
+        // Ejemplo: radios pueden necesitar potencia y rango; multiplexores quizás no.
+        if (in_array($tipo, ['radio_portatil', 'radio_base', 'radio_movil', 'repetidor_vhf', 'estacion_movil_mts'])) {
+            if ($required) {
+                $rules['potencia'] = 'required|string';
+                $rules['rango_frecuencia'] = 'required|string';
+            }
+            $rules['numero_inventario'] = 'nullable';
+        } elseif (in_array($tipo, ['multiplexor', 'transporte_m/o', 'transporte_f/o', 'servidor_mts'])) {
+            if ($required) {
+                $rules['numero_inventario'] = 'required|string';
+            }
+            $rules['potencia'] = 'prohibited';
+            $rules['rango_frecuencia'] = 'prohibited';
+            $rules['unidad_usuario'] = 'prohibited';
+            $rules['caracteristicas'] = 'prohibited';
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Filtra los datos para Transmision según tipo.
+     */
+    private function filterTransmisionData(Request $request, string $tipo): array
+    {
+        $data = $request->only(['potencia', 'rango_frecuencia', 'unidad_usuario', 'caracteristicas', 'numero_inventario']);
+
+        if (in_array($tipo, ['radio_portatil', 'radio_base', 'radio_movil', 'repetidor_vhf', 'estacion_movil_mts'])) {
+            unset($data['numero_inventario']); // Opcional, lo dejamos pero podría ser null en BD
+        } elseif (in_array($tipo, ['multiplexor', 'transporte_m/o', 'transporte_f/o', 'servidor_mts'])) {
+            unset($data['potencia'], $data['rango_frecuencia'], $data['unidad_usuario'], $data['caracteristicas']);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Devuelve las áreas a las que el usuario tiene permiso.
      */
     private function getUserAllowedAreas($user): array
     {
@@ -321,7 +516,6 @@ class EquipoController extends Controller
         if ($user->hasPermissionTo('area_transmision')) {
             $areas[] = Area::TRANSMISION->value;
         }
-        // Si es administrador, devolvemos todas las áreas
         if ($user->hasRole('Administrador')) {
             return array_map(fn($area) => $area->value, Area::cases());
         }
@@ -329,11 +523,11 @@ class EquipoController extends Controller
     }
 
     /**
-     * Lanza una excepción 403 si el usuario no tiene permiso para el área del equipo.
+     * Autoriza el acceso al área del equipo.
      */
     private function authorizeArea($user, string $area)
     {
-        $permiso = 'area_' . strtolower(str_replace(' ', '_', $area));
+        $permiso = 'area_' . $area; // El área ya viene en minúsculas sin espacios
         if (!$user->hasPermissionTo($permiso) && !$user->hasRole('Administrador')) {
             abort(403, 'No tienes permiso para acceder a este equipo.');
         }

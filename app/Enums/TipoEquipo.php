@@ -44,7 +44,7 @@ enum TipoEquipo: string
     {
         return match($this){
             self::MICRO_ESCRITORIO => 'Microcomputador de escritorio',
-            self::PORTATIL => 'Portatil',
+            self::PORTATIL => 'Computador portatil',
             self::SERVIDOR => 'Servidor',
             self::IMPRESORA_MULTI => 'Impresora Multifuncional',
             self::IMPRESORA => 'Impresora',

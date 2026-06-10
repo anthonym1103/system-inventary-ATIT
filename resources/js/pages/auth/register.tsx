@@ -7,16 +7,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
-import { store } from '@/routes/register';
+import { store } from '@/routes/register'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { useState } from 'react';
 
-/*
-const translate =(key:string, message:string) => {
-    
-    console.log(message);
-    return message
-};
-*/
+const areaOptions = [
+    { value: 'infraestructura', label: 'Infraestructura' },
+    { value: 'redes', label: 'Redes y Telefónia' },
+    { value: 'transmision_datos', label: 'Transmisión de Datos' },
+];
+
 export default function Register() {
+
+    const [selectedArea, setSelectedArea] = useState('');
+
     return (
         <>
             <Head title="Register"/>
@@ -26,7 +36,7 @@ export default function Register() {
                 disableWhileProcessing
                 className="flex flex-col gap-6"
             >
-                {({ processing, errors }) => (
+                {({ processing, errors,  }) => (
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
@@ -46,6 +56,32 @@ export default function Register() {
                                     className="mt-2"
                                 />
                             </div>
+                            
+                            {/*<div className="grid gap-2">
+                                <Label htmlFor="area">Area</Label>
+                                <Select
+                                    value={selectedArea}
+                                    onValueChange={(value) => setSelectedArea(value)}
+                                    required
+                                >
+                                    <SelectTrigger tabIndex={2} className='w-full'>
+                                        <SelectValue placeholder="Selecciona un área" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {areaOptions.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {/* Hidden input para que Inertia envíe el valor 
+                                <input type="hidden" name="area" value={selectedArea} />
+                                <InputError 
+                                    message={errors.area}
+                                    className="mt-2"
+                                />
+                            </div> */}
 
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Direccion de correo electronico</Label>

@@ -41,7 +41,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
         <>
             <Head title="Dashboard" />
             <div className="p-6 space-y-6">
-                <h1 className="text-2xl font-bold">Dashboard de Inventario</h1>
+                <h1 className="text-2xl font-bold">Resumen de Inventario</h1>
                 
                 {/* Tarjetas de totales por área */}
                 <div className="grid gap-4 md:grid-cols-3">
@@ -90,7 +90,8 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Tipo</TableHead>
-                                    <TableHead>Marca/Modelo</TableHead>
+                                    <TableHead>Marca</TableHead>
+                                    <TableHead>Modelo</TableHead>
                                     <TableHead>Serial</TableHead>
                                     <TableHead>Condición</TableHead>
                                     <TableHead>Ubicación</TableHead>
@@ -101,7 +102,8 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                                 {ultimosEquipos.map((equipo) => (
                                     <TableRow key={equipo.id}>
                                         <TableCell className="font-medium">{tiposLabels[equipo.tipo] || equipo.tipo}</TableCell>
-                                        <TableCell>{equipo.marca} {equipo.modelo}</TableCell>
+                                        <TableCell>{equipo.marca} </TableCell>
+                                        <TableCell>{equipo.modelo} </TableCell>
                                         <TableCell>{equipo.serial}</TableCell>
                                         <TableCell>
                                             <Badge variant={equipo.condicion === 'Operativo' ? 'default' : 'destructive'}>

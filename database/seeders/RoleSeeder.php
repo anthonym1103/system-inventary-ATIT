@@ -14,7 +14,7 @@ class RoleSeeder extends Seeder
 {
 
     // Posibles cargos por área (jerarquía)
-    private array $cargos = ['gerente', 'tecnico'];
+    private array $cargos = ['administrador','supervisor','tecnico'];
 
     // Permisos base que se pueden granular después
     private array $permisosBase = [
@@ -62,13 +62,20 @@ class RoleSeeder extends Seeder
     {
         // Aquí defines qué permisos tiene cada cargo
         switch ($cargo) {
-            case 'gerente':
+            case 'administrador':
                 // Supervisor tiene todos los permisos de su área
                 $permisosAsignar = [
                     "ver_equipos",
                     "ver_historial",
                     "crear_usuarios",
                     "asignar_roles",
+                ];
+                break;
+            case 'supervisor':
+                // Supervisor tiene todos los permisos de su área
+                $permisosAsignar = [
+                    "ver_equipos",
+                    "ver_historial",
                 ];
                 break;
             case 'tecnico':
@@ -92,11 +99,11 @@ class RoleSeeder extends Seeder
         $user = User::where('email', 'testfirst@gmail.com')->first();
         if ($user ) {
             if($user->area === Area::INFRAESTRUCTURA->value){
-                $user->assignRole('gerente_infraestructura');
+                $user->assignRole('administrador_infraestructura');
             }elseif ($user->area === Area::REDES->value){
-                $user->assignRole('gerente_redes');
+                $user->assignRole('administrador_redes');
             }else{
-                $user->assignRole('gerente_transmision_datos');
+                $user->assignRole('administrador_transmision_datos');
             }
         }
     }

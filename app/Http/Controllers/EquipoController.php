@@ -57,15 +57,22 @@ class EquipoController extends Controller
         // 5. Cargar relaciones necesarias para la tabla (solo las comunes o las que apliquen)
         // Por simplicidad, cargamos las relaciones polimórficas? No, son hasOne separados.
         // En la tabla se pueden mostrar datos de la relación según el área.
-        $query->with(['ubicacion', 'infraestructura.userAsignado', 'rede', 'transmision']);
+        $query->with(['ubicacion', 'infraestructura', 'rede', 'transmision', 'userAsignado']);
 
         $equipos = $query->paginate(15)->withQueryString();
+
+        $tiposLabels = [];
+        foreach (TipoEquipo::cases() as $tipo) {
+            $tiposLabels[$tipo->value] = $tipo->label();
+        }
+
 
         return Inertia::render('equipos/Index', [
             'equipos' => $equipos,
             'filters' => $request->only(['search', 'condicion', 'ubicacion_id']),
             'canCreate' => $user->hasAnyPermission(['area_infraestructura', 'area_redes', 'area_transmision']),
             'ubicaciones' => Ubicacion::all(['id', 'estado', 'locacion']),
+            'tiposLabels' => $tiposLabels,
         ]);
     }
 
@@ -507,13 +514,13 @@ class EquipoController extends Controller
     private function getUserAllowedAreas($user): array
     {
         $areas = [];
-        if ($user->hasPermissionTo('area_infraestructura')) {
+        if ($user->area->value === Area::INFRAESTRUCTURA->value) {
             $areas[] = Area::INFRAESTRUCTURA->value;
         }
-        if ($user->hasPermissionTo('area_redes')) {
+        if ($user->area->value === Area::REDES->value) {
             $areas[] = Area::REDES->value;
         }
-        if ($user->hasPermissionTo('area_transmision')) {
+        if ($user->area->value === Area::TRANSMISION->value) {
             $areas[] = Area::TRANSMISION->value;
         }
         if ($user->hasRole('Administrador')) {

@@ -29,8 +29,8 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
     const areaLabel = (area: string) => {
         const map: Record<string, string> = {
             infraestructura: 'Infraestructura',
-            redes: 'Redes',
-            transmision_datos: 'Transmisión'
+            redes: 'Redes y Telefonia',
+            transmision_datos: 'Transmisión de Datos'
         };
         return map[area] || area;
     };

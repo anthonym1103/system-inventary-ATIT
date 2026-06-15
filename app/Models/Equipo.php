@@ -72,7 +72,7 @@ class Equipo extends Model
 
     public function userAsignado(): BelongsTo
     {
-        return $this->belongsTo(UserAsignado::class, 'asignado');
+        return $this->belongsTo(UserAsignado::class, 'asignado_id');
     }
 
     public function historialEquipos(): HasMany

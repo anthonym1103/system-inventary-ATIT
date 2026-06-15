@@ -23,7 +23,7 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },{
         title:'Inventario',
-        href: '',
+        href: '/equipos',
         icon: null,
     },{
         title:'Historial',

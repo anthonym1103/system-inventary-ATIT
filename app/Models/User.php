@@ -52,9 +52,8 @@ class User extends Authenticatable
                 if ($value) {
                     return asset('storage/' . $value);
                 }
-            
-                // Opcional: Si no tiene avatar, puedes retornar una imagen por defecto 
-                // o dejar que el Frontend use el <AvatarFallback> con sus iniciales devolviendo null
+
+                // o dejamos que el Frontend use el <AvatarFallback> con sus iniciales devolviendo null
                 return null; 
             }
         );

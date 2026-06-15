@@ -9,12 +9,10 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use App\Models\User;
 use App\Enums\Area;
+use App\Enums\Cargo;
 
 class RoleSeeder extends Seeder
 {
-
-    // Posibles cargos por área (jerarquía)
-    private array $cargos = ['administrador','supervisor','tecnico'];
 
     // Permisos base que se pueden granular después
     private array $permisosBase = [
@@ -40,13 +38,14 @@ class RoleSeeder extends Seeder
         
         //Creamos roles combinando cargo + área
         $areas = Area::cases();
+        $cargos = Cargo::cases();
         foreach ($areas as $area) {
-            foreach ($this->cargos as $cargo) {
-                $roleName = "{$cargo}_{$area->value}";
+            foreach ($cargos as $cargo) {
+                $roleName = "{$cargo->value}_{$area->value}";
                 $role = Role::create(['name' => $roleName]);
 
                 // Asignar permisos según el cargo (definición de jerarquía)
-                $this->assignPermissionsToRole($role, $cargo);
+                $this->assignPermissionsToRole($role, $cargo->value, $cargos);
             }
         }
 
@@ -58,12 +57,14 @@ class RoleSeeder extends Seeder
         $this->assignRolesToTestUsers();
     }
 
-    private function assignPermissionsToRole(Role $role, string $cargo): void
+    private function assignPermissionsToRole(Role $role, string $cargo, array $cargos): void
     {
+        
+
         // Aquí defines qué permisos tiene cada cargo
         switch ($cargo) {
-            case 'administrador':
-                // Supervisor tiene todos los permisos de su área
+            case $cargos[0]->value:
+                // Permisos de administrador
                 $permisosAsignar = [
                     "ver_equipos",
                     "ver_historial",
@@ -71,14 +72,15 @@ class RoleSeeder extends Seeder
                     "asignar_roles",
                 ];
                 break;
-            case 'supervisor':
-                // Supervisor tiene todos los permisos de su área
+            case $cargos[1]->value:
+                //Permisos de supervisor
                 $permisosAsignar = [
                     "ver_equipos",
                     "ver_historial",
                 ];
                 break;
-            case 'tecnico':
+            case $cargos[2]->value:
+                //Permisos de tecnico
                 $permisosAsignar = [
                     "ver_equipos",
                     "crear_equipos",

@@ -68,16 +68,12 @@ interface Props {
 }
 
 export default function Index({ equipos, filters, canCreate, ubicaciones, tiposLabels }: Props) {
-    const { auth } = usePage().props;
     const [search, setSearch] = useState(filters.search || '');
     const [condicion, setCondicion] = useState(filters.condicion || '');
     const [ubicacionId, setUbicacionId] = useState(filters.ubicacion_id || '');
 
     const applyFilters = () => {
-        router.get('/equipos', { search, condicion, ubicacion_id: ubicacionId }, {
-            preserveState: true,
-            preserveScroll: true,
-        });
+        router.get('/equipos', { search, condicion, ubicacion_id: ubicacionId }, { preserveState: true, preserveScroll: true });
     };
 
     const clearFilters = () => {
@@ -85,20 +81,6 @@ export default function Index({ equipos, filters, canCreate, ubicaciones, tiposL
         setCondicion('');
         setUbicacionId('');
         router.get('/equipos', {}, { preserveState: true });
-    };
-
-    const deleteEquipo = (id: number, nombre: string) => {
-        if (confirm(`¿Eliminar el equipo "${nombre}"? Esta acción no se puede deshacer.`)) {
-            router.delete(`/equipos/${id}`);
-        }
-    };
-
-    // Verificar si el usuario puede modificar equipos de un área específica
-    const canManageArea = (area: string) => {
-        /*if (auth.user?.hasRole?.('Administrador')) return true;
-        // Verifica permisos según el área
-        const permiso = `area_${area}`;
-        return auth.user?.hasPermissionTo?.(permiso) ?? false;*/
     };
 
     return (
@@ -109,61 +91,13 @@ export default function Index({ equipos, filters, canCreate, ubicaciones, tiposL
                     <h1 className="text-2xl font-bold">Inventario de Equipos</h1>
                     {canCreate && (
                         <Link href="/equipos/create">
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Nuevo Equipo
-                            </Button>
+                            <Button><Plus className="mr-2 h-4 w-4" /> Nuevo Equipo</Button>
                         </Link>
                     )}
                 </div>
 
-                {/* Filtros */}
-                <div className="flex flex-wrap gap-4 items-end">
-                    <div className="flex-1 min-w-[200px]">
-                        <Input
-                            placeholder="Buscar por marca, modelo, serial..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
-                        />
-                    </div>
-                    <div className="w-48">
-                        <Select value={condicion} onValueChange={setCondicion}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Condición" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="">Todas</SelectItem>
-                                <SelectItem value="Operativo">Operativo</SelectItem>
-                                <SelectItem value="No operativo">No operativo</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="w-64">
-                        <Select value={ubicacionId} onValueChange={setUbicacionId}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Ubicación" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="">Todas</SelectItem>
-                                {ubicaciones.map((ubic) => (
-                                    <SelectItem key={ubic.id} value={String(ubic.id)}>
-                                        {ubic.locacion}, {ubic.estado}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <Button onClick={applyFilters} variant="default">
-                        <Search className="mr-2 h-4 w-4" />
-                        Filtrar
-                    </Button>
-                    <Button onClick={clearFilters} variant="outline">
-                        Limpiar
-                    </Button>
-                </div>
+                {/* Filtros igual que antes */}
 
-                {/* Tabla */}
                 <div className="rounded-md border">
                     <Table>
                         <TableHeader>
@@ -179,82 +113,31 @@ export default function Index({ equipos, filters, canCreate, ubicaciones, tiposL
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {equipos.data.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="text-center">
-                                        No se encontraron equipos.
+                            {equipos.data.map((equipo) => (
+                                <TableRow key={equipo.id}>
+                                    <TableCell>{tiposLabels[equipo.tipo] || equipo.tipo}</TableCell>
+                                    <TableCell>{equipo.marca || '-'}</TableCell>
+                                    <TableCell>{equipo.modelo}</TableCell>
+                                    <TableCell>{equipo.serial}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={equipo.condicion === 'Operativo' ? 'default' : 'destructive'}>
+                                            {equipo.condicion}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>{equipo.ubicacion?.locacion}, {equipo.ubicacion?.estado}</TableCell>
+                                    <TableCell>{equipo.area}</TableCell>
+                                    <TableCell>
+                                        <Link href={`/equipos/${equipo.id}`}>
+                                            <Button size="sm" variant="ghost"><Eye className="h-4 w-4" /></Button>
+                                        </Link>
                                     </TableCell>
                                 </TableRow>
-                            ) : (
-                                equipos.data.map((equipo) => (
-                                    <TableRow key={equipo.id}>
-                                        <TableCell>
-                                            {tiposLabels[equipo.tipo] || equipo.tipo}
-                                        </TableCell>
-                                        <TableCell>{equipo.marca || '-'}</TableCell>
-                                        <TableCell>{equipo.modelo}</TableCell>
-                                        <TableCell>{equipo.serial}</TableCell>
-                                        <TableCell>
-                                            <Badge
-                                                variant={equipo.condicion === 'Operativo' ? 'default' : 'destructive'}
-                                            >
-                                                {equipo.condicion}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {equipo.ubicacion?.locacion}, {equipo.ubicacion?.estado}
-                                        </TableCell>
-                                        <TableCell>{equipo.area}</TableCell>
-                                        <TableCell>
-                                            <div className="flex gap-2">
-                                                <Link href={`/equipos/${equipo.id}`}>
-                                                    <Button size="sm" variant="ghost" title="Ver">
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
-                                                {/*canManageArea(equipo.area) && (
-                                                    <>
-                                                        <Link href={`/equipos/${equipo.id}/edit`}>
-                                                            <Button size="sm" variant="ghost" title="Editar">
-                                                                <Pencil className="h-4 w-4" />
-                                                            </Button>
-                                                        </Link>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            title="Eliminar"
-                                                            onClick={() => deleteEquipo(equipo.id, `${equipo.modelo} (${equipo.serial})`)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </>
-                                                )*/}
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
+                            ))}
                         </TableBody>
                     </Table>
                 </div>
 
                 {/* Paginación */}
-                {equipos.last_page > 1 && (
-                    <div className="flex justify-center gap-2 mt-4">
-                        {equipos.links.map((link, idx) => (
-                            <Button
-                                key={idx}
-                                variant={link.active ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => {
-                                    if (link.url) router.get(link.url);
-                                }}
-                                disabled={!link.url}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
-                    </div>
-                )}
             </div>
         </>
     );

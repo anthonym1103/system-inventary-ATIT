@@ -67,7 +67,7 @@ class EquipoController extends Controller
         }
 
 
-        return Inertia::render('equipos/Index', [
+        return Inertia::render('equipos/index', [
             'equipos' => $equipos,
             'filters' => $request->only(['search', 'condicion', 'ubicacion_id']),
             'canCreate' => $user->hasAnyPermission(['area_infraestructura', 'area_redes', 'area_transmision']),

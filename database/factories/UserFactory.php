@@ -27,6 +27,7 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            'user_name' => Str::random(5),
             'area' => fake()->randomElement(Area::cases())->value,
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),

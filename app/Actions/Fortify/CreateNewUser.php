@@ -26,6 +26,8 @@ class CreateNewUser implements CreatesNewUsers
 
         return User::create([
             'name' => $input['name'],
+            'user_name' => $input['user_name'],
+            'area' => $input['area'],
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
@@ -39,6 +41,10 @@ class CreateNewUser implements CreatesNewUsers
             'name.max' => 'El campo del nombre no debe tener más de 255 caracteres.',
             'name.min' => 'El nombre debe tener al menos 2 caracteres.',
             'name.regex' => 'El nombre solo puede contener letras, espacios y guiones.',
+            'user_name.required' => 'Debe ingresar un nombre de usuario',
+            'user_name.unique' => 'Este nombre de usuario ya esta en uso',
+            'user_name.regex' => 'El nombre de usuario debe empezar con letra y solo puede contener letras, números y guión bajo y punto.',
+            'user_name.min' => 'El nombre de usuario debe tener al menos 3 caracteres.',
             'email.required' => 'El email es obligatorio, introduce tu correo.',
             'email.unique' => 'El correo electrónico ya ha sido registrado.',
             'email.email' => 'Introduce un correo electrónico válido (ej. usuario@dominio.com).',

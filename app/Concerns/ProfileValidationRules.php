@@ -17,6 +17,7 @@ trait ProfileValidationRules
     {
         return [
             'name' => $this->nameRules(),
+            'user_name' => $this->userNameRules(),
             'email' => $this->emailRules($userId),
         ];
     }
@@ -29,6 +30,11 @@ trait ProfileValidationRules
     protected function nameRules(): array
     {
         return ['required', 'string','min:2', 'max:255', 'regex:/^[\pL\s]+$/u'];
+    }
+
+    protected function userNameRules(): array
+    {
+        return ['required', 'string', 'min:3', 'max:30', 'regex:/^[a-zA-Z][a-zA-Z0-9_.]*$/', 'unique:users,user_name'];
     }
 
     /**

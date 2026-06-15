@@ -12,6 +12,10 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Illuminate\Support\Facades\Hash;
+use App\Enums\Area;
+use App\Models\User;
+
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -31,6 +35,13 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        
+        Fortify::authenticateUsing(function ($request) {
+        $user = User::where('user_name', $request->user_name)->first();
+        if ($user && Hash::check($request->password, $user->password)) {
+            return $user;
+        }
+    });
     }
 
     /**
@@ -66,7 +77,16 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/register'));
+        Fortify::registerView(fn () => Inertia::render('auth/register', [
+            'areaOptions' => collect(Area::cases())->map(fn($area) => [
+               'value' => $area->value,
+               'label' => match($area){
+                    Area::INFRAESTRUCTURA => 'Infraestructura',
+                    Area::REDES => 'Redes',
+                    Area::TRANSMISION => 'Transmisión de Datos',
+               }
+            ])->values(),
+        ]));
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 

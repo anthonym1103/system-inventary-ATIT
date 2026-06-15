@@ -17,13 +17,11 @@ import {
 } from '@/components/ui/select';
 import { useState } from 'react';
 
-const areaOptions = [
-    { value: 'infraestructura', label: 'Infraestructura' },
-    { value: 'redes', label: 'Redes y Telefónia' },
-    { value: 'transmision_datos', label: 'Transmisión de Datos' },
-];
+interface RegisterProps {
+    areaOptions?: Array<{ value: string; label: string }>;
+}
 
-export default function Register() {
+export default function Register({ areaOptions = [] }: RegisterProps) {
 
     const [selectedArea, setSelectedArea] = useState('');
 
@@ -56,15 +54,32 @@ export default function Register() {
                                     className="mt-2"
                                 />
                             </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="user_name">Nombre de usuario </Label>
+                                <Input
+                                    id="user_name"
+                                    type="text"
+                                    required
+                                    tabIndex={2}
+                                    autoComplete="user_name"
+                                    name="user_name"
+                                    placeholder="Usuario..."
+                                />
+                                <InputError
+                                    message={errors.user_name}
+                                    className="mt-2"
+                                />
+                            </div>
                             
-                            {/*<div className="grid gap-2">
+                            <div className="grid gap-2">
                                 <Label htmlFor="area">Area</Label>
                                 <Select
                                     value={selectedArea}
                                     onValueChange={(value) => setSelectedArea(value)}
                                     required
                                 >
-                                    <SelectTrigger tabIndex={2} className='w-full'>
+                                    <SelectTrigger tabIndex={3} className='w-full'>
                                         <SelectValue placeholder="Selecciona un área" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -75,13 +90,13 @@ export default function Register() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                {/* Hidden input para que Inertia envíe el valor 
+                                {/* Hidden input para que Inertia envíe el valor */}
                                 <input type="hidden" name="area" value={selectedArea} />
                                 <InputError 
                                     message={errors.area}
                                     className="mt-2"
                                 />
-                            </div> */}
+                            </div> 
 
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Direccion de correo electronico</Label>
@@ -89,7 +104,7 @@ export default function Register() {
                                     id="email"
                                     type="email"
                                     required
-                                    tabIndex={2}
+                                    tabIndex={4}
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
@@ -120,7 +135,7 @@ export default function Register() {
                                 <PasswordInput
                                     id="password"
                                     required
-                                    tabIndex={3}
+                                    tabIndex={5}
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder="Contraseña"
@@ -135,7 +150,7 @@ export default function Register() {
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
-                                    tabIndex={4}
+                                    tabIndex={6}
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder="Confirmar Contraseña"
@@ -148,7 +163,7 @@ export default function Register() {
                             <Button
                                 type="submit"
                                 className="mt-2 w-full"
-                                tabIndex={5}
+                                tabIndex={7}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
@@ -158,7 +173,7 @@ export default function Register() {
 
                         <div className="text-center text-sm text-muted-foreground">
                             ¿Ya tienes una cuenta?{' '}
-                            <TextLink href={login()} tabIndex={6}>
+                            <TextLink href={login()} tabIndex={8}>
                                 Iniciar sesion
                             </TextLink>
                         </div>

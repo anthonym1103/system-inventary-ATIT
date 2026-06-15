@@ -18,8 +18,8 @@ type Props = {
 };
 
 const translate = (key: string, message: string) => {
-    if (key === 'email' && message === 'These credentials do not match our records.'){
-        return 'La contraseña o correo es incorrecta, intentelo de nuevo.';
+    if (key === 'user_name' && message === 'These credentials do not match our records.'){
+        return 'La contraseña o nombre de usuario incorrecto, intentelo de nuevo.';
     }
     return message;
 };
@@ -42,18 +42,18 @@ export default function Login({
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Direccion de correo electronico</Label>
+                                <Label htmlFor="user_name">Nombre de usuario</Label>
                                 <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
+                                    id="user_name"
+                                    type="text"
+                                    name="user_name"
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
+                                    autoComplete="user-name"
+                                    placeholder="Usuario..."
                                 />
-                                <InputError message={translate('email', errors.email)} />
+                                <InputError message={translate('user_name', errors.user_name)} />
                             </div>
 
                             <div className="grid gap-2">

@@ -33,16 +33,15 @@ class EquipoController extends Controller
             ->when(!$user->hasRole('Administrador') && !empty($allowedAreas), function ($q) use ($allowedAreas) {
                 $q->whereIn('area', $allowedAreas);
             });
-
         
         // 3. Búsqueda por texto (serial, marca, modelo, tipo)
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
-                $q->where('serial', 'LIKE', "%{$search}%")
-                  ->orWhere('marca', 'LIKE', "%{$search}%")
-                  ->orWhere('modelo', 'LIKE', "%{$search}%")
-                  ->orWhere('tipo', 'LIKE', "%{$search}%");
+                $q->where('serial', 'ILIKE', "%{$search}%")
+                  ->orWhere('marca', 'ILIKE', "%{$search}%")
+                  ->orWhere('modelo', 'ILIKE', "%{$search}%")
+                  ->orWhere('tipo', 'ILIKE', "%{$search}%");
             });
         }
         
@@ -59,7 +58,7 @@ class EquipoController extends Controller
        
         // 5. Paginación (10 por página, puedes cambiar)
         $equipos = $query->latest()->paginate(10)->withQueryString();
-        
+
         // 6. Datos para filtros (tipos, condiciones, ubicaciones)
         $tiposLabels = [];
         foreach (TipoEquipo::cases() as $tipo) {

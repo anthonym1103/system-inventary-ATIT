@@ -67,7 +67,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                             <CardTitle>Equipos Operativos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-green-600">{condiciones.Operativo}</div>
+                            <div className="text-3xl font-bold text-green-700">{condiciones.Operativo}</div>
                         </CardContent>
                     </Card>
                     <Card>
@@ -106,7 +106,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                                         <TableCell>{equipo.modelo} </TableCell>
                                         <TableCell>{equipo.serial}</TableCell>
                                         <TableCell>
-                                            <Badge variant={equipo.condicion === 'Operativo' ? 'default' : 'destructive'}>
+                                            <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'}>
                                                 {equipo.condicion}
                                             </Badge>
                                         </TableCell>

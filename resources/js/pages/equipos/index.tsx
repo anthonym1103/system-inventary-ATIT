@@ -43,7 +43,7 @@ interface Props {
         total: number;
     };
     tiposLabels: Record<string, string>;
-    condiciones: Array<{ value: string }>
+    condiciones: Array<{ value: string, label: string }>
     ubicaciones: Array<{ id: number; estado: string; locacion: string }>;
     filters: {
         search: string;

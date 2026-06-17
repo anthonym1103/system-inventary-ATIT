@@ -82,7 +82,6 @@ class RoleSeeder extends Seeder
             case $cargos[2]->value:
                 //Permisos de tecnico
                 $permisosAsignar = [
-                    "ver_equipos",
                     "crear_equipos",
                     "editar_equipos",
                     "eliminar_equipos",

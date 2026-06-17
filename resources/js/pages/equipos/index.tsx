@@ -43,7 +43,7 @@ interface Props {
         total: number;
     };
     tiposLabels: Record<string, string>;
-    condiciones: Array<{ value: string }>;
+    condiciones: Array<{ value: string }>
     ubicaciones: Array<{ id: number; estado: string; locacion: string }>;
     filters: {
         search: string;
@@ -67,6 +67,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
 
     const debouncedSearch = useDebounce(search, 300);
 
+    console.log(condiciones);
     // Aplicar filtros cuando cambien
     useEffect(() => {
         const params: Record<string, string> = {};
@@ -156,10 +157,15 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                     </SelectTrigger>
                                     <SelectContent>
                                         {condiciones.map((c) => (
+                                            <pre className="bg-gray-100 p-4 text-xs">
+                                                {JSON.stringify(c, null, 2)}
+                                            </pre>
+                                        ))}
+                                        {/*condiciones.map((c) => (
                                             <SelectItem key={c.value} value={c.value}>
                                                 {c.value === 'Operativo' ? 'Operativo' : 'No operativo'}
                                             </SelectItem>
-                                        ))}
+                                        ))*/}
                                     </SelectContent>
                                 </Select>
                             </div>

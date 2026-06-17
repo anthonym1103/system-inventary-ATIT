@@ -34,8 +34,6 @@ class EquipoController extends Controller
                 $q->whereIn('area', $allowedAreas);
             });
 
-        // 5. Paginación (10 por página, puedes cambiar)
-        $equipos = $query->latest()->paginate(10)->withQueryString();
         
         // 3. Búsqueda por texto (serial, marca, modelo, tipo)
         if ($request->filled('search')) {
@@ -59,6 +57,9 @@ class EquipoController extends Controller
             $query->where('ubicacion_id', $request->input('ubicacion_id'));
         }
        
+        // 5. Paginación (10 por página, puedes cambiar)
+        $equipos = $query->latest()->paginate(10)->withQueryString();
+        
         // 6. Datos para filtros (tipos, condiciones, ubicaciones)
         $tiposLabels = [];
         foreach (TipoEquipo::cases() as $tipo) {

@@ -67,7 +67,6 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
 
     const debouncedSearch = useDebounce(search, 300);
 
-    console.log(condiciones);
     // Aplicar filtros cuando cambien
     useEffect(() => {
         const params: Record<string, string> = {};
@@ -156,16 +155,16 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                         <SelectValue placeholder="Todas las condiciones" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {condiciones.map((c) => (
+                                        {/*condiciones.map((c) => (
                                             <pre className="bg-gray-100 p-4 text-xs">
                                                 {JSON.stringify(c, null, 2)}
                                             </pre>
-                                        ))}
-                                        {/*condiciones.map((c) => (
+                                        ))*/}
+                                        {condiciones.map((c) => (
                                             <SelectItem key={c.value} value={c.value}>
                                                 {c.value === 'Operativo' ? 'Operativo' : 'No operativo'}
                                             </SelectItem>
-                                        ))*/}
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -230,7 +229,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                             <TableCell>{equipo.modelo}</TableCell>
                                             <TableCell className="font-mono text-xs">{equipo.serial}</TableCell>
                                             <TableCell>
-                                                <Badge variant={equipo.condicion === 'Operativo' ? 'default' : 'destructive'}>
+                                                <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'}>
                                                     {equipo.condicion}
                                                 </Badge>
                                             </TableCell>

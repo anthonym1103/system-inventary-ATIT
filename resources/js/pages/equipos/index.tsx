@@ -1,13 +1,16 @@
 import { Head, Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Search, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, Grid2X2, LayoutList } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EquipoCard } from '@/components/equipo-card';
+import { EquipoDetailModal } from '@/components/equipo-detail-modal';
+
 
 // Debounce manual
 function useDebounce<T>(value: T, delay: number): T {
@@ -55,6 +58,7 @@ interface Props {
         can_create: boolean;
         can_edit: boolean;
         can_delete: boolean;
+        can_viewHistorial: boolean;
     };
 }
 
@@ -64,9 +68,12 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
     const [tipo, setTipo] = useState<string | undefined>(filters.tipo || undefined);
     const [condicion, setCondicion] = useState<string | undefined>(filters.condicion || undefined);
     const [ubicacionId, setUbicacionId] = useState<string | undefined>(filters.ubicacion_id || undefined);
+    const [selectedEquipo, setSelectedEquipo] = useState<any>(null);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     const debouncedSearch = useDebounce(search, 300);
-
+    
     // Aplicar filtros cuando cambien
     useEffect(() => {
         const params: Record<string, string> = {};
@@ -94,6 +101,14 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
         if (url) router.get(url, {}, { preserveState: true, preserveScroll: true });
     };
 
+    const handleCardClick = (equipo: any) => {
+        // Cargar detalles completos del equipo (con relaciones) si no están cargados
+        // En tu caso, podrías hacer una llamada a /equipos/{id} con ?with=infraestructura,rede,transmision
+        // O pasar los datos completos desde el controlador
+        setSelectedEquipo(equipo);
+        setModalOpen(true);
+    };
+
     return (
         <>
             <Head title="Inventario" />
@@ -101,14 +116,34 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                 {/* Cabecera con botón Nuevo */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <h1 className="text-2xl font-bold">Inventario de Equipos</h1>
-                    {permissions.can_create && (
-                        <Button asChild>
-                            <Link href="/equipos/create">
-                                <Plus className="mr-2 h-4 w-4" />
-                                Nuevo Equipo
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex items-center gab-2">
+                        {permissions.can_create && (
+                            <Button asChild>
+                                <Link href="/equipos/create">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Nuevo Equipo
+                                </Link>
+                            </Button>
+                        )}
+                        <div className="flex border rounded-md overflow-hidden">
+                            <Button
+                                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                                size="sm"
+                                className="rounded-none"
+                                onClick={() => setViewMode('grid')}
+                            >
+                                <Grid2X2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                                size="sm"
+                                className="rounded-none"
+                                onClick={() => setViewMode('list')}
+                            >
+                                <LayoutList className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Filtros */}
@@ -196,97 +231,60 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                     </CardContent>
                 </Card>
 
-                {/* Tabla */}
-                <Card>
-                    <CardContent className="pt-6">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Marca</TableHead>
-                                    <TableHead>Modelo</TableHead>
-                                    <TableHead>Serial</TableHead>
-                                    <TableHead>Condición</TableHead>
-                                    <TableHead>Ubicación</TableHead>
-                                    <TableHead>Asignado a</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {equipos.data.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                                            No se encontraron equipos
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    equipos.data.map((equipo) => (
-                                        <TableRow key={equipo.id}>
-                                            <TableCell className="font-medium">
-                                                {tiposLabels[equipo.tipo] || equipo.tipo}
-                                            </TableCell>
-                                            <TableCell>{equipo.marca}</TableCell>
-                                            <TableCell>{equipo.modelo}</TableCell>
-                                            <TableCell className="font-mono text-xs">{equipo.serial}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'}>
-                                                    {equipo.condicion}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {equipo.ubicacion?.locacion}, {equipo.ubicacion?.estado}
-                                            </TableCell>
-                                            <TableCell>
-                                                {equipo.userAsignado
-                                                    ? `${equipo.userAsignado.nombre} ${equipo.userAsignado.apellido}`
-                                                    : 'No asignado'}
-                                            </TableCell>
-                                            <TableCell className="text-right space-x-2">
-                                                {permissions.can_edit && (
-                                                    <Button variant="outline" size="sm" asChild>
-                                                        <Link href={`/equipos/${equipo.id}/edit`}>
-                                                            <Pencil className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                )}
-                                                {permissions.can_delete && (
-                                                    <Button variant="destructive" size="sm" asChild>
-                                                        <Link
-                                                            href={`/equipos/${equipo.id}`}
-                                                            method="delete"
-                                                            as="button"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                {/* Vista de equipos */}
+                {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {equipos.data.length === 0 ? (
+                            <div className="col-span-full text-center py-12 text-muted-foreground">
+                                No se encontraron equipos
+                            </div>
+                        ) : (
+                            equipos.data.map((equipo) => (
+                                <EquipoCard
+                                    key={equipo.id}
+                                    equipo={equipo}
+                                    tiposLabels={tiposLabels}
+                                    permissions={permissions}
+                                    onCardClick={handleCardClick}
+                                />
+                            ))
+                        )}
+                    </div>
+                ) : (
+                    // Opcional: vista de lista similar a la tabla actual, pero con mejor diseño
+                    <Card>
+                        <CardContent className="pt-6">
+                            {/* Tabla o lista simple */}
+                            {/* ... */}
+                        </CardContent>
+                    </Card>
+                )}
 
-                        {/* Paginación */}
-                        <div className="flex items-center justify-between mt-4">
-                            <div className="text-sm text-muted-foreground">
-                                Mostrando {equipos.data.length} de {equipos.total} equipos
-                            </div>
-                            <div className="flex gap-1">
-                                {equipos.links.map((link, index) => (
-                                    <Button
-                                        key={index}
-                                        variant={link.active ? 'default' : 'outline'}
-                                        size="sm"
-                                        disabled={!link.url}
-                                        onClick={() => handlePageChange(link.url)}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* Paginación */}
+                <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-muted-foreground">
+                        Mostrando {equipos.data.length} de {equipos.total} equipos
+                    </div>
+                    <div className="flex gap-1">
+                        {equipos.links.map((link, index) => (
+                            <Button
+                                key={index}
+                                variant={link.active ? 'default' : 'outline'}
+                                size="sm"
+                                disabled={!link.url}
+                                onClick={() => handlePageChange(link.url)}
+                                dangerouslySetInnerHTML={{ __html: link.label }}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                <EquipoDetailModal
+                    equipo={selectedEquipo}
+                    isOpen={modalOpen}
+                    onClose={() => setModalOpen(false)}
+                    tiposLabels={tiposLabels}
+                />
             </div>
         </>
     );

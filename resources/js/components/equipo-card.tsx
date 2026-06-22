@@ -53,7 +53,7 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick }: Eq
               <p className="text-xs text-muted-foreground">{equipo.marca} {equipo.modelo}</p>
             </div>
           </div>
-          <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'}>
+          <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
             {equipo.condicion}
           </Badge>
         </div>
@@ -80,6 +80,7 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick }: Eq
           <Button variant="outline" size="sm" asChild>
             <Link href={`/equipos/${equipo.id}/edit`}>
               <Pencil className="h-3.5 w-3.5" />
+              Editar
             </Link>
           </Button>
         )}
@@ -87,6 +88,7 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick }: Eq
           <Button variant="destructive" size="sm" asChild>
             <Link href={`/equipos/${equipo.id}`} method="delete" as="button">
               <Trash2 className="h-3.5 w-3.5" />
+              Eliminar
             </Link>
           </Button>
         )}

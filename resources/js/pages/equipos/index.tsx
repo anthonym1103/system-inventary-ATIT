@@ -70,11 +70,12 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
     const [ubicacionId, setUbicacionId] = useState<string | undefined>(filters.ubicacion_id || undefined);
     const [selectedEquipo, setSelectedEquipo] = useState<any>(null);
     const [modalOpen, setModalOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [classNameViewMode, setClassNameViewMode] = useState<string>('flex flex-col gap-4');
     const debouncedSearch = useDebounce(search, 300);
     
     // Aplicar filtros cuando cambien
+    
     useEffect(() => {
         const params: Record<string, string> = {};
         if (debouncedSearch) params.search = debouncedSearch;
@@ -94,7 +95,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
         setTipo(undefined);
         setCondicion(undefined);
         setUbicacionId(undefined);
-        router.get('/equipos', {}, { preserveState: true });
+        router.get('/equipos', {}, { preserveState: false });
     };
 
     const handlePageChange = (url: string | null) => {
@@ -107,6 +108,11 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
         // O pasar los datos completos desde el controlador
         setSelectedEquipo(equipo);
         setModalOpen(true);
+    };
+
+    const handleClassNameViewMode = (mode: 'grid' | 'list') => {
+        setClassNameViewMode(mode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'flex flex-col gap-4');
+        setViewMode(mode);
     };
 
     return (
@@ -127,20 +133,20 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                         )}
                         <div className="flex border rounded-md overflow-hidden">
                             <Button
-                                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                                size="sm"
-                                className="rounded-none"
-                                onClick={() => setViewMode('grid')}
-                            >
-                                <Grid2X2 className="h-4 w-4" />
-                            </Button>
-                            <Button
                                 variant={viewMode === 'list' ? 'default' : 'ghost'}
                                 size="sm"
                                 className="rounded-none"
-                                onClick={() => setViewMode('list')}
+                                onClick={() => handleClassNameViewMode('list')}
                             >
                                 <LayoutList className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                                size="sm"
+                                className="rounded-none"
+                                onClick={() => handleClassNameViewMode('grid')}
+                            >
+                                <Grid2X2 className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
@@ -231,34 +237,25 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                     </CardContent>
                 </Card>
 
-                {/* Vista de equipos */}
-                {viewMode === 'grid' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {equipos.data.length === 0 ? (
-                            <div className="col-span-full text-center py-12 text-muted-foreground">
-                                No se encontraron equipos
-                            </div>
-                        ) : (
-                            equipos.data.map((equipo) => (
-                                <EquipoCard
-                                    key={equipo.id}
-                                    equipo={equipo}
-                                    tiposLabels={tiposLabels}
-                                    permissions={permissions}
-                                    onCardClick={handleCardClick}
-                                />
-                            ))
-                        )}
-                    </div>
-                ) : (
-                    // Opcional: vista de lista similar a la tabla actual, pero con mejor diseño
-                    <Card>
-                        <CardContent className="pt-6">
-                            {/* Tabla o lista simple */}
-                            {/* ... */}
-                        </CardContent>
-                    </Card>
-                )}
+                {/* Vista de equipos , flex flex-col gap-4*/}
+                <div className={classNameViewMode}>
+                    {equipos.data.length === 0 ? (
+                        <div className="col-span-full text-center py-12 text-muted-foreground">
+                            No se encontraron equipos
+                        </div>
+                    ) : (
+                        equipos.data.map((equipo) => (
+                            <EquipoCard
+                                key={equipo.id}
+                                equipo={equipo}
+                                tiposLabels={tiposLabels}
+                                permissions={permissions}
+                                onCardClick={handleCardClick}
+                            />
+                        ))
+                    )}
+                </div>
+                
 
                 {/* Paginación */}
                 <div className="flex items-center justify-between mt-4">

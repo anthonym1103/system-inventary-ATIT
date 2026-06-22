@@ -66,7 +66,7 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {tiposLabels[equipo.tipo] || equipo.tipo}
-            <Badge variant={equipo.condicion === 'Operativo' ? 'default' : 'destructive'}>
+            <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
               {equipo.condicion}
             </Badge>
           </DialogTitle>

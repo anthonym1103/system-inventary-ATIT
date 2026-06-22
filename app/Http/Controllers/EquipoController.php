@@ -26,10 +26,11 @@ class EquipoController extends Controller
         
         // 1. Determinar áreas permitidas (igual que en DashboardController)
         $allowedAreas = $this->getUserAllowedAreas($user);
-        
+        $relacionEquipo = $this->getRelacionEquipo($allowedAreas);
+
         // 2. Query base con filtro de áreas
         $query = Equipo::query()
-            ->with(['ubicacion', 'userAsignado'])
+            ->with(array_merge(['ubicacion', 'userAsignado'], $relacionEquipo))
             ->when(!$user->hasRole('Administrador') && !empty($allowedAreas), function ($q) use ($allowedAreas) {
                 $q->whereIn('area', $allowedAreas);
             });
@@ -136,5 +137,27 @@ class EquipoController extends Controller
         return $areas;
     }
 
+    private function getRelacionEquipo($allowedAreas): array
+    {
+        $listAreas = collect(Area::cases())->map(fn($area) => $area->value)->toArray();
+        $relacion = [];
+
+        foreach ($listAreas as $area) {
+            if (in_array($area, $allowedAreas)) {
+                switch ($area) {
+                    case 'infraestructura':
+                        $relacion[] = 'infraestructura';
+                        break;
+                    case 'redes':
+                        $relacion[] = 'redes';
+                        break;
+                    case 'transmision_datos':
+                        $relacion[] = 'transmision_datos';
+                        break;
+                }
+            }
+        }
+        return $relacion;
+    }
    
 }

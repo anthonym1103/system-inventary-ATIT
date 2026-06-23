@@ -17,7 +17,7 @@ class Infraestructura extends Model
     public $with = ['equipo'];
 
     protected $fillable = [
-        'año',
+        'anio',
         'ram',
         'disco',
         'direccion_mac',

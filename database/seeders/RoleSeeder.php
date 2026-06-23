@@ -99,9 +99,9 @@ class RoleSeeder extends Seeder
     {
         $user = User::where('email', 'testfirst@gmail.com')->first();
         if ($user ) {
-            if($user->area === Area::INFRAESTRUCTURA->value){
+            if($user->area->value === Area::INFRAESTRUCTURA->value){
                 $user->assignRole('administrador_infraestructura');
-            }elseif ($user->area === Area::REDES->value){
+            }elseif ($user->area->value === Area::REDES->value){
                 $user->assignRole('administrador_redes');
             }else{
                 $user->assignRole('administrador_transmision_datos');

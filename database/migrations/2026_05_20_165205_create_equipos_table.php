@@ -10,6 +10,14 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
+
+    /*
+    onDelete('cascade') peligroso: en equipos.ubicacion_id y equipos.asignado_id (y telefonos.asignado), 
+    si borras una Ubicacion o un UserAsignado se borran en cascada todos los equipos asociados. 
+    Probablemente quieras nullOnDelete() para desasignar en vez de perder el equipo. 
+    Lo mismo con historial_equipos.usuario_id (perderías la bitácora si se borra el usuario).
+    */
+
     public function up(): void
     {
         Schema::create('equipos', function (Blueprint $table) {

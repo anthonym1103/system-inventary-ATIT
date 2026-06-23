@@ -16,7 +16,6 @@ enum TipoEquipo: string
     //Equipos del area de redes
     case ROUTER = 'router';
     case SWITCHES = 'switch';
-    case ROUTER_WIFI = 'router_wifi';
     case TELEFONO_ANALOGICO = 'telefono_analogico';
     case TELEFONO_DIGITAL = 'telefono_digital';
     
@@ -35,7 +34,7 @@ enum TipoEquipo: string
     {
         return match($this){
             self::MICRO_ESCRITORIO, self::PORTATIL, self::SERVIDOR, self::IMPRESORA_MULTI, self::IMPRESORA, self::IMPRESORA_PLANOS, self::SCANNER  => Area::INFRAESTRUCTURA,
-            self::ROUTER, self::SWITCHES, self::ROUTER_WIFI, self::TELEFONO_ANALOGICO, self::TELEFONO_DIGITAL => Area::REDES,
+            self::ROUTER, self::SWITCHES, self::TELEFONO_ANALOGICO, self::TELEFONO_DIGITAL => Area::REDES,
             self::RADIO_PORTATIL, self::RADIO_BASE, self::RADIO_MOVIL, self::MULTIPLEXOR, self::TRANSPORTE_MO, self::TRANSPORTE_FO, self::REPETIDOR_VHF, self::ESTACION_MOVIL, self::SERVIDOR_MTS => Area::TRANSMISION,
         };
     }
@@ -52,7 +51,6 @@ enum TipoEquipo: string
             self::SCANNER => 'Scanner',
             self::ROUTER => 'Router',
             self::SWITCHES => 'Switch',
-            self::ROUTER_WIFI => 'Router Wifi',
             self::TELEFONO_ANALOGICO => 'Telefono Analogico',
             self::TELEFONO_DIGITAL => 'Telefono Digital',
             self::RADIO_PORTATIL => 'Radio Portatil ',

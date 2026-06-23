@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EquipoCard } from '@/components/equipo-card';
 import { EquipoDetailModal } from '@/components/equipo-detail-modal';
+import { SelectItemText, Value } from '@radix-ui/react-select';
 
 
 // Debounce manual
@@ -75,6 +76,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
     const debouncedSearch = useDebounce(search, 300);
     
     // Aplicar filtros cuando cambien
+
     
     useEffect(() => {
         const params: Record<string, string> = {};
@@ -82,6 +84,8 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
         if (tipo) params.tipo = tipo;
         if (condicion) params.condicion = condicion;
         if (ubicacionId) params.ubicacion_id = ubicacionId;
+
+        console.log(tipo);
 
         router.get('/equipos', params, {
             preserveState: true,
@@ -120,7 +124,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
             <Head title="Inventario" />
             <div className="p-6 space-y-6">
                 {/* Cabecera con botón Nuevo */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="bg-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <h1 className="text-2xl font-bold">Inventario de Equipos</h1>
                     <div className="flex items-center gab-2">
                         {permissions.can_create && (
@@ -177,11 +181,15 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                         <SelectValue placeholder="Todos los tipos" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem key='all' value='all'>
+                                           Todos los tipos
+                                        </SelectItem>
                                         {Object.entries(tiposLabels).map(([value, label]) => (
                                             <SelectItem key={value} value={value}>
                                                 {label}
                                             </SelectItem>
                                         ))}
+                                        
                                     </SelectContent>
                                 </Select>
                             </div>

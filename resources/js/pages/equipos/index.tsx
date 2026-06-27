@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Search, Plus, Grid2X2, LayoutList } from 'lucide-react';
+import { Search, Plus, Grid2X2, LayoutList, FileX } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { EquipoCard } from '@/components/equipo-card';
 import { EquipoDetailModal } from '@/components/equipo-detail-modal';
 import { SelectItemText, Value } from '@radix-ui/react-select';
+import { Separator } from '@/components/ui/separator';
 
 
 // Debounce manual
@@ -84,9 +85,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
         if (tipo) params.tipo = tipo;
         if (condicion) params.condicion = condicion;
         if (ubicacionId) params.ubicacion_id = ubicacionId;
-
-        console.log(tipo);
-
+        
         router.get('/equipos', params, {
             preserveState: true,
             preserveScroll: true,
@@ -103,7 +102,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
     };
 
     const handlePageChange = (url: string | null) => {
-        if (url) router.get(url, {}, { preserveState: true, preserveScroll: true });
+        if (url) router.get(url, {}, { preserveState: true, preserveScroll: false });
     };
 
     const handleCardClick = (equipo: any) => {
@@ -124,22 +123,44 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
             <Head title="Inventario" />
             <div className="p-6 space-y-6">
                 {/* Cabecera con botón Nuevo */}
-                <div className="bg-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <h1 className="text-2xl font-bold">Inventario de Equipos</h1>
-                    <div className="flex items-center gab-2">
+                <div className='flex justify-end mb-1 mr-4'>
+                    <h3 className="font-medium text-xs uppercase text-muted-foreground">Vistas:</h3>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    {/*<h1 className="text-2xl font-bold">Inventario de Equipos</h1>*/}
+                    {/* Búsqueda */}
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Buscar por serial, marca, modelo..."
+                            className="pl-8 w-72 sm:w-80"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex justify-end items-center gap-2">
                         {permissions.can_create && (
-                            <Button asChild>
-                                <Link href="/equipos/create">
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Nuevo Equipo
-                                </Link>
-                            </Button>
+                            <div className='flex gap-2'>
+                                <Button variant="outline" asChild>
+                                    <Link href="/equipos/create">
+                                        <Plus className="h-4 w-4" />
+                                        Agregar nuevo equipo
+                                    </Link>
+                                </Button>
+                                <Button variant="outline" asChild>
+                                    <Link href="">
+                                        <FileX className="h-3.5 w-3.5" />
+                                        Desincorporar equipos
+                                    </Link>
+                                </Button>
+                            </div>
                         )}
+                        {/*<h3 className="font-medium text-xs uppercase text-muted-foreground">Vistas:</h3>*/}
                         <div className="flex border rounded-md overflow-hidden">
                             <Button
                                 variant={viewMode === 'list' ? 'default' : 'ghost'}
                                 size="sm"
-                                className="rounded-none"
+                                className="rounded-none cursor-pointer" 
                                 onClick={() => handleClassNameViewMode('list')}
                             >
                                 <LayoutList className="h-4 w-4" />
@@ -147,7 +168,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                             <Button
                                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                                 size="sm"
-                                className="rounded-none"
+                                className="rounded-none cursor-pointer"
                                 onClick={() => handleClassNameViewMode('grid')}
                             >
                                 <Grid2X2 className="h-4 w-4" />
@@ -156,94 +177,85 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                     </div>
                 </div>
 
-                {/* Filtros */}
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {/* Búsqueda */}
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Buscar por serial, marca, modelo..."
-                                    className="pl-8"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                />
-                            </div>
+                {/**Filtros de busqueda */}
 
-                            {/* Tipo */}
-                            <div>
-                                <Select
-                                    value={tipo}
-                                    onValueChange={(val) => setTipo(val || undefined)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Todos los tipos" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem key='all' value='all'>
-                                           Todos los tipos
-                                        </SelectItem>
-                                        {Object.entries(tiposLabels).map(([value, label]) => (
-                                            <SelectItem key={value} value={value}>
-                                                {label}
-                                            </SelectItem>
-                                        ))}
-                                        
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                <Separator className="col-span-2" />
+                <h3 className="font-medium mb-2 text-xs uppercase text-muted-foreground">Filtros</h3>
 
-                            {/* Condición */}
-                            <div>
-                                <Select
-                                    value={condicion}
-                                    onValueChange={(val) => setCondicion(val || undefined)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Todas las condiciones" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {/*condiciones.map((c) => (
-                                            <pre className="bg-gray-100 p-4 text-xs">
-                                                {JSON.stringify(c, null, 2)}
-                                            </pre>
-                                        ))*/}
-                                        {condiciones.map((c) => (
-                                            <SelectItem key={c.value} value={c.value}>
-                                                {c.value === 'Operativo' ? 'Operativo' : 'No operativo'}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                <div className="flex flex-col sm:flex-row gap-4 mt-6 mb-10">
+                    {/* Tipo */}
+                    <div>
+                        <Select
+                            value={tipo}
+                            onValueChange={(val) => setTipo(val || undefined)}
+                        >
+                            <SelectTrigger className="cursor-pointer">
+                                <SelectValue placeholder="Tipos de equipos" />
+                            </SelectTrigger>
+                            <SelectContent >
+                                <SelectItem key='all' value='all' className="cursor-pointer">
+                                    Todos los tipos
+                                </SelectItem>
+                                {Object.entries(tiposLabels).map(([value, label]) => (
+                                    <SelectItem key={value} value={value} className="cursor-pointer">
+                                        {label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                            {/* Ubicación */}
-                            <div>
-                                <Select
-                                    value={ubicacionId}
-                                    onValueChange={(val) => setUbicacionId(val || undefined)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Todas las ubicaciones" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {ubicaciones.map((u) => (
-                                            <SelectItem key={u.id} value={String(u.id)}>
-                                                {u.locacion}, {u.estado}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div className="flex justify-end mt-2">
-                            <Button variant="ghost" size="sm" onClick={clearFilters}>
-                                Limpiar filtros
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                    {/* Condición */}
+                    <div>
+                        <Select
+                            value={condicion}
+                            onValueChange={(val) => setCondicion(val || undefined)}
+                        >
+                            <SelectTrigger className="cursor-pointer">
+                                <SelectValue placeholder="Condiciones de equipos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem key='all' value='all' className="cursor-pointer">
+                                    Todas las condiciones
+                                </SelectItem>
+                                {condiciones.map((c) => (
+                                    <SelectItem key={c.value} value={c.value} className="cursor-pointer">
+                                        {c.value === 'Operativo' ? 'Operativo' : 'No operativo'}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Ubicación */}
+                    <div>
+                        <Select
+                            value={ubicacionId}
+                            onValueChange={(val) => setUbicacionId(val || undefined)}
+                        >
+                            <SelectTrigger className="cursor-pointer">
+                                <SelectValue placeholder="Ubicaciones de equipos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem key='all' value='all' className="cursor-pointer">
+                                    Todos las ubicaciones
+                                </SelectItem>
+                                {ubicaciones.map((u) => (
+                                    <SelectItem key={u.id} value={String(u.id)} className="cursor-pointer">
+                                        {u.locacion}, {u.estado}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex justify-end mt-2">
+                        <Button variant="ghost" size="sm" onClick={clearFilters} className='cursor-pointer'>
+                            Limpiar filtros
+                        </Button>
+                    </div>
+
+                </div>
 
                 {/* Vista de equipos , flex flex-col gap-4*/}
                 <div className={classNameViewMode}>
@@ -273,6 +285,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                     <div className="flex gap-1">
                         {equipos.links.map((link, index) => (
                             <Button
+                                className='cursor-pointer'
                                 key={index}
                                 variant={link.active ? 'default' : 'outline'}
                                 size="sm"

@@ -65,7 +65,7 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto [&>button]:cursor-pointer [&>button]:focus-visible:ring-0 [&>button]:focus-visible:ring-offset-0">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {tiposLabels[equipo.tipo] || equipo.tipo}

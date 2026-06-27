@@ -84,14 +84,14 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick }: Eq
             </Link>
           </Button>
         )}
-        {permissions.can_delete && (
+        {/*permissions.can_delete && (
           <Button variant="destructive" size="sm" asChild>
             <Link href={`/equipos/${equipo.id}`} method="delete" as="button">
               <Trash2 className="h-3.5 w-3.5" />
               Eliminar
             </Link>
           </Button>
-        )}
+        )*/}
       </CardFooter>
     </Card>
   );

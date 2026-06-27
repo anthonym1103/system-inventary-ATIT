@@ -47,13 +47,13 @@ class EquipoController extends Controller
         }
         
         // 4. Filtros adicionales (por tipo, condición, ubicación)
-        if ($request->filled('tipo')) {
+        if ($request->filled('tipo') && $request->input('tipo') !== 'all') {
             $query->where('tipo', $request->input('tipo'));
         }
-        if ($request->filled('condicion')) {
+        if ($request->filled('condicion') && $request->input('condicion') !== 'all') {
             $query->where('condicion', $request->input('condicion'));
         }
-        if ($request->filled('ubicacion_id')) {
+        if ($request->filled('ubicacion_id') && $request->input('ubicacion_id') !== 'all') {
             $query->where('ubicacion_id', $request->input('ubicacion_id'));
         }
        

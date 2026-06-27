@@ -5,6 +5,8 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use App\Enums\Area;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
@@ -21,17 +23,20 @@ class CreateNewUser implements CreatesNewUsers
     {
         Validator::make($input, [
             ...$this->profileRules(),
+            'area' => ['required', Rule::in(array_column(Area::cases(), 'value'))],
             'password' => $this->passwordRules(),
         ], $this->messages())->validate();
 
-        return User::create([
+        $user = User::create([
             'name' => $input['name'],
             'user_name' => $input['user_name'],
             'area' => $input['area'],
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
-   
+    
+        $user->assignRole("tecnico_{$input['area']}");
+        return $user;
     }
 
     protected function messages(): array

@@ -26,36 +26,40 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
         // Por ahora mostramos un placeholder, luego puedes extenderlo
         const detalles: Array<{ label: string; value: string | null }> = [];
 
+        console.log('Equipo:', equipo); // Depuración: muestra el objeto equipo en la consola
         // Ejemplo: si tienes relación con infraestructura, redes o transmisión
         if (equipo.infraestructura) {
             detalles.push(
-            { label: 'RAM', value: equipo.infraestructura.ram },
-            { label: 'Disco', value: equipo.infraestructura.disco },
-            { label: 'Sistema Operativo', value: equipo.infraestructura.sistema_operativo },
-            { label: 'MAC', value: equipo.infraestructura.direccion_mac },
-            { label: 'Inventario', value: equipo.infraestructura.numero_inventario },
-            { label: 'Dominio', value: equipo.infraestructura.dominio },
-        );
+                { label: 'Año', value: equipo.infraestructura.anio },
+                { label: 'RAM', value: equipo.infraestructura.ram },
+                { label: 'Disco', value: equipo.infraestructura.disco },
+                { label: 'Sistema Operativo', value: equipo.infraestructura.sistema_operativo },
+                { label: 'MAC', value: equipo.infraestructura.direccion_mac },
+                { label: 'Numero Inventario', value: equipo.infraestructura.numero_inventario },
+                { label: 'Dominio', value: equipo.infraestructura.dominio },
+            );
         }
 
+        console.log('Detalles específicos:', detalles); // Depuración: muestra los detalles específicos en la consola
+
         if (equipo.rede) {
-        detalles.push(
-            { label: 'IP', value: equipo.rede.direccion_ip },
-            { label: 'MAC', value: equipo.rede.direccion_mac },
-            { label: 'Puerto', value: equipo.rede.puerto },
-            { label: 'Puerto Fibra', value: equipo.rede.puerto_fibra },
-            { label: 'Extensión', value: equipo.rede.extension },
-            { label: 'Ubicacion Puerto', value: equipo.rede.ubicacion_puerto}
-        );
+            detalles.push(
+                { label: 'IP', value: equipo.rede.direccion_ip },
+                { label: 'MAC', value: equipo.rede.direccion_mac },
+                { label: 'Puerto', value: equipo.rede.puerto },
+                { label: 'Puerto Fibra', value: equipo.rede.puerto_fibra },
+                { label: 'Extensión', value: equipo.rede.extension },
+                { label: 'Ubicacion Puerto', value: equipo.rede.ubicacion_puerto }
+            );
         }
 
         if (equipo.transmision) {
-        detalles.push(
-            { label: 'Potencia', value: equipo.transmision.potencia },
-            { label: 'Frecuencia', value: equipo.transmision.rango_frecuencia },
-            { label: 'Inventario', value: equipo.transmision.numero_inventario },
-            { label: 'Características', value: equipo.transmision.caracteristicas },
-        );
+            detalles.push(
+                { label: 'Potencia', value: equipo.transmision.potencia },
+                { label: 'Frecuencia', value: equipo.transmision.rango_frecuencia },
+                { label: 'Inventario', value: equipo.transmision.numero_inventario },
+                { label: 'Características', value: equipo.transmision.caracteristicas },
+            );
         }
 
         return detalles;
@@ -65,7 +69,7 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto [&>button]:cursor-pointer [&>button]:focus-visible:ring-0 [&>button]:focus-visible:ring-offset-0">
+            <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto [&>button]:cursor-pointer">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {tiposLabels[equipo.tipo] || equipo.tipo}
@@ -74,7 +78,7 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
                         </Badge>
                     </DialogTitle>
                     <DialogDescription>
-                        {equipo.marca} {equipo.modelo} • Serial: {equipo.serial}
+                        Marca: {equipo.marca} • Modelo: {equipo.modelo} • Serial: {equipo.serial}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -135,6 +139,7 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
                                 <h4 className="font-medium mb-2 text-xs uppercase text-muted-foreground">Características Técnicas</h4>
                                 <div className="grid grid-cols-2 gap-2">
                                     {detalles.map((d, i) => (
+
                                         d.value && (
                                             <>
                                                 <div key={i} className="flex items-center gap-2 text-muted-foreground">

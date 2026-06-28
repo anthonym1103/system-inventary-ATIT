@@ -16,6 +16,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class EquipoController extends Controller
 {
@@ -99,22 +101,326 @@ class EquipoController extends Controller
         ]);
 
     }
+
+    public function create()
+    {
+        $user = Auth::user();
+        abort_unless($user->can('crear_equipos'), 403);
+
+        $allowedAreas = $this->getUserAllowedAreas($user);
+
+        $tiposLabels = [];
+        $camposPorTipo = [];
+
+        foreach (TipoEquipo::cases() as $tipo) {
+            if (!in_array($tipo->modulo()->value, $allowedAreas)) {
+                continue;
+            }
+
+            $tiposLabels[$tipo->value] = $tipo->label();
+            $camposPorTipo[$tipo->value] = [
+                'area' => $tipo->modulo()->value,
+                'campos' => $tipo->camposEspecificos(),
+                'requiereEncargado' => $tipo->requiereEncargado(),
+            ];
+        }
+
+        return Inertia::render('equipos/create', [
+            'tiposLabels' => $tiposLabels,
+            'camposPorTipo' => $camposPorTipo,
+            'ubicaciones' => Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']),
+            'asignados' => UserAsignado::orderBy('nombre')->get(['cedula', 'nombre', 'apellido']),
+        ]);
+    }
   
     public function store(Request $request)
     {
-        
+        $user = Auth::user();
+        abort_unless($user->can('crear_equipos'), 403);
+
+        $tipo = TipoEquipo::tryFrom((string) $request->input('tipo'));
+
+        if (! $tipo) {
+            return back()->withErrors(['tipo' => 'Debes seleccionar un tipo de equipo válido.'])->withInput();
+        }
+
+        $allowedAreas = $this->getUserAllowedAreas($user);
+
+        if (!in_array($tipo->modulo()->value, $allowedAreas)) {
+            abort(403, 'No tienes permiso para crear equipos de esta área.');
+        }
+
+        $camposEspecificos = $tipo->camposEspecificos();
+        $requiereEncargado = $tipo->requiereEncargado();
+
+        $rules = [
+            'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
+            'ubicacion_id' => ['required', 'integer', 'exists:ubicacions,id'],
+            'marca' => ['nullable', 'string', 'max:255'],
+            'modelo' => ['required', 'string', 'max:255'],
+            'serial' => ['required', 'string', 'max:255', 'unique:equipos,serial'],
+            'detalle' => ['nullable', 'string'],
+            'asignado_id' => $requiereEncargado
+                ? ['required', 'string', 'exists:user_asignados,cedula']
+                : ['prohibited'],
+        ];
+
+        // Reglas por campo específico de la tabla del área correspondiente.
+        $reglasCampos = [
+            'anio' => ['nullable', 'digits:4'],
+            'ram' => ['required', 'string', 'max:50'],
+            'disco' => ['required', 'string', 'max:100'],
+            'direccion_mac' => ['required', 'string', 'regex:/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/'],
+            'sistema_operativo' => ['required', 'string', 'max:100'],
+            'numero_inventario' => ['required', 'string', 'max:100'],
+            'dominio' => ['nullable', 'string', 'max:255'],
+            'puerto' => ['required', 'string', 'max:50'],
+            'contraseña_bios' => ['required', 'string', 'min:4'],
+            'direccion_ip' => ['required', 'ip'],
+            'extension' => ['required', 'string', 'max:50'],
+            'ubicacion_puerto' => ['required', 'string', 'max:100'],
+            'potencia' => ['required', 'string', 'max:50'],
+            'rango_frecuencia' => ['required', 'string', 'max:100'],
+            'unidad_usuario' => ['required', 'string', 'max:255'],
+            'caracteristicas' => ['nullable', 'string'],
+        ];
+
+        foreach ($camposEspecificos as $campo) {
+            $rules[$campo] = $reglasCampos[$campo] ?? ['nullable', 'string', 'max:255'];
+        }
+
+        $validated = $request->validate($rules);
+
+        DB::transaction(function () use ($validated, $tipo, $camposEspecificos) {
+            $equipo = Equipo::create([
+                'ubicacion_id' => $validated['ubicacion_id'],
+                'asignado_id' => $validated['asignado_id'] ?: null,
+                'area' => $tipo->modulo()->value,
+                'tipo' => $tipo->value,
+                'marca' => $validated['marca'] ?: null,
+                'modelo' => $validated['modelo'],
+                'serial' => $validated['serial'],
+                'detalle' => $validated['detalle'] ?: null,
+            ]);
+
+            // Solo nos quedamos con los campos que aplican a este tipo.
+            $datosEspecificos = collect($validated)->only($camposEspecificos)->toArray();
+
+            if (array_key_exists('contraseña_bios', $datosEspecificos)) {
+                $datosEspecificos['contraseña_bios'] = Hash::make($datosEspecificos['contraseña_bios']);
+            }
+
+            $modeloEspecifico = match ($tipo->modulo()) {
+                Area::INFRAESTRUCTURA => Infraestructura::class,
+                Area::REDES => Rede::class,
+                Area::TRANSMISION => Transmision::class,
+            };
+
+            // forceFill + asignación manual del id porque estas tablas
+            // usan el id de "equipos" como PK compartida y no es fillable.
+            $registro = new $modeloEspecifico();
+            $registro->forceFill($datosEspecificos);
+            $registro->id = $equipo->id;
+            $registro->save();
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Equipo creado correctamente.']);
+
+        return to_route('equipos.index');        
     }
 
-    
-    public function show(Equipo $equipo)
+    public function edit(Equipo $equipo)
     {
-        
+        $this->authorizeEdit($equipo);
+
+        return Inertia::render('equipos/edit', $this->buildEditData($equipo));
     }
 
+    public function editData(Equipo $equipo)
+    {
+        $this->authorizeEdit($equipo);
+
+        return response()->json($this->buildEditData($equipo));
+    }
+
+    private function authorizeEdit(Equipo $equipo): void
+    {
+        $user = Auth::user();
+        abort_unless($user->can('editar_equipos'), 403);
+
+        $allowedAreas = $this->getUserAllowedAreas($user);
+        abort_unless(in_array($equipo->area->value, $allowedAreas), 403);
+    }
+
+    private function buildEditData(Equipo $equipo): array
+    {
+        $tipoActual = $equipo->tipo;
+
+        $equipo->load(['ubicacion', 'userAsignado']);
+
+        $relacion = match ($tipoActual->modulo()) {
+            Area::INFRAESTRUCTURA => 'infraestructura',
+            Area::REDES => 'rede',
+            Area::TRANSMISION => 'transmision',
+        };
+
+        $equipo->load($relacion);
+        $registroEspecifico = $equipo->{$relacion};
+
+        $tiposLabels = [];
+        $camposPorTipo = [];
+
+        foreach (TipoEquipo::cases() as $tipo) {
+            if ($tipo->modulo() !== $tipoActual->modulo()) {
+                continue;
+            }
+
+            $tiposLabels[$tipo->value] = $tipo->label();
+            $camposPorTipo[$tipo->value] = [
+                'area' => $tipo->modulo()->value,
+                'campos' => $tipo->camposEspecificos(),
+                'requiereEncargado' => $tipo->requiereEncargado(),
+            ];
+        }
+
+        $datosEspecificos = [];
+        if ($registroEspecifico) {
+            $datosEspecificos = collect($registroEspecifico->toArray())
+                ->except(['id', 'created_at', 'updated_at', 'equipo', 'contraseña_bios'])
+                ->map(fn ($valor) => $valor ?? '')
+                ->toArray();
+        }
+
+        return [
+            'equipo' => [
+                'id' => $equipo->id,
+                'tipo' => $tipoActual->value,
+                'ubicacion_id' => (string) $equipo->ubicacion_id,
+                'asignado_id' => $equipo->asignado_id ?? '',
+                'marca' => $equipo->marca ?? '',
+                'modelo' => $equipo->modelo,
+                'serial' => $equipo->serial,
+                'detalle' => $equipo->detalle ?? '',
+                'tiene_contrasena_bios' => (bool) ($registroEspecifico?->contraseña_bios ?? null),
+                ...$datosEspecificos,
+            ],
+            'tiposLabels' => $tiposLabels,
+            'camposPorTipo' => $camposPorTipo,
+            'ubicaciones' => Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']),
+            'asignados' => UserAsignado::orderBy('nombre')->get(['cedula', 'nombre', 'apellido']),
+        ];
+    }
    
     public function update(Request $request, Equipo $equipo)
     {
-        
+        $user = Auth::user();
+        abort_unless($user->can('editar_equipos'), 403);
+
+        $allowedAreas = $this->getUserAllowedAreas($user);
+        abort_unless(in_array($equipo->area->value, $allowedAreas), 403);
+
+        $tipo = TipoEquipo::tryFrom((string) $request->input('tipo'));
+
+        if (! $tipo || $tipo->modulo() !== $equipo->area) {
+            return back()->withErrors(['tipo' => 'Tipo de equipo inválido para esta área.'])->withInput();
+        }
+
+        $camposEspecificos = $tipo->camposEspecificos();
+        $requiereEncargado = $tipo->requiereEncargado();
+
+        $rules = [
+            'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
+            'ubicacion_id' => ['required', 'integer', 'exists:ubicacions,id'],
+            'marca' => ['nullable', 'string', 'max:255'],
+            'modelo' => ['required', 'string', 'max:255'],
+            'serial' => ['required', 'string', 'max:255', Rule::unique('equipos', 'serial')->ignore($equipo->id)],
+            'detalle' => ['nullable', 'string'],
+            'asignado_id' => $requiereEncargado
+                ? ['required', 'string', 'exists:user_asignados,cedula']
+                : ['prohibited'],
+        ];
+
+        $reglasCampos = [
+            'anio' => ['nullable', 'digits:4'],
+            'ram' => ['required', 'string', 'max:50'],
+            'disco' => ['required', 'string', 'max:100'],
+            'direccion_mac' => ['required', 'string', 'regex:/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/'],
+            'sistema_operativo' => ['required', 'string', 'max:100'],
+            'numero_inventario' => ['required', 'string', 'max:100'],
+            'dominio' => ['nullable', 'string', 'max:255'],
+            'puerto' => ['required', 'string', 'max:50'],
+            'contraseña_bios' => ['nullable', 'string', 'min:4'],
+            'direccion_ip' => ['required', 'ip'],
+            'extension' => ['required', 'string', 'max:50'],
+            'ubicacion_puerto' => ['required', 'string', 'max:100'],
+            'potencia' => ['required', 'string', 'max:50'],
+            'rango_frecuencia' => ['required', 'string', 'max:100'],
+            'unidad_usuario' => ['required', 'string', 'max:255'],
+            'caracteristicas' => ['nullable', 'string'],
+        ];
+
+        foreach ($camposEspecificos as $campo) {
+            $rules[$campo] = $reglasCampos[$campo] ?? ['nullable', 'string', 'max:255'];
+        }
+
+        $validated = $request->validate($rules);
+
+        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $equipo) {
+            $equipo->update([
+                'ubicacion_id' => $validated['ubicacion_id'],
+                'asignado_id' => $validated['asignado_id'] ?: null,
+                'tipo' => $tipo->value,
+                'marca' => $validated['marca'] ?: null,
+                'modelo' => $validated['modelo'],
+                'serial' => $validated['serial'],
+                'detalle' => $validated['detalle'] ?: null,
+            ]);
+
+            $modeloEspecifico = match ($tipo->modulo()) {
+                Area::INFRAESTRUCTURA => Infraestructura::class,
+                Area::REDES => Rede::class,
+                Area::TRANSMISION => Transmision::class,
+            };
+
+            $camposPosibles = match ($tipo->modulo()) {
+                Area::INFRAESTRUCTURA => ['anio', 'ram', 'disco', 'direccion_mac', 'sistema_operativo', 'numero_inventario', 'dominio'],
+                Area::REDES => ['puerto', 'puerto_fibra', 'contraseña_bios', 'direccion_ip', 'direccion_mac', 'extension', 'ubicacion_puerto'],
+                Area::TRANSMISION => ['potencia', 'rango_frecuencia', 'unidad_usuario', 'caracteristicas', 'numero_inventario'],
+            };
+
+            // Reseteamos a null TODOS los campos posibles de esta tabla y solo
+            // dejamos los del tipo seleccionado. Así, si cambian de "micro_escritorio"
+            // a "impresora", no quedan datos viejos (ram, disco, etc.) huérfanos.
+            $datosEspecificos = array_fill_keys($camposPosibles, null);
+
+            foreach ($camposEspecificos as $campo) {
+                $datosEspecificos[$campo] = $validated[$campo] ?? null;
+            }
+
+            $registro = $modeloEspecifico::find($equipo->id);
+
+            // La contraseña del BIOS es especial: si la dejaron en blanco,
+            // conservamos la que ya estaba en vez de borrarla.
+            if (array_key_exists('contraseña_bios', $datosEspecificos)) {
+                if (!empty($datosEspecificos['contraseña_bios'])) {
+                    $datosEspecificos['contraseña_bios'] = Hash::make($datosEspecificos['contraseña_bios']);
+                } else {
+                    $datosEspecificos['contraseña_bios'] = $registro?->contraseña_bios;
+                }
+            }
+
+            if ($registro) {
+                $registro->forceFill($datosEspecificos)->save();
+            } else {
+                $nuevo = new $modeloEspecifico();
+                $nuevo->forceFill($datosEspecificos);
+                $nuevo->id = $equipo->id;
+                $nuevo->save();
+            }
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Equipo actualizado correctamente.']);
+        return to_route('equipos.index');
     }
 
    

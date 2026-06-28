@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EquipoCard } from '@/components/equipo-card';
 import { EquipoDetailModal } from '@/components/equipo-detail-modal';
+import { EquipoEditModal } from '@/components/equipo-edit.modal';
 import { SelectItemText, Value } from '@radix-ui/react-select';
 import { Separator } from '@/components/ui/separator';
 
@@ -72,6 +73,8 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
     const [ubicacionId, setUbicacionId] = useState<string | undefined>(filters.ubicacion_id || undefined);
     const [selectedEquipo, setSelectedEquipo] = useState<any>(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const [editEquipoId, setEditEquipoId] = useState<number | null>(null);
+    const [editModalOpen, setEditModalOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [classNameViewMode, setClassNameViewMode] = useState<string>('flex flex-col gap-4');
     const debouncedSearch = useDebounce(search, 300);
@@ -116,6 +119,11 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
     const handleClassNameViewMode = (mode: 'grid' | 'list') => {
         setClassNameViewMode(mode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'flex flex-col gap-4');
         setViewMode(mode);
+    };
+
+    const handleEditClick = (equipo: any) => {
+        setEditEquipoId(equipo.id);
+        setEditModalOpen(true);
     };
 
     return (
@@ -271,6 +279,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                 tiposLabels={tiposLabels}
                                 permissions={permissions}
                                 onCardClick={handleCardClick}
+                                onCardEditClick={handleEditClick}
                             />
                         ))
                     )}
@@ -302,6 +311,12 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                     isOpen={modalOpen}
                     onClose={() => setModalOpen(false)}
                     tiposLabels={tiposLabels}
+                />
+
+                <EquipoEditModal
+                    equipoId={editEquipoId}
+                    isOpen={editModalOpen}
+                    onClose={() => setEditModalOpen(false)}
                 />
             </div>
         </>

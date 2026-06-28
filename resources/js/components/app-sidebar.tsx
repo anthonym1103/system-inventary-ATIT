@@ -39,7 +39,25 @@ function getNavItems(data: any): NavItem[] {
     const items = [...baseNavItems];
 
     if (data.roles.includes(`${cargo}_${data.user.area}`)) {
-        items.push({
+        /*items.push({
+            title: 'Inventario de infraestructura',
+            href: '',
+            icon: Layers, 
+        },{
+            title: 'Inventario de redes y telefonia',
+            href: '',
+            icon: Layers, 
+        }, {
+            title: 'Inventario de transferencia de datos',
+            href: '',
+            icon: Layers, 
+        },{ 
+            title: 'Gestion de Usuarios',
+            href: '',
+            icon: LucideUsers, 
+        });*/
+
+        items.push({ 
             title: 'Gestion de Usuarios',
             href: '',
             icon: LucideUsers, 

@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('infraestructuras', function (Blueprint $table) {
             $table->foreignId('id')->primary()->constrained('equipos')->onDelete('cascade');
             $table->string('anio')->nullable();
-            $table->string('ram');
-            $table->string('disco');
-            $table->string('direccion_mac');
-            $table->string('sistema_operativo');
-            $table->string('numero_inventario');
-            $table->string('dominio');
+            $table->string('ram')->nullable();
+            $table->string('disco')->nullable();
+            $table->string('direccion_mac')->nullable();
+            $table->string('sistema_operativo')->nullable();
+            $table->string('numero_inventario')->nullable();
+            $table->string('dominio')->nullable();
             $table->timestamps();
         });
     }

@@ -42,7 +42,7 @@ enum TipoEquipo: string
     public function label(): string
     {
         return match($this){
-            self::MICRO_ESCRITORIO => 'Microcomputador de escritorio',
+            self::MICRO_ESCRITORIO => 'Computador de escritorio',
             self::PORTATIL => 'Computador portatil',
             self::SERVIDOR => 'Servidor',
             self::IMPRESORA_MULTI => 'Impresora Multifuncional',
@@ -63,6 +63,33 @@ enum TipoEquipo: string
             self::ESTACION_MOVIL => 'Estacion Movil MTS',
             self::SERVIDOR_MTS => 'Servidor MTS',
             default => $this->value,
+        };
+    }
+
+    public function camposEspecificos(): array
+    {
+        return match($this) {
+            self::SERVIDOR => ['ram', 'disco', 'direccion_mac', 'numero_inventario'],
+            self::MICRO_ESCRITORIO, self::PORTATIL => ['anio', 'ram', 'disco', 'direccion_mac', 'sistema_operativo', 'numero_inventario', 'dominio'],
+            self::IMPRESORA_MULTI, self::IMPRESORA, self::IMPRESORA_PLANOS, self::SCANNER => ['numero_inventario'],
+
+            self::TELEFONO_ANALOGICO => ['puerto', 'contraseña_bios', 'extension', 'ubicacion_puerto'],
+            self::TELEFONO_DIGITAL => ['puerto', 'contraseña_bios', 'direccion_ip', 'direccion_mac', 'extension'],
+            self::ROUTER, self::SWITCHES => ['puerto', 'contraseña_bios', 'direccion_ip', 'direccion_mac'],
+
+            self::RADIO_PORTATIL, self::RADIO_BASE, self::RADIO_MOVIL => ['potencia', 'rango_frecuencia', 'unidad_usuario', 'caracteristicas'],
+            self::MULTIPLEXOR, self::TRANSPORTE_MO, self::TRANSPORTE_FO, self::REPETIDOR_VHF, self::ESTACION_MOVIL, self::SERVIDOR_MTS => ['numero_inventario'],
+        };
+    }
+
+    /**
+     * Indica si este tipo de equipo requiere seleccionar un encargado (UserAsignado).
+     */
+    public function requiereEncargado(): bool
+    {
+        return match($this) {
+            self::MICRO_ESCRITORIO, self::PORTATIL, self::TELEFONO_ANALOGICO, self::TELEFONO_DIGITAL => true,
+            default => false,
         };
     }
 

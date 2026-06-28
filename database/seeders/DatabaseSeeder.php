@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
 
         Equipo::factory(35)->afterMaking(function ($equipo) use ($ubicaciones, $asignados){
             $equipo->ubicacion_id = $ubicaciones->random()->id;
-            if($equipo->area->value === 'infraestructura' || $equipo->tipo->value === 'telefono_analogico' || $equipo->tipo->value === 'telefono_digital'){
+            if($equipo->tipo->value === 'micro_escritorio' || $equipo->tipo->value === 'portatil' || $equipo->tipo->value === 'telefono_analogico' || $equipo->tipo->value === 'telefono_digital'){
                 $equipo->asignado_id = $asignados->random()->cedula;
             }else{
                 $equipo->asignado_id = null;

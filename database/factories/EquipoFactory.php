@@ -54,7 +54,26 @@ class EquipoFactory extends Factory
         return $this->afterCreating(function(Equipo $equipo){
             
             if($equipo->area->value === Area::INFRAESTRUCTURA->value){
-                Infraestructura::factory()->create(['id' => $equipo->id]);
+                if($equipo->tipo->value === 'servidor'){
+                    Infraestructura::factory()->create([
+                        'id' => $equipo->id,
+                        'anio' => null,
+                        'sistema_operativo' => null,
+                        'dominio' => null,
+                    ]);
+                }else if($equipo->tipo->value === 'micro_escritorio' || $equipo->tipo->value === 'portatil'){
+                    Infraestructura::factory()->create(['id' => $equipo->id]);
+                }else{
+                    Infraestructura::factory()->create([
+                        'id' => $equipo->id,
+                        'anio' => null,
+                        'sistema_operativo' => null,
+                        'dominio' => null,
+                        'ram' => null,
+                        'disco' => null,
+                        'direccion_mac' => null,
+                    ]);
+                }
             }else if($equipo->area->value === Area::REDES->value){
                 if($equipo->tipo->value === 'telefono_analogico'){
                     Rede::factory()->create([

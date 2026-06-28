@@ -23,9 +23,10 @@ interface EquipoCardProps {
     can_delete: boolean;
   };
   onCardClick: (equipo: any) => void;
+  onCardEditClick?: (equipo: any) => void;
 }
 
-export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick }: EquipoCardProps) {
+export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick, onCardEditClick }: EquipoCardProps) {
   const Icon = equipoIconMap[equipo.tipo] || equipoIconMap.micro_escritorio;
   const colorClass = equipoColorMap[equipo.tipo] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
 
@@ -50,7 +51,8 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick }: Eq
               <h3 className="font-semibold text-sm leading-tight">
                 {tiposLabels[equipo.tipo] || equipo.tipo}
               </h3>
-              <p className="text-xs text-muted-foreground">{equipo.marca} {equipo.modelo}</p>
+              <p className="text-xs text-muted-foreground"> Marca: {equipo.marca}</p>
+              <p className="text-xs text-muted-foreground"> Modelo: {equipo.modelo}</p>
             </div>
           </div>
           <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
@@ -61,7 +63,7 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick }: Eq
 
       <CardContent className="pb-2 space-y-2">
         <div className="flex items-center text-sm text-muted-foreground gap-2">
-          <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{equipo.serial}</span>
+          <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">Serial • {equipo.serial} •</span>
         </div>
         <div className="flex items-center text-sm text-muted-foreground gap-1">
           <MapPin className="h-3.5 w-3.5" />
@@ -77,11 +79,9 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick }: Eq
 
       <CardFooter className="pt-2 flex justify-end gap-2 border-t">
         {permissions.can_edit && (
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/equipos/${equipo.id}/edit`}>
-              <Pencil className="h-3.5 w-3.5" />
-              Editar
-            </Link>
+          <Button className="cursor-pointer" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onCardEditClick?.(equipo); }}>
+            <Pencil className="h-3.5 w-3.5" />
+            Editar
           </Button>
         )}
         {/*permissions.can_delete && (

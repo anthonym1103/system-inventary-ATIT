@@ -59,7 +59,7 @@ export function EquipoMantenimientoDialog({ equipo, isOpen, onClose }: Props) {
                 <DialogHeader>
                     <DialogTitle>Programar mantenimiento</DialogTitle>
                     <DialogDescription>
-                        {equipo.marca} {equipo.modelo} — recibirás una notificación en la fecha indicada.
+                        Recibirás una notificación en la fecha indicada, para este equipo
                     </DialogDescription>
                 </DialogHeader>
 
@@ -78,7 +78,7 @@ export function EquipoMantenimientoDialog({ equipo, isOpen, onClose }: Props) {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="detalle">Nota (opcional)</Label>
+                        <Label htmlFor="detalle">Descripcion</Label>
                         <Input
                             id="detalle"
                             value={data.detalle}

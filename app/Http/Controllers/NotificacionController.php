@@ -1,16 +1,16 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
 use App\Models\Equipo;
-use App\Models\Mantenimiento;
+use App\Models\Notificacion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-class MantenimientoController extends Controller
+
+class NotificacionController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
@@ -26,7 +26,7 @@ class MantenimientoController extends Controller
 
         $this->authorizeAreaAccess($user, $equipo);
 
-        Mantenimiento::create([
+        Notificacion::create([
             'equipo_id' => $equipo->id,
             'usuario_id' => $user->id,
             'fecha_mantenimiento' => $validated['fecha_mantenimiento'],
@@ -38,7 +38,7 @@ class MantenimientoController extends Controller
         return back();
     }
 
-    public function markAsRead(Mantenimiento $mantenimiento): RedirectResponse
+    public function markAsRead(Notificacion $mantenimiento): RedirectResponse
     {
         abort_unless($mantenimiento->usuario_id === Auth::id(), 403);
 

@@ -43,8 +43,8 @@ export function Notifications() {
                             )}
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-80 rounded-lg" align="end" side="top">
-                        <DropdownMenuLabel>Recordatorios de mantenimiento</DropdownMenuLabel>
+                    <DropdownMenuContent className={`ml-4 rounded-lg max-h-72 overflow-y-auto ${count === 0 ? "w-[95%]" : "w-[78%]"}`} align="end" side="top">
+                        <DropdownMenuLabel className="w-full flex justify-center">Recordatorios de mantenimiento</DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
                         {count === 0 && (
@@ -59,36 +59,38 @@ export function Notifications() {
                             return (
                                 <DropdownMenuItem
                                     key={m.id}
-                                    className="flex flex-col items-start gap-1 py-2"
+                                    className="flex flex-col items-start gap-1 py-2 select-text"
                                     onSelect={(e) => e.preventDefault()}
                                 >
                                     <div className="flex w-full items-start gap-2">
                                         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                         <div className="flex-1 space-y-0.5">
-                                            <p className="text-sm font-medium leading-tight">
+                                            <p className="text-sm font-medium leading-tight cursor-text w-fit">
                                                 {m.equipo
-                                                    ? `${m.equipo.marca ?? ''} ${m.equipo.modelo}`.trim()
+                                                    ? `Equipo: ${m.equipo.modelo}`.trim()
                                                     : 'Equipo'}
                                             </p>
                                             {m.equipo?.serial && (
-                                                <p className="text-xs text-muted-foreground">
+                                                <p className="text-xs text-muted-foreground cursor-text w-fit">
                                                     Serial: {m.equipo.serial}
                                                 </p>
                                             )}
-                                            <p className="text-xs text-muted-foreground">
-                                                Programado para: {new Date(m.fecha_mantenimiento).toLocaleDateString()}
+                                            <p className="text-xs text-muted-foreground cursor-text w-fit">
+                                                Programado para hoy: {new Date(m.fecha_mantenimiento.replace('Z','')).toLocaleDateString()}
                                             </p>
-                                            {m.detalle && <p className="text-xs">{m.detalle}</p>}
+                                            {m.detalle && <p className="text-xs mt-2 cursor-text w-fit">Descripcion: {m.detalle}</p>}
                                         </div>
                                     </div>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="ml-6 h-7 px-2 text-xs"
-                                        onClick={() => marcarLeido(m.id)}
-                                    >
-                                        Marcar como leído
-                                    </Button>
+                                    <div className="w-full flex justify-end">
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-7 px-2 text-xs cursor-pointer"
+                                            onClick={() => marcarLeido(m.id)}
+                                        >
+                                            Marcar como leído
+                                        </Button>
+                                    </div>
                                 </DropdownMenuItem>
                             );
                         })}

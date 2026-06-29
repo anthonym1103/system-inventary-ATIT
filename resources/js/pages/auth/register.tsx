@@ -91,7 +91,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                                     </SelectContent>
                                 </Select>
                                 {/* Hidden input para que Inertia envíe el valor */}
-                                <input type="hidden" name="area" value={selectedArea} />
+                                <Input type="hidden" id="area" name="area" value={selectedArea} />
                                 <InputError 
                                     message={errors.area}
                                     className="mt-2"

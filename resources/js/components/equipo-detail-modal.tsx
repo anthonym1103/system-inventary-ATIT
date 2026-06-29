@@ -26,7 +26,6 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
         // Por ahora mostramos un placeholder, luego puedes extenderlo
         const detalles: Array<{ label: string; value: string | null }> = [];
 
-        console.log('Equipo:', equipo); // Depuración: muestra el objeto equipo en la consola
         // Ejemplo: si tienes relación con infraestructura, redes o transmisión
         if (equipo.infraestructura) {
             detalles.push(
@@ -39,8 +38,6 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
                 { label: 'Dominio', value: equipo.infraestructura.dominio },
             );
         }
-
-        console.log('Detalles específicos:', detalles); // Depuración: muestra los detalles específicos en la consola
 
         if (equipo.rede) {
             detalles.push(

@@ -5,7 +5,7 @@ use Laravel\Fortify\Features;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipoController;
-use App\Http\Controllers\MantenimientoController;
+use App\Http\Controllers\NotificacionController;
 
 
 Route::inertia('/', 'welcome', [
@@ -18,8 +18,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/profile/avatar',[ProfileController::class, 'updateAvatar']);
     Route::resource('equipos', EquipoController::class);
     Route::get('equipos/{equipo}/edit-data', [EquipoController::class, 'editData'])->name('equipos.edit-data');
-    Route::post('mantenimientos', [MantenimientoController::class, 'store'])->name('mantenimientos.store');
-    Route::patch('mantenimientos/{mantenimiento}/leido', [MantenimientoController::class, 'markAsRead'])->name('mantenimientos.leido');
+    Route::post('mantenimientos', [NotificacionController::class, 'store'])->name('notificacion.store');
+    Route::patch('mantenimientos/{mantenimiento}/leido', [NotificacionController::class, 'markAsRead'])->name('notificacion.leido');
 
 });
 

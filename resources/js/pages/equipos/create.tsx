@@ -16,7 +16,7 @@ export default function EquipoCreate({ tiposLabels, camposPorTipo, ubicaciones, 
     return (
         <>
             <Head title="Nuevo Equipo" />
-            <div className="p-6 max-w-4xl space-y-6">
+            <div className="p-6 w-full space-y-6">
                 <div className="flex items-center gap-3">
                     <Button variant="ghost" size="icon" asChild>
                         <Link href="/equipos">

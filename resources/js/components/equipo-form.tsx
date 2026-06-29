@@ -98,10 +98,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
     const tipoConfig = data.tipo ? camposPorTipo[data.tipo] : undefined;
     const camposActivos = useMemo(() => tipoConfig?.campos ?? [], [tipoConfig]);
     const requiereEncargado = tipoConfig?.requiereEncargado ?? false;
-    const cardForMode = mode === 'create' ? 'ml-[35%]' : '';
-    const buttonForMode = mode === 'create' ? 'flex justify-center gap-2 mt-6 ml-[30%]' : 'flex justify-center gap-2 mt-6';
-
-    console.log("ml" + buttonForMode)
+    const cardForMode = mode === 'create' ? 'mx-[22%]' : '';
 
     const handleTipoChange = (nuevoTipo: string) => {
         const nuevosCampos = camposPorTipo[nuevoTipo]?.campos ?? [];
@@ -297,7 +294,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                 </Card>
             )}
 
-            <div className= {buttonForMode}>
+            <div className= "flex justify-center gap-2 mt-6">
                 {onCancel ? (
                     <Button type="button" variant="outline" onClick={onCancel}>
                         Cancelar

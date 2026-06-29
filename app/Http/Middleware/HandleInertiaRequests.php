@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
-use App\Models\Mantenimiento;
+use App\Models\Notificacion;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -45,7 +45,7 @@ class HandleInertiaRequests extends Middleware
                 'roles' => $request->user()?->getRoleNames()->toArray() ?? [],
             ],
             'mantenimientosPendientes' => $request->user()
-                ? Mantenimiento::with('equipo:id,tipo,marca,modelo,serial')
+                ? Notificacion::with('equipo:id,tipo,marca,modelo,serial')
                     ->where('usuario_id', $request->user()->id)
                     ->where('leido', false)
                     ->where('fecha_mantenimiento', '<=', now()->toDateString())

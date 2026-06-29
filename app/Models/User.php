@@ -67,7 +67,7 @@ class User extends Authenticatable
 
     public function mantenimientos(): HasMany
     {
-        return $this->hasMany(Mantenimiento::class, 'usuario_id');
+        return $this->hasMany(Notificacion::class, 'usuario_id');
     }
     
 } 

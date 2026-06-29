@@ -13,6 +13,7 @@ import { EquipoDetailModal } from '@/components/equipo-detail-modal';
 import { EquipoEditModal } from '@/components/equipo-edit.modal';
 import { SelectItemText, Value } from '@radix-ui/react-select';
 import { Separator } from '@/components/ui/separator';
+import { EquipoMantenimientoDialog } from '@/components/equipo-mantenimiento-dialog';
 
 
 // Debounce manual
@@ -77,7 +78,10 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [classNameViewMode, setClassNameViewMode] = useState<string>('flex flex-col gap-4');
+    const [scheduleEquipo, setScheduleEquipo] = useState<any>(null);
+    const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
     const debouncedSearch = useDebounce(search, 300);
+
     
     // Aplicar filtros cuando cambien
 
@@ -124,6 +128,11 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
     const handleEditClick = (equipo: any) => {
         setEditEquipoId(equipo.id);
         setEditModalOpen(true);
+    };
+
+    const handleScheduleClick = (equipo: any) => {
+        setScheduleEquipo(equipo);
+        setScheduleModalOpen(true);
     };
 
     return (
@@ -280,6 +289,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                 permissions={permissions}
                                 onCardClick={handleCardClick}
                                 onCardEditClick={handleEditClick}
+                                onScheduleClick={handleScheduleClick}
                             />
                         ))
                     )}
@@ -318,6 +328,13 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                     isOpen={editModalOpen}
                     onClose={() => setEditModalOpen(false)}
                 />
+
+                <EquipoMantenimientoDialog
+                    equipo={scheduleEquipo}
+                    isOpen={scheduleModalOpen}
+                    onClose={() => setScheduleModalOpen(false)}
+                />
+                
             </div>
         </>
     );

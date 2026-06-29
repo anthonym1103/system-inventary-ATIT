@@ -17,9 +17,11 @@ import {
 import { Label } from '@/components/ui/label';
 
 const translate = (key:string, message:string)=>{
+
     if(key === 'password' && message === 'The password is incorrect.'){
         return 'La contraseña es incorrecta.';
     }
+    return message;
 }
 export default function DeleteUser() {
     const passwordInput = useRef<HTMLInputElement>(null);

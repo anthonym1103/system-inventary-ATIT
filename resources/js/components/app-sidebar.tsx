@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { BookOpen, ClipboardList, FolderGit2, LayoutGrid, Package, LayoutDashboard, History, Layers, LucideUsers } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
+import { Notifications } from '@/components/notifications';
 import { usePage } from '@inertiajs/react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -111,7 +112,7 @@ export function AppSidebar() {
             <SidebarFooter>
                 {/*<NavFooter items={footerNavItems} className="mt-auto" />*/}
 
-                {/** AGREGAR MENU NOTIFICACION */}
+                <Notifications />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

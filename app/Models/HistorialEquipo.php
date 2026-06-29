@@ -19,6 +19,10 @@ class HistorialEquipo extends Model
         'fecha_ajuste',
     ];
 
+    /*protected $cast = [
+        'fecha_ajuste' => 'dateTime',
+    ];*/
+
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_id');

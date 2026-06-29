@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Ubicacion;
 use App\Models\HistorialEquipo;
 use App\Models\Infraestructura;
+use App\Models\Mantenimiento;
 use App\Models\Rede;
 use App\Models\Transmision;
 use App\Enums\Area;
@@ -93,6 +94,11 @@ class Equipo extends Model
     public function transmision(): HasOne
     {
         return $this->hasOne(Transmision::class, 'id');
+    }
+
+    public function mantenimientos(): HasMany
+    {
+        return $this->hasMany(Mantenimiento::class);
     }
 
     

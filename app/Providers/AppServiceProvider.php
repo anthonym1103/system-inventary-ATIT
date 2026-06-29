@@ -28,6 +28,13 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
 
+        //dd(app()->make('translator')->getLoader()->paths());
+
+        //BORRAR ESTO DESPUES
+        if (str_contains(request()->getHost(), 'ngrok-free.dev')) {
+            \URL::forceScheme('https');
+        }
+        //BORRAR ESTO DESPUES
 
         VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
         // Puedes personalizar el asunto y el contenido aquí

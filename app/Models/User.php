@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\HistorialEquipo;
+use App\Models\Mantenimiento;
 use App\Enums\Area;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -62,6 +63,11 @@ class User extends Authenticatable
     public function historialEquipos(): HasMany
     {
         return $this->hasMany(HistorialEquipo::class, 'usuario_id');
+    }
+
+    public function mantenimientos(): HasMany
+    {
+        return $this->hasMany(Mantenimiento::class, 'usuario_id');
     }
     
 } 

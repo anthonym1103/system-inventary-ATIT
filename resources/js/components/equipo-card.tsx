@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
-import { Pencil, Trash2, User, MapPin } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Pencil, Trash2, User, MapPin, CalendarClock } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { equipoIconMap, equipoColorMap } from '@/lib/equipo-icons';
@@ -24,9 +24,10 @@ interface EquipoCardProps {
   };
   onCardClick: (equipo: any) => void;
   onCardEditClick?: (equipo: any) => void;
+  onScheduleClick: (equipo: any) => void;
 }
 
-export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick, onCardEditClick }: EquipoCardProps) {
+export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
   const Icon = equipoIconMap[equipo.tipo] || equipoIconMap.micro_escritorio;
   const colorClass = equipoColorMap[equipo.tipo] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
 
@@ -78,6 +79,17 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick, onCa
       </CardContent>
 
       <CardFooter className="pt-2 flex justify-end gap-2 border-t">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onScheduleClick(equipo);
+          }}
+        >
+          <CalendarClock className="h-3.5 w-3.5" />
+          Mantenimiento
+        </Button>
         {permissions.can_edit && (
           <Button className="cursor-pointer" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onCardEditClick?.(equipo); }}>
             <Pencil className="h-3.5 w-3.5" />

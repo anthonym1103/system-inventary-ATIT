@@ -5,6 +5,8 @@ use Laravel\Fortify\Features;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipoController;
+use App\Http\Controllers\MantenimientoController;
+
 
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
@@ -16,6 +18,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/profile/avatar',[ProfileController::class, 'updateAvatar']);
     Route::resource('equipos', EquipoController::class);
     Route::get('equipos/{equipo}/edit-data', [EquipoController::class, 'editData'])->name('equipos.edit-data');
+    Route::post('mantenimientos', [MantenimientoController::class, 'store'])->name('mantenimientos.store');
+    Route::patch('mantenimientos/{mantenimiento}/leido', [MantenimientoController::class, 'markAsRead'])->name('mantenimientos.leido');
+
 });
 
 require __DIR__.'/settings.php';

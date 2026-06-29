@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Models\Mantenimiento;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -43,6 +44,14 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $request->user()?->getAllPermissions()->pluck('name') ?? [],
                 'roles' => $request->user()?->getRoleNames()->toArray() ?? [],
             ],
+            'mantenimientosPendientes' => $request->user()
+                ? Mantenimiento::with('equipo:id,tipo,marca,modelo,serial')
+                    ->where('usuario_id', $request->user()->id)
+                    ->where('leido', false)
+                    ->where('fecha_mantenimiento', '<=', now()->toDateString())
+                    ->orderBy('fecha_mantenimiento')
+                    ->get()
+                : [],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

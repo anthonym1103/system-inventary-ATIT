@@ -19,3 +19,18 @@ export type AuthLayoutProps = {
     title?: string;
     description?: string;
 };
+
+export type Mantenimiento = {
+    id: number;
+    equipo_id: number;
+    fecha_mantenimiento: string;
+    detalle: string | null;
+    leido: boolean;
+    equipo?: {
+        id: number;
+        tipo: string;
+        marca: string | null;
+        modelo: string;
+        serial: string;
+    };
+};

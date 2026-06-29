@@ -12,6 +12,7 @@ use App\Models\UserAsignado;
 use App\Enums\Area;
 use App\Enums\TipoEquipo;
 use App\Enums\CondicionEquipo;
+use App\Enums\EstadoRegion;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -71,11 +72,16 @@ class EquipoController extends Controller
         }
 
         // Solo mostrar ubicaciones que tengan equipos en las áreas permitidas
-        $ubicaciones = Ubicacion::whereHas('equipos', function ($q) use ($allowedAreas, $user) {
+        $ubicacionesCargadas = Ubicacion::whereHas('equipos', function ($q) use ($allowedAreas, $user) {
             if (!$user->hasRole('Administrador') && !empty($allowedAreas)) {
                 $q->whereIn('area', $allowedAreas);
             }
-        })->get(['id', 'estado', 'locacion']);
+        })->get(['id', 'estado']);
+
+        $ubicaciones = collect(EstadoRegion::cases())->map(fn($case) => [
+            'value' => $case->value,
+            'label' => $case->label(),
+        ])->values();
 
         
         // 7. Obtener permisos del usuario para acciones (opcional)
@@ -84,6 +90,7 @@ class EquipoController extends Controller
             'can_edit'   => $user->can('editar_equipos'),
             'can_delete' => $user->can('eliminar_equipos'),
             'can_viewHistorial'=> $user->can('ver_historial'),
+            'can_asigRoles' => $user->can('asignar_roles'),
         ];
 
         $condiciones = collect(CondicionEquipo::cases())->map(fn($case) => [

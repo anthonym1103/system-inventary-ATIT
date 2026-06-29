@@ -16,12 +16,10 @@ class RoleSeeder extends Seeder
 
     // Permisos base que se pueden granular después
     private array $permisosBase = [
-        'ver_equipos',
         'crear_equipos',
         'editar_equipos',
         'eliminar_equipos',
         'ver_historial',
-        'crear_usuarios',
         'asignar_roles',
     ];
 
@@ -68,7 +66,6 @@ class RoleSeeder extends Seeder
                 $permisosAsignar = [
                     "ver_equipos",
                     "ver_historial",
-                    "crear_usuarios",
                     "asignar_roles",
                 ];
                 break;

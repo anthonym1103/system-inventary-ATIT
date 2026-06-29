@@ -51,7 +51,7 @@ interface Props {
     };
     tiposLabels: Record<string, string>;
     condiciones: Array<{ value: string, label: string }>
-    ubicaciones: Array<{ id: number; estado: string; locacion: string }>;
+    ubicaciones: Array<{ value: string, label: string }>;
     filters: {
         search: string;
         tipo: string;
@@ -258,9 +258,12 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                     Todos las ubicaciones
                                 </SelectItem>
                                 {ubicaciones.map((u) => (
-                                    <SelectItem key={u.id} value={String(u.id)} className="cursor-pointer">
-                                        {u.locacion}, {u.estado}
-                                    </SelectItem>
+                                    <pre className="text-xs font-mono whitespace-pre-wrap">
+                                        {JSON.stringify(u, null, 2)}
+                                    </pre>
+                                    /*<SelectItem key={u.id} value={String(u.id)} className="cursor-pointer">
+                                        {u.estado}
+                                    </SelectItem>*/
                                 ))}
                             </SelectContent>
                         </Select>

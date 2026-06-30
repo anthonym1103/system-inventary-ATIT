@@ -14,9 +14,10 @@ interface EquipoDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     tiposLabels: Record<string, string>;
+    estadosLabels: Record<string, string>;
 }
 
-export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: EquipoDetailModalProps) {
+export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels, estadosLabels }: EquipoDetailModalProps) {
     if (!equipo) return null;
 
     
@@ -92,7 +93,7 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels }: Equi
                             </div>*/}
                             <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                                <span>{equipo.ubicacion?.locacion}, {equipo.ubicacion?.estado}</span>
+                                <span>{equipo.ubicacion?.locacion}, {estadosLabels[equipo.ubicacion?.estado]}</span>
                             </div>
 
                             <div className="flex items-center gap-2">

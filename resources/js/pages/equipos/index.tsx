@@ -50,13 +50,14 @@ interface Props {
         total: number;
     };
     tiposLabels: Record<string, string>;
+    estadosLabels: Record<string, string>;
     condiciones: Array<{ value: string, label: string }>
     ubicaciones: Array<{ value: string, label: string }>;
     filters: {
         search: string;
         tipo: string;
         condicion: string;
-        ubicacion_id: string;
+        estado_region: string;
     };
     permissions: {
         can_create: boolean;
@@ -66,12 +67,12 @@ interface Props {
     };
 }
 
-export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicaciones, filters, permissions }: Props) {
+export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, condiciones, ubicaciones, filters, permissions }: Props) {
     // Inicializar con undefined en lugar de '' para evitar el valor vacío
     const [search, setSearch] = useState(filters.search || '');
     const [tipo, setTipo] = useState<string | undefined>(filters.tipo || undefined);
     const [condicion, setCondicion] = useState<string | undefined>(filters.condicion || undefined);
-    const [ubicacionId, setUbicacionId] = useState<string | undefined>(filters.ubicacion_id || undefined);
+    const [region, setRegion] = useState<string | undefined>(filters.estado_region || undefined);
     const [selectedEquipo, setSelectedEquipo] = useState<any>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [editEquipoId, setEditEquipoId] = useState<number | null>(null);
@@ -91,20 +92,20 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
         if (debouncedSearch) params.search = debouncedSearch;
         if (tipo) params.tipo = tipo;
         if (condicion) params.condicion = condicion;
-        if (ubicacionId) params.ubicacion_id = ubicacionId;
+        if (region) params.estado_region = region;
         
         router.get('/equipos', params, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
         });
-    }, [debouncedSearch, tipo, condicion, ubicacionId]);
+    }, [debouncedSearch, tipo, condicion, region]);
 
     const clearFilters = () => {
         setSearch('');
         setTipo(undefined);
         setCondicion(undefined);
-        setUbicacionId(undefined);
+        setRegion(undefined);
         router.get('/equipos', {}, { preserveState: false });
     };
 
@@ -206,7 +207,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                             value={tipo}
                             onValueChange={(val) => setTipo(val || undefined)}
                         >
-                            <SelectTrigger className="cursor-pointer">
+                            <SelectTrigger className="cursor-pointer min-w-50">
                                 <SelectValue placeholder="Tipos de equipos" />
                             </SelectTrigger>
                             <SelectContent >
@@ -228,7 +229,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                             value={condicion}
                             onValueChange={(val) => setCondicion(val || undefined)}
                         >
-                            <SelectTrigger className="cursor-pointer">
+                            <SelectTrigger className="cursor-pointer min-w-50">
                                 <SelectValue placeholder="Condiciones de equipos" />
                             </SelectTrigger>
                             <SelectContent>
@@ -247,10 +248,10 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                     {/* Ubicación */}
                     <div>
                         <Select
-                            value={ubicacionId}
-                            onValueChange={(val) => setUbicacionId(val || undefined)}
+                            value={region}
+                            onValueChange={(val) => setRegion(val || undefined)}
                         >
-                            <SelectTrigger className="cursor-pointer">
+                            <SelectTrigger className="cursor-pointer min-w-50">
                                 <SelectValue placeholder="Ubicaciones de equipos" />
                             </SelectTrigger>
                             <SelectContent>
@@ -258,12 +259,9 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                     Todos las ubicaciones
                                 </SelectItem>
                                 {ubicaciones.map((u) => (
-                                    <pre className="text-xs font-mono whitespace-pre-wrap">
-                                        {JSON.stringify(u, null, 2)}
-                                    </pre>
-                                    /*<SelectItem key={u.id} value={String(u.id)} className="cursor-pointer">
-                                        {u.estado}
-                                    </SelectItem>*/
+                                    <SelectItem key={u.value} value={u.value} className="cursor-pointer">
+                                        {u.label}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -289,6 +287,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                                 key={equipo.id}
                                 equipo={equipo}
                                 tiposLabels={tiposLabels}
+                                estadosLabls={estadosLabels}
                                 permissions={permissions}
                                 onCardClick={handleCardClick}
                                 onCardEditClick={handleEditClick}
@@ -324,6 +323,7 @@ export default function EquiposIndex({ equipos, tiposLabels, condiciones, ubicac
                     isOpen={modalOpen}
                     onClose={() => setModalOpen(false)}
                     tiposLabels={tiposLabels}
+                    estadosLabels={estadosLabels}
                 />
 
                 <EquipoEditModal

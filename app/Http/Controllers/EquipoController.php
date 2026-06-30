@@ -19,12 +19,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Collection;
 
 class EquipoController extends Controller
 {
     
-    public function index(Request $request)
-    {
+    public function index(Request $request){
         $user = Auth::user();
         
         // 1. Determinar áreas permitidas (igual que en DashboardController)
@@ -56,8 +56,12 @@ class EquipoController extends Controller
         if ($request->filled('condicion') && $request->input('condicion') !== 'all') {
             $query->where('condicion', $request->input('condicion'));
         }
-        if ($request->filled('ubicacion_id') && $request->input('ubicacion_id') !== 'all') {
-            $query->where('ubicacion_id', $request->input('ubicacion_id'));
+        if($request->filled('estado_region') && $request->input('estado_region') !== 'all'){
+            $estadosBuscados = $request->input('estado_region');
+
+            $query->whereHas('ubicacion', function($q) use ($estadosBuscados){
+                $q->where('estado', $estadosBuscados);
+            });
         }
        
         // 5. Paginación (10 por página, puedes cambiar)
@@ -71,6 +75,11 @@ class EquipoController extends Controller
             }
         }
 
+        $estadosLabels = [];
+        foreach (EstadoRegion::cases() as $estado) {
+            $estadosLabels[$estado->value] = $estado->label();
+        }
+
         // Solo mostrar ubicaciones que tengan equipos en las áreas permitidas
         $ubicacionesCargadas = Ubicacion::whereHas('equipos', function ($q) use ($allowedAreas, $user) {
             if (!$user->hasRole('Administrador') && !empty($allowedAreas)) {
@@ -78,10 +87,7 @@ class EquipoController extends Controller
             }
         })->get(['id', 'estado']);
 
-        $ubicaciones = collect(EstadoRegion::cases())->map(fn($case) => [
-            'value' => $case->value,
-            'label' => $case->label(),
-        ])->values();
+        $ubicaciones = $this->getEstadosRegion();
 
         
         // 7. Obtener permisos del usuario para acciones (opcional)
@@ -101,6 +107,7 @@ class EquipoController extends Controller
         return Inertia::render('equipos/index', [
             'equipos' => $equipos,
             'tiposLabels' => $tiposLabels,
+            'estadosLabels' => $estadosLabels,
             'condiciones' => $condiciones,
             'ubicaciones' => $ubicaciones,
             'filters' => $request->only(['search', 'tipo', 'condicion', 'ubicacion_id']),
@@ -131,6 +138,8 @@ class EquipoController extends Controller
                 'requiereEncargado' => $tipo->requiereEncargado(),
             ];
         }
+
+        $ubicacionesCompletas = Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']);
 
         return Inertia::render('equipos/create', [
             'tiposLabels' => $tiposLabels,
@@ -436,6 +445,13 @@ class EquipoController extends Controller
         
     }
 
+    private function getEstadosRegion(): Collection
+    {
+        return collect(EstadoRegion::cases())->map(fn($case) => [
+            'value' => $case->value,
+            'label' => $case->label(),
+        ])->values();
+    }
 
     private function getUserAllowedAreas($user): array
     {

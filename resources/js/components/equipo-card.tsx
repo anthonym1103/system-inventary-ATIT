@@ -18,6 +18,7 @@ interface EquipoCardProps {
         user_asignado?: { cedula: string; nombre: string; apellido: string } | null;
     };
     tiposLabels: Record<string, string>;
+    estadosLabls: Record<string, string>;
     permissions: {
         can_edit: boolean;
         can_delete: boolean;
@@ -27,7 +28,7 @@ interface EquipoCardProps {
     onScheduleClick: (equipo: any) => void;
 }
 
-export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
+export function EquipoCard({ equipo, tiposLabels, estadosLabls, permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
     const Icon = equipoIconMap[equipo.tipo] || equipoIconMap.micro_escritorio;
     const colorClass = equipoColorMap[equipo.tipo] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
 
@@ -68,7 +69,7 @@ export function EquipoCard({ equipo, tiposLabels, permissions, onCardClick, onCa
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground gap-1">
                     <MapPin className="h-3.5 w-3.5" />
-                    <span>{equipo.ubicacion?.locacion}, {equipo.ubicacion?.estado}</span>
+                    <span>{equipo.ubicacion?.locacion}, {estadosLabls[equipo.ubicacion?.estado]}</span>
                 </div>
                 {equipo.user_asignado && (
                     <div className="flex items-center text-sm text-muted-foreground gap-1">

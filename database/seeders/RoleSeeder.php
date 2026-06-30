@@ -64,7 +64,6 @@ class RoleSeeder extends Seeder
             case $cargos[0]->value:
                 // Permisos de administrador
                 $permisosAsignar = [
-                    "ver_equipos",
                     "ver_historial",
                     "asignar_roles",
                 ];
@@ -72,7 +71,6 @@ class RoleSeeder extends Seeder
             case $cargos[1]->value:
                 //Permisos de supervisor
                 $permisosAsignar = [
-                    "ver_equipos",
                     "ver_historial",
                 ];
                 break;

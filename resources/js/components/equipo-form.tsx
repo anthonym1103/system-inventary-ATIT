@@ -61,7 +61,8 @@ export interface AsignadoOption {
 
 export type EquipoFormData = {
     tipo: string;
-    ubicacion_id: string;
+    estados: string;
+    locacions:string;
     asignado_id: string;
     marca: string;
     modelo: string;
@@ -75,7 +76,7 @@ interface EquipoFormProps {
     equipoId?: number;
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
-    ubicaciones: UbicacionOption[];
+    ubicaciones: Array<{ value: string, label: string }>;
     asignados: AsignadoOption[];
     initialData?: Partial<EquipoFormData>;
     tieneContrasenaBios?: boolean;
@@ -86,7 +87,8 @@ interface EquipoFormProps {
 export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, asignados, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
     const { data, setData, post, put, processing, errors, reset } = useForm<EquipoFormData>({
         tipo: '',
-        ubicacion_id: '',
+        estados: '',
+        locacions: '',
         asignado_id: '',
         marca: '',
         modelo: '',
@@ -160,23 +162,33 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Ubicación</Label>
+                        <Label>Estado/Region</Label>
                         <Select
-                            value={data.ubicacion_id}
-                            onValueChange={(val) => setData('ubicacion_id', val)}
+                            value={data.estados}
+                            onValueChange={(val) => setData('estados', val)}
                         >
                             <SelectTrigger className="w-full cursor-pointer">
                                 <SelectValue placeholder="Selecciona una ubicación" />
                             </SelectTrigger>
                             <SelectContent>
                                 {ubicaciones.map((u) => (
-                                    <SelectItem key={u.id} value={String(u.id)} className="cursor-pointer">
-                                        {u.locacion}, {u.estado}
+                                    <SelectItem key={u.value} value={u.value} className="cursor-pointer">
+                                        {u.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                        <InputError message={errors.ubicacion_id} />
+                        <InputError message={errors.estados} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>Locacion del equipo</Label>
+                        <textarea
+                            className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            value={data.locacions}
+                            onChange={(e) => setData('locacions', e.target.value)}
+                        />
+                        <InputError message={errors.locacions} />
                     </div>
 
                     {requiereEncargado && (

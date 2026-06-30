@@ -140,11 +140,12 @@ class EquipoController extends Controller
         }
 
         $ubicacionesCompletas = Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']);
+        $ubicaciones = $this->getEstadosRegion();
 
         return Inertia::render('equipos/create', [
             'tiposLabels' => $tiposLabels,
             'camposPorTipo' => $camposPorTipo,
-            'ubicaciones' => Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']),
+            'ubicaciones' => $ubicaciones,
             'asignados' => UserAsignado::orderBy('nombre')->get(['cedula', 'nombre', 'apellido']),
         ]);
     }
@@ -171,7 +172,8 @@ class EquipoController extends Controller
 
         $rules = [
             'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
-            'ubicacion_id' => ['required', 'integer', 'exists:ubicacions,id'],
+            'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
+            'locacions' => ['nullable', 'string', 'max:255'],
             'marca' => ['nullable', 'string', 'max:255'],
             'modelo' => ['required', 'string', 'max:255'],
             'serial' => ['required', 'string', 'max:255', 'unique:equipos,serial'],
@@ -208,8 +210,13 @@ class EquipoController extends Controller
         $validated = $request->validate($rules);
 
         DB::transaction(function () use ($validated, $tipo, $camposEspecificos) {
+            $ubicacion = Ubicacion::firstOrCreate([
+                    'estado' => $validated['estados'],
+                    'locacion' => $validated['locacions'],
+                ]);
+
             $equipo = Equipo::create([
-                'ubicacion_id' => $validated['ubicacion_id'],
+                'ubicacion_id' => $ubicacion->id,
                 'asignado_id' => $validated['asignado_id'] ?: null,
                 'area' => $tipo->modulo()->value,
                 'tipo' => $tipo->value,

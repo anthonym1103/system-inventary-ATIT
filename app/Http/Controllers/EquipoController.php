@@ -35,7 +35,7 @@ class EquipoController extends Controller
         // 2. Query base con filtro de áreas
         $query = Equipo::query()
             ->with(array_merge(['ubicacion', 'userAsignado'], $relacionEquipo))
-            ->when(!$user->hasRole('Administrador') && !empty($allowedAreas), function ($q) use ($allowedAreas) {
+            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), function ($q) use ($allowedAreas) {
                 $q->whereIn('area', $allowedAreas);
             });
         
@@ -71,7 +71,7 @@ class EquipoController extends Controller
         // 6. Datos para filtros (tipos, condiciones, ubicaciones)
         $tiposLabels = [];
         foreach (TipoEquipo::cases() as $tipo) {
-            if($allowedAreas.length === 1 || in_array($tipo->modulo()->value, $allowedAreas)){
+            if(count($allowedAreas) === 1 || in_array($tipo->modulo()->value, $allowedAreas)){
                 $tiposLabels[$tipo->value] = $tipo->label();
             }else{
                 foreach($allowedAreas as $area){
@@ -89,7 +89,7 @@ class EquipoController extends Controller
 
         // Solo mostrar ubicaciones que tengan equipos en las áreas permitidas
         $ubicacionesCargadas = Ubicacion::whereHas('equipos', function ($q) use ($allowedAreas, $user) {
-            if (!$user->hasRole('Administrador') && !empty($allowedAreas)) {
+            if (!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas)) {
                 $q->whereIn('area', $allowedAreas);
             }
         })->get(['id', 'estado']);

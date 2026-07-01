@@ -6,6 +6,7 @@ use App\Models\Equipo;
 use App\Models\Notificacion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Enums\Cargo;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -49,7 +50,7 @@ class NotificacionController extends Controller
 
     private function authorizeAreaAccess($user, Equipo $equipo): void
     {
-        if ($user->hasRole('Administrador')) {
+        if ($user->hasRole(Cargo::ADMINISTRADOR->value)) {
             return;
         }
 

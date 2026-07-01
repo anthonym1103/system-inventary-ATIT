@@ -43,13 +43,17 @@ class UserController extends Controller
 
         $users = $query->latest()->paginate(10)->withQueryString();
 
+        //dump($users);
+
         $users->getCollection()->transform(fn (User $user) => [
             'id' => $user->id,
             'name' => $user->name,
             'user_name' => $user->user_name,
             'email' => $user->email,
             'area' => $user->area?->value,
+            'avatar' => $user?->avatar,
             'role' => $user->roles->first()?->name,
+            'email_verified_at' => $user->email_verified_at,
         ]);
 
         return Inertia::render('usuarios/index', [

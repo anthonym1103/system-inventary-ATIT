@@ -78,6 +78,11 @@ export default function UsuariosIndex({
     const [selectedRole, setSelectedRole] = useState<string>('');
     const [processing, setProcessing] = useState(false);
 
+    console.log(users);
+    console.log(rolesByArea);
+    console.log(areaLabels);
+    console.log(filters);
+
     useEffect(() => {
         const params: Record<string, string> = {};
 
@@ -126,8 +131,8 @@ export default function UsuariosIndex({
             return 'Sin rol asignado';
         }
 
-        if (roleValue === 'Administrador') {
-            return 'Administrador';
+        if (roleValue === 'administrador') {
+            return 'administrador';
         }
 
         for (const options of Object.values(rolesByArea)) {
@@ -144,7 +149,7 @@ export default function UsuariosIndex({
     const isSelf = (userId: number) => userId === auth.user.id;
 
     // Un usuario con rol Administrador no puede ser editado desde aquí
-    const isAdmin = (role: string | null) => role === 'Administrador';
+    const isAdmin = (role: string | null) => role === 'administrador';
 
     const canEdit = (user: UserRow) => !isSelf(user.id) && !isAdmin(user.role);
 

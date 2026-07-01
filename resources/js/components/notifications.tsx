@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { equipoIconMap } from '@/lib/equipo-icons';
 
+
 export function Notifications() {
     const { mantenimientosPendientes } = usePage().props;
     const pendientes = mantenimientosPendientes ?? [];
@@ -34,7 +35,7 @@ export function Notifications() {
                             size="lg"
                             className="group text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent"
                         >
-                            <Bell className="size-4" />
+                            <Bell className="ml-2 size-4" />
                             <span>Notificaciones</span>
                             {count > 0 && (
                                 <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-white">

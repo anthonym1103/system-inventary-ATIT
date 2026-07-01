@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipoController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\HistorialController;
+use App\Http\Controllers\UserController;
 
 
 Route::inertia('/', 'welcome', [
@@ -22,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('mantenimientos', [NotificacionController::class, 'store'])->name('notificacion.store');
     Route::patch('mantenimientos/{mantenimiento}/leido', [NotificacionController::class, 'markAsRead'])->name('notificacion.leido');
     Route::get('historial', [HistorialController::class, 'index'])->name('historial.index');
+    Route::get('usuarios', [UserController::class, 'index'])->name('usuarios.index');
     
 });
 

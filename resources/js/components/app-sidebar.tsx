@@ -41,7 +41,7 @@ function getNavItems(data: any): NavItem[] {
     if (data.permissions.includes('asignar_roles')) {
         items.push({
             title: 'Gestion de Usuarios',
-            href: '',
+            href: '/usuarios',
             icon: LucideUsers,
         });
     }

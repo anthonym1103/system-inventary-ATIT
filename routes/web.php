@@ -6,6 +6,7 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipoController;
 use App\Http\Controllers\NotificacionController;
+use App\Http\Controllers\HistorialController;
 
 
 Route::inertia('/', 'welcome', [
@@ -20,7 +21,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('equipos/{equipo}/edit-data', [EquipoController::class, 'editData'])->name('equipos.edit-data');
     Route::post('mantenimientos', [NotificacionController::class, 'store'])->name('notificacion.store');
     Route::patch('mantenimientos/{mantenimiento}/leido', [NotificacionController::class, 'markAsRead'])->name('notificacion.leido');
-
+    Route::get('historial', [HistorialController::class, 'index'])->name('historial.index');
+    
 });
 
 require __DIR__.'/settings.php';

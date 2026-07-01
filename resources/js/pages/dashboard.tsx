@@ -21,10 +21,11 @@ interface Props {
     totalesPorArea: Record<string, number>;
     condiciones: { Operativo: number; 'No operativo': number };
     ultimosEquipos: Equipo[];
+    estadosLabels: Record<string, string>;
     equiposPorUbicacion: Array<{ id: number; estado: string; locacion: string; equipos_count: number }>;
 }
 
-export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos, equiposPorUbicacion }: Props) {
+export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos, estadosLabels, equiposPorUbicacion }: Props) {
     // Función para mostrar el área en español
     const areaLabel = (area: string) => {
         const map: Record<string, string> = {
@@ -110,7 +111,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                                                 {equipo.condicion}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>{equipo.ubicacion?.locacion}, {equipo.ubicacion?.estado}</TableCell>
+                                        <TableCell>{equipo.ubicacion?.locacion}, {estadosLabels[equipo.ubicacion?.estado]}</TableCell>
                                         <TableCell>{new Date(equipo.created_at).toLocaleDateString()}</TableCell>
                                     </TableRow>
                                 ))}
@@ -140,7 +141,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                             <TableBody>
                                 {equiposPorUbicacion.map((ubic) => (
                                     <TableRow key={ubic.id}>
-                                        <TableCell>{ubic.locacion}, {ubic.estado}</TableCell>
+                                        <TableCell>{ubic.locacion}, {estadosLabels[ubic.estado]}</TableCell>
                                         <TableCell>{ubic.equipos_count}</TableCell>
                                     </TableRow>
                                 ))}

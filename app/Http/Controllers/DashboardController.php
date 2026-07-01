@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Equipo;
 use App\Models\Ubicacion;
 use App\Enums\Area;
+use App\Enums\Cargo;
 use App\Enums\TipoEquipo;
+use App\Enums\EstadoRegion;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +23,7 @@ class DashboardController extends Controller
         
         // Consulta base de equipos con filtro de áreas
         $query = Equipo::query();
-        if (!empty($allowedAreas) && !$user->hasRole('Administrador')) {
+        if (!empty($allowedAreas) && !$user->hasRole(Cargo::ADMINISTRADOR->value)) {
             $query->whereIn('area', $allowedAreas);
         }
         
@@ -40,7 +42,7 @@ class DashboardController extends Controller
         
         // 3. Últimos 5 equipos agregados (con relaciones básicas)
         $ultimosEquipos = Equipo::with(['ubicacion'])
-            ->when(!$user->hasRole('Administrador') && !empty($allowedAreas), function ($q) use ($allowedAreas) {
+            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), function ($q) use ($allowedAreas) {
                 $q->whereIn('area', $allowedAreas);
             })
         ->latest()
@@ -50,6 +52,11 @@ class DashboardController extends Controller
         $tiposLabels = [];
         foreach (TipoEquipo::cases() as $tipo) {
             $tiposLabels[$tipo->value] = $tipo->label();
+        }
+
+        $estadosLabels = [];
+        foreach (EstadoRegion::cases() as $estado) {
+            $estadosLabels[$estado->value] = $estado->label();
         }
         
         // 4. Equipos por ubicación (top 5 ubicaciones con más equipos)
@@ -72,24 +79,21 @@ class DashboardController extends Controller
             'ultimosEquipos' => $ultimosEquipos,
             'equiposPorUbicacion' => $equiposPorUbicacion,
             'tiposLabels' => $tiposLabels,
+            'estadosLabels' => $estadosLabels,
         ]);
     }
     
     private function getUserAllowedAreas($user): array
     {
-        $areas = [];
-        if ($user->area->value === Area::INFRAESTRUCTURA->value) {
-            $areas[] = Area::INFRAESTRUCTURA->value;
-        }
-        if ($user->area->value === Area::REDES->value) {
-            $areas[] = Area::REDES->value;
-        }
-        if ($user->area->value === Area::TRANSMISION->value) {
-            $areas[] = Area::TRANSMISION->value;
-        }
-        if ($user->hasRole('Administrador')) {
+        // Admin ve todo
+        if ($user->hasRole(Cargo::ADMINISTRADOR->value)) {
             return array_map(fn($area) => $area->value, Area::cases());
         }
-        return $areas;
+
+        // Cualquier otro rol solo ve su propia área
+        if ($user->area) {
+            return [$user->area->value];
+        }
+        return [];
     }
 }

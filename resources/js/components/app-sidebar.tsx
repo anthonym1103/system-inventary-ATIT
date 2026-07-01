@@ -29,47 +29,22 @@ const baseNavItems: NavItem[] = [
         icon: Layers,
     },{
         title:'Historial',
-        href: '',
+        href: '/historial',
         icon: History,
     },
 ];
 
 function getNavItems(data: any): NavItem[] {
     if (!data) return baseNavItems;
-    const cargo = 'administrador'
     const items = [...baseNavItems];
 
-    if (data.roles.includes(`${cargo}_${data.user.area}`)) {
-        /*items.push({
-            title: 'Inventario de infraestructura',
-            href: '',
-            icon: Layers, 
-        },{
-            title: 'Inventario de redes y telefonia',
-            href: '',
-            icon: Layers, 
-        }, {
-            title: 'Inventario de transferencia de datos',
-            href: '',
-            icon: Layers, 
-        },{ 
+    if (data.permissions.includes('asignar_roles')) {
+        items.push({
             title: 'Gestion de Usuarios',
             href: '',
-            icon: LucideUsers, 
-        });*/
-
-        items.push({ 
-            title: 'Gestion de Usuarios',
-            href: '',
-            icon: LucideUsers, 
+            icon: LucideUsers,
         });
     }
-
-    /*
-    // Ejemplo: para técnicos, ocultar "Historial"
-    if (roles.some((r: string) => r.startsWith('tecnico_'))) {
-        return items.filter(item => item.title !== 'Historial');
-    }*/
 
     return items;
 }

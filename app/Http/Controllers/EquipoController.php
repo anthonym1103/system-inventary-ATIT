@@ -13,6 +13,7 @@ use App\Enums\Area;
 use App\Enums\TipoEquipo;
 use App\Enums\CondicionEquipo;
 use App\Enums\EstadoRegion;
+use App\Enums\Cargo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -70,8 +71,10 @@ class EquipoController extends Controller
         // 6. Datos para filtros (tipos, condiciones, ubicaciones)
         $tiposLabels = [];
         foreach (TipoEquipo::cases() as $tipo) {
-            if($tipo->modulo()->value === $user->area->value){
-                $tiposLabels[$tipo->value] = $tipo->label();
+            foreach($allowedAreas as $area){
+                if($tipo->modulo()->value === $area){
+                    $tiposLabels[$tipo->value] = $tipo->label();
+                }
             }
         }
 
@@ -440,6 +443,40 @@ class EquipoController extends Controller
                 $nuevo->id = $equipo->id;
                 $nuevo->save();
             }
+
+            $oldData = $registro->getOriginal();
+            $newData = $registro->getAttributes();
+
+            // Definir los campos que queremos comparar (según el área)
+            $fieldsToCompare = match ($tipo->modulo()) {
+                Area::INFRAESTRUCTURA => ['anio', 'ram', 'disco', 'direccion_mac', 'sistema_operativo', 'numero_inventario', 'dominio'],
+                Area::REDES         => ['puerto', 'puerto_fibra', 'direccion_ip', 'direccion_mac', 'extension', 'ubicacion_puerto'],
+                Area::TRANSMISION   => ['potencia', 'rango_frecuencia', 'unidad_usuario', 'caracteristicas', 'numero_inventario'],
+                default => [],
+            };
+
+            $changes = [];
+            foreach ($fieldsToCompare as $field) {
+                $old = $oldData[$field] ?? null;
+                $new = $newData[$field] ?? null;
+                if ($old != $new) {
+                    // Si es contraseña, no mostrar el valor, solo indicar que cambió
+                    if ($field === 'contraseña_bios') {
+                        $changes[] = "contraseña BIOS: modificada";
+                    } else {
+                        $changes[] = "{$field}: de '{$old}' a '{$new}'";
+                    }
+                }           
+            }
+
+            if (!empty($changes)) {
+                HistorialEquipo::create([
+                    'usuario_id' => auth()->id(),
+                    'equipo_id'  => $equipo->id,
+                    'detalle'    => 'Cambios en ' . $tipo->modulo()->value . ': ' . implode(', ', $changes),
+                    'fecha_ajuste' => now(),
+                ]);
+            }
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Equipo actualizado correctamente.']);
@@ -462,15 +499,15 @@ class EquipoController extends Controller
 
     private function getUserAllowedAreas($user): array
     {
-        if ($user->hasRole('Administrador')) {
+        if ($user->hasRole(Cargo::ADMINISTRADOR->value)) {
             return array_map(fn($area) => $area->value, Area::cases());
         }
-        
-        $areas = [];
-        if ($user->area && in_array($user->area->value, ['infraestructura', 'redes', 'transmision_datos'])) {
-            $areas[] = $user->area->value;
+
+        if ($user->area) {
+            return [$user->area->value];
         }
-        return $areas;
+
+        return [];
     }
 
     private function getRelacionEquipo($allowedAreas): array

@@ -33,23 +33,25 @@ class RoleSeeder extends Seeder
             Permission::create(['name' => $permissionName]);
         }
 
-        
         //Creamos roles combinando cargo + área
         $areas = Area::cases();
-        $cargos = Cargo::cases();
+        $cargosDeArea = [Cargo::SUPERVISOR, Cargo::TECNICO];
+
         foreach ($areas as $area) {
-            foreach ($cargos as $cargo) {
+            foreach ($cargosDeArea as $cargo) {
                 $roleName = "{$cargo->value}_{$area->value}";
                 $role = Role::create(['name' => $roleName]);
 
                 // Asignar permisos según el cargo (definición de jerarquía)
-                $this->assignPermissionsToRole($role, $cargo->value, $cargos);
+                $this->assignPermissionsToRole($role, $cargo->value, $cargosDeArea);
             }
         }
 
-
-        $adminRole = Role::create(['name' => 'Administrador']);
-        $adminRole->givePermissionTo(Permission::all());
+        $adminRole = Role::firstOrCreate(['name' => Cargo::ADMINISTRADOR->value]);
+        $adminRole->syncPermissions([
+                'ver_historial',
+                'asignar_roles',
+                ],);
 
         //Creamos roles a usuarios de prueba
         $this->assignRolesToTestUsers();
@@ -58,49 +60,28 @@ class RoleSeeder extends Seeder
     private function assignPermissionsToRole(Role $role, string $cargo, array $cargos): void
     {
         
+        // Aquí se define qué permisos tiene cada cargo
+        $permisos = match ($cargo) {
+            Cargo::SUPERVISOR => [
+                'ver_historial'
+                ],
+            Cargo::TECNICO => [
+                'crear_equipos', 
+                'editar_equipos', 
+                'eliminar_equipos', 
+                'ver_historial',
+                ],
+            default => [],
+        };
 
-        // Aquí defines qué permisos tiene cada cargo
-        switch ($cargo) {
-            case $cargos[0]->value:
-                // Permisos de administrador
-                $permisosAsignar = [
-                    "ver_historial",
-                    "asignar_roles",
-                ];
-                break;
-            case $cargos[1]->value:
-                //Permisos de supervisor
-                $permisosAsignar = [
-                    "ver_historial",
-                ];
-                break;
-            case $cargos[2]->value:
-                //Permisos de tecnico
-                $permisosAsignar = [
-                    "crear_equipos",
-                    "editar_equipos",
-                    "eliminar_equipos",
-                    "ver_historial",
-                ];
-                break;
-            default:
-                $permisosAsignar = [];
-        }
-
-        $role->givePermissionTo($permisosAsignar);
+        $role->syncPermissions($permisos);
     }
 
     private function assignRolesToTestUsers(): void
     {
         $user = User::where('email', 'testfirst@gmail.com')->first();
-        if ($user ) {
-            if($user->area->value === Area::INFRAESTRUCTURA->value){
-                $user->assignRole('administrador_infraestructura');
-            }elseif ($user->area->value === Area::REDES->value){
-                $user->assignRole('administrador_redes');
-            }else{
-                $user->assignRole('administrador_transmision_datos');
-            }
+        if ($user) {
+            $user->syncRoles([Cargo::ADMINISTRADOR->value]);
         }
     }
 

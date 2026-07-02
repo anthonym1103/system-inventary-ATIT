@@ -12,13 +12,14 @@ interface EquipoCardProps {
         marca: string;
         modelo: string;
         serial: string;
-        condicion: 'Operativo' | 'No operativo';
+        condicion: 'operativo' | 'no_operativo';
         area: string;
         ubicacion: { id: number; estado: string; locacion: string };
         user_asignado?: { cedula: string; nombre: string; apellido: string } | null;
     };
     tiposLabels: Record<string, string>;
     estadosLabls: Record<string, string>;
+    condicionesLabels: Record<string, string>;
     permissions: {
         can_edit: boolean;
         can_delete: boolean;
@@ -28,7 +29,7 @@ interface EquipoCardProps {
     onScheduleClick: (equipo: any) => void;
 }
 
-export function EquipoCard({ equipo, tiposLabels, estadosLabls, permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
+export function EquipoCard({ equipo, tiposLabels, estadosLabls, condicionesLabels,permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
     const Icon = equipoIconMap[equipo.tipo] || equipoIconMap.micro_escritorio;
     const colorClass = equipoColorMap[equipo.tipo] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
 
@@ -57,8 +58,8 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, permissions, onC
                             <p className="text-xs text-muted-foreground"> Modelo: {equipo.modelo}</p>
                         </div>
                     </div>
-                    <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
-                        {equipo.condicion}
+                    <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
+                        {condicionesLabels[equipo.condicion]}
                     </Badge>
                 </div>
             </CardHeader>

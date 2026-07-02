@@ -19,9 +19,10 @@ interface Props {
     filters: { equipo_id?: string; usuario_id?: string };
     usuarios: { id: number; name: string }[];
     equipos: { id: number; marca: string; modelo: string; serial: string }[];
+    tiposLabels: Record<string, string>;
 }
 
-export default function HistorialIndex({ historial, filters, usuarios, equipos }: Props) {
+export default function HistorialIndex({ historial, filters, usuarios, equipos, tiposLabels }: Props) {
     const [equipoId, setEquipoId] = useState<string>(filters.equipo_id || '');
     const [usuarioId, setUsuarioId] = useState<string>(filters.usuario_id || '');
 
@@ -50,15 +51,15 @@ export default function HistorialIndex({ historial, filters, usuarios, equipos }
                         <label className="text-sm font-medium">Equipo</label>
                         <Select value={equipoId} onValueChange={setEquipoId}>
                             <SelectTrigger className="w-60 cursor-pointer">
-                                <SelectValue placeholder="Todos los equipos" />
+                                <SelectValue placeholder="Tipos de equipos" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="max-h-72 overflow-y-auto">
                                 <SelectItem key={'all'} value={'all'}>
-                                        Todos los equipos
+                                        Todos los tipos
                                 </SelectItem>
-                                {equipos.map((eq) => (
-                                    <SelectItem key={eq.id} value={String(eq.id)}>
-                                        {eq.marca} {eq.modelo} ({eq.serial})
+                                {Object.entries(tiposLabels).map(([value, label]) => (
+                                    <SelectItem key={value} value={value}>
+                                        {label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -70,7 +71,7 @@ export default function HistorialIndex({ historial, filters, usuarios, equipos }
                             <SelectTrigger className="w-48 cursor-pointer">
                                 <SelectValue placeholder="Todos los usuarios" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="max-h-72 overflow-y-auto">
                                 <SelectItem key={'all'} value={'all'}>
                                         Todos los usuarios
                                 </SelectItem>

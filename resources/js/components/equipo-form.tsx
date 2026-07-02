@@ -47,16 +47,12 @@ export interface TipoConfig {
     requiereEncargado: boolean;
 }
 
-export interface UbicacionOption {
-    id: number;
-    estado: string;
-    locacion: string;
-}
 
 export type EquipoFormData = {
     tipo: string;
     estados: string;
     locacions:string;
+    condicion: string;
     asignado_cedula: string;
     asignado_nombre: string;
     asignado_apellido: string;
@@ -75,17 +71,19 @@ interface EquipoFormProps {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
+    condiciones: Array<{ value: string; label: string }>;
     initialData?: Partial<EquipoFormData>;
     tieneContrasenaBios?: boolean;
     onSuccess?: () => void;
     onCancel?: () => void;
 }
 
-export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
+export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, condiciones, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
     const { data, setData, post, put, processing, errors, reset } = useForm<EquipoFormData>({
         tipo: '',
         estados: '',
         locacions: '',
+        condicion: 'operativo',
         asignado_cedula: '',
         asignado_nombre: '',
         asignado_apellido: '',
@@ -153,7 +151,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">
-                        <Label>Tipo de Equipo <span className="text-destructive">*</span></Label>
+                        <Label>Tipo de Equipo {mode === 'create' && <span className="text-destructive">*</span>}</Label>
                         <Select value={data.tipo} onValueChange={handleTipoChange}>
                             <SelectTrigger className="w-full cursor-pointer">
                                 <SelectValue placeholder="Selecciona un tipo" />
@@ -170,7 +168,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Estado/Region <span className="text-destructive">*</span></Label>
+                        <Label>Estado/Region {mode === 'create' && <span className="text-destructive">*</span>}</Label>
                         <Select
                             value={data.estados}
                             onValueChange={(val) => setData('estados', val)}
@@ -190,7 +188,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Locacion del equipo {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
+                        <Label>Locacion del equipo {mode === 'create' && <span className="text-destructive">*</span>}</Label>
                         <textarea
                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             value={data.locacions}
@@ -254,6 +252,28 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     <InputError message={errors.asignado_gerencia} />
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {mode==='edit' && (
+                        <div className="grid gap-2">
+                            <Label>Condición <span className="text-destructive">*</span></Label>
+                            <Select
+                                value={data.condicion}
+                                onValueChange={(val) => setData('condicion', val)}
+                            >
+                                <SelectTrigger className="w-full cursor-pointer">
+                                    <SelectValue placeholder="Selecciona una condición" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {condiciones.map((c) => (
+                                        <SelectItem key={c.value} value={c.value} className="cursor-pointer">
+                                            {c.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.condicion} />
                         </div>
                     )}
 

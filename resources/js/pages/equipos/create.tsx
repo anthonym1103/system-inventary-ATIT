@@ -2,16 +2,16 @@ import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EquipoForm } from '@/components/equipo-form';
-import type { AsignadoOption, TipoConfig } from '@/components/equipo-form';
+import type { TipoConfig } from '@/components/equipo-form';
 
 interface Props {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
-    asignados: AsignadoOption[];
+    condiciones: Array<{ value: string; label: string }>;
 }
 
-export default function EquipoCreate({ tiposLabels, camposPorTipo, ubicaciones, asignados }: Props) {
+export default function EquipoCreate({ tiposLabels, camposPorTipo, ubicaciones, condiciones}: Props) {
 
     return (
         <>
@@ -31,7 +31,7 @@ export default function EquipoCreate({ tiposLabels, camposPorTipo, ubicaciones, 
                     tiposLabels={tiposLabels}
                     camposPorTipo={camposPorTipo}
                     ubicaciones={ubicaciones}
-                    asignados={asignados}
+                    condiciones = {condiciones}
                 />
             </div>
         </>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { dashboard } from '@/routes';
+import equipos from '@/routes/equipos';
 
 // Definir tipos (puedes moverlos a types/)
 interface Equipo {
@@ -11,7 +12,7 @@ interface Equipo {
     marca: string;
     modelo: string;
     serial: string;
-    condicion: 'Operativo' | 'No operativo';
+    condicion: 'operativo' | 'no_operativo';
     area: string;
     ubicacion: { estado: string; locacion: string };
     created_at: string;
@@ -19,13 +20,14 @@ interface Equipo {
 
 interface Props {
     totalesPorArea: Record<string, number>;
-    condiciones: { Operativo: number; 'No operativo': number };
+    condiciones: { operativo: number; no_operativo: number };
     ultimosEquipos: Equipo[];
     estadosLabels: Record<string, string>;
+    condicionesLabels: Record<string, string>;
     equiposPorUbicacion: Array<{ id: number; estado: string; locacion: string; equipos_count: number }>;
 }
 
-export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos, estadosLabels, equiposPorUbicacion }: Props) {
+export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos, estadosLabels, condicionesLabels, equiposPorUbicacion }: Props) {
     // Función para mostrar el área en español
     const areaLabel = (area: string) => {
         const map: Record<string, string> = {
@@ -35,6 +37,8 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
         };
         return map[area] || area;
     };
+
+    console.log(ultimosEquipos)
 
     const { tiposLabels } = usePage().props as any;
 
@@ -68,7 +72,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                             <CardTitle>Equipos Operativos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-green-700">{condiciones.Operativo}</div>
+                            <div className="text-3xl font-bold text-green-700">{condiciones.operativo}</div>
                         </CardContent>
                     </Card>
                     <Card>
@@ -76,7 +80,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                             <CardTitle>Equipos No Operativos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-red-600">{condiciones['No operativo']}</div>
+                            <div className="text-3xl font-bold text-red-600">{condiciones.no_operativo}</div>
                         </CardContent>
                     </Card>
                 </div>
@@ -107,8 +111,8 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                                         <TableCell>{equipo.modelo} </TableCell>
                                         <TableCell>{equipo.serial}</TableCell>
                                         <TableCell>
-                                            <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'}>
-                                                {equipo.condicion}
+                                            <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'}>
+                                                {condicionesLabels[equipo.condicion]}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>{equipo.ubicacion?.locacion}, {estadosLabels[equipo.ubicacion?.estado]}</TableCell>

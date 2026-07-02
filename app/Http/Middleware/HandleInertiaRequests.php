@@ -36,6 +36,21 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $notificaciones = [];
+        $pendientesCount = 0;
+
+        if ($user) {
+            $notificaciones = Notificacion::with('equipo:id,tipo,marca,modelo,serial')
+                ->where('usuario_id', $user->id)
+                ->where('fecha_mantenimiento', '<=', now()->toDateString())
+                ->orderBy('fecha_mantenimiento')
+                ->orderBy('leido') // para que las no leídas aparezcan primero (opcional)
+                ->get();
+
+            $pendientesCount = $notificaciones->where('leido', false)->count();
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -44,14 +59,8 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $request->user()?->getAllPermissions()->pluck('name') ?? [],
                 'roles' => $request->user()?->getRoleNames()->toArray() ?? [],
             ],
-            'mantenimientosPendientes' => $request->user()
-                ? Notificacion::with('equipo:id,tipo,marca,modelo,serial')
-                    ->where('usuario_id', $request->user()->id)
-                    ->where('leido', false)
-                    ->where('fecha_mantenimiento', '<=', now()->toDateString())
-                    ->orderBy('fecha_mantenimiento')
-                    ->get()
-                : [],
+            'notificaciones' => $notificaciones,
+            'notificacionesPendientes' => $pendientesCount,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

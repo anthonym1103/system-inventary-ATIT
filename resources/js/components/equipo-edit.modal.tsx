@@ -9,18 +9,16 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { EquipoForm } from '@/components/equipo-form';
 import type {
-    AsignadoOption,
     EquipoFormData,
     TipoConfig,
-    UbicacionOption,
 } from '@/components/equipo-form';
 
 interface EditData {
     equipo: Partial<EquipoFormData> & { id: number; tiene_contrasena_bios?: boolean };
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
-    ubicaciones: UbicacionOption[];
-    asignados: AsignadoOption[];
+    ubicaciones: Array<{ value: string, label: string }>;
+    condiciones: Array<{ value: string; label: string }>
 }
 
 interface Props {
@@ -81,7 +79,7 @@ export function EquipoEditModal({ equipoId, isOpen, onClose }: Props) {
                         tiposLabels={data.tiposLabels}
                         camposPorTipo={data.camposPorTipo}
                         ubicaciones={data.ubicaciones}
-                        asignados={data.asignados}
+                        condiciones={data.condiciones}
                         initialData={data.equipo}
                         tieneContrasenaBios={data.equipo.tiene_contrasena_bios}
                         onSuccess={onClose}

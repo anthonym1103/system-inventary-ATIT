@@ -25,7 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('historial', [HistorialController::class, 'index'])->name('historial.index');
     Route::get('usuarios', [UserController::class, 'index'])->name('usuarios.index');
     Route::patch('usuarios/{user}/role', [UserController::class, 'updateRole'])->name('usuarios.update-role');
-    
+    Route::delete('mantenimientos/{notificacion}', [NotificacionController::class, 'destroy'])->name('notificacion.destroy');
 });
 
 require __DIR__.'/settings.php';

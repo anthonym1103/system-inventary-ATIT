@@ -7,7 +7,8 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
-            mantenimientosPendientes: Mantenimiento[];
+            notificaciones: Mantenimiento[];
+            notificacionesPendientes: number;
             [key: string]: unknown;
         };
     }

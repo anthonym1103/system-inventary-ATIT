@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\HistorialEquipo;
+use App\Models\User;
+use App\Enums\TipoEquipo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -29,8 +31,13 @@ class HistorialController extends Controller
         // Ordenar por fecha más reciente
         $historial = $query->latest('fecha_ajuste')->paginate(15)->withQueryString();
 
+        $tiposLabels = [];
+        foreach (TipoEquipo::cases() as $tipo) {
+            $tiposLabels[$tipo->value] = $tipo->label();
+        }
+
         // Obtener lista de usuarios y equipos para los filtros (opcional)
-        $usuarios = \App\Models\User::select('id', 'name')->get();
+        $usuarios = User::select('id', 'name')->get();
         $equipos = \App\Models\Equipo::select('id', 'marca', 'modelo', 'serial')->get();
 
         return Inertia::render('historial/index', [
@@ -38,6 +45,7 @@ class HistorialController extends Controller
             'filters'   => $request->only(['equipo_id', 'usuario_id']),
             'usuarios'  => $usuarios,
             'equipos'   => $equipos,
+            'tiposLabels' => $tiposLabels
         ]);
     }
-}
+} 

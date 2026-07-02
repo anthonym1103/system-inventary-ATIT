@@ -49,6 +49,10 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels, estado
                 { label: 'Extensión', value: equipo.rede.extension },
                 { label: 'Ubicacion Puerto', value: equipo.rede.ubicacion_puerto }
             );
+
+            if(equipo.rede.contraseña_bios){
+                detalles.push({label: 'Contraseña BIOS', value: equipo.rede.contraseña_bios })
+            }
         }
 
         if (equipo.transmision) {
@@ -71,7 +75,7 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels, estado
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {tiposLabels[equipo.tipo] || equipo.tipo}
-                        <Badge variant={equipo.condicion === 'Operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
+                        <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
                             {equipo.condicion}
                         </Badge>
                     </DialogTitle>

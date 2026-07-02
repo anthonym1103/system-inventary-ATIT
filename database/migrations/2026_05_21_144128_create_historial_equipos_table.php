@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('detalle');
             $table->dateTime('fecha_ajuste');
             $table->timestamps();
+
+            $table->index(['usuario_id', 'equipo_id', 'fecha_ajuste']);
         });
     }
 

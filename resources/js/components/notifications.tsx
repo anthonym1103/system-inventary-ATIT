@@ -1,5 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
-import { Bell } from 'lucide-react';
+import { Bell, Check, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -15,21 +16,54 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { equipoIconMap } from '@/lib/equipo-icons';
-
+import type { Mantenimiento } from '@/types/ui';
 
 export function Notifications() {
-    const { mantenimientosPendientes } = usePage().props;
-    const pendientes = mantenimientosPendientes ?? [];
-    const count = pendientes.length;
+    const { notificaciones, notificacionesPendientes } = usePage().props;
+    const [list, setList] = useState<Mantenimiento[]>(notificaciones ?? []);
+    const [open, setOpen] = useState(false);
 
-    const marcarLeido = (id: number) => {
-        router.patch(`/mantenimientos/${id}/leido`, {}, { preserveScroll: true });
+    // Cuando se abre el dropdown, no hacemos nada especial, el badge ya muestra el conteo.
+    // El contador se actualiza cuando cambian las props.
+
+    const markAsRead = (id: number) => {
+        router.patch(
+            `/mantenimientos/${id}/leido`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Actualizar el estado local: cambiar leido a true
+                    setList((prev) =>
+                        prev.map((item) =>
+                            item.id === id ? { ...item, leido: true } : item
+                        )
+                    );
+                },
+            }
+        );
     };
+
+    const deleteNotification = (id: number) => {
+        if (!confirm('¿Eliminar esta notificación?')) return;
+        router.delete(
+            `/mantenimientos/${id}`,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Eliminar de la lista local
+                    setList((prev) => prev.filter((item) => item.id !== id));
+                },
+            }
+        );
+    };
+
+    const count = notificacionesPendientes ?? 0;
 
     return (
         <SidebarMenu>
             <SidebarMenuItem>
-                <DropdownMenu>
+                <DropdownMenu open={open} onOpenChange={setOpen}>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton
                             size="lg"
@@ -44,23 +78,35 @@ export function Notifications() {
                             )}
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className={`ml-4 rounded-lg max-h-72 overflow-y-auto ${count === 0 ? "w-[95%]" : "w-[78%]"}`} align="end" side="top">
-                        <DropdownMenuLabel className="w-full flex justify-center">Recordatorios de mantenimiento</DropdownMenuLabel>
+                    <DropdownMenuContent
+                        className={`ml-4 rounded-lg max-h-72 overflow-y-auto ${
+                            list.length === 0 ? 'w-[95%]' : 'w-[78%]'
+                        }`}
+                        align="end"
+                        side="top"
+                    >
+                        <DropdownMenuLabel className="w-full flex justify-center">
+                            Recordatorios de mantenimiento
+                        </DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        {count === 0 && (
+                        {list.length === 0 && (
                             <p className="px-2 py-3 text-sm text-muted-foreground">
-                                No tienes recordatorios pendientes.
+                                No tienes recordatorios.
                             </p>
                         )}
 
-                        {pendientes.map((m) => {
-                            const Icon = equipoIconMap[m.equipo?.tipo ?? ''] || equipoIconMap.micro_escritorio;
+                        {list.map((m) => {
+                            const Icon =
+                                equipoIconMap[m.equipo?.tipo ?? ''] ||
+                                equipoIconMap.micro_escritorio;
 
                             return (
                                 <DropdownMenuItem
                                     key={m.id}
-                                    className="flex flex-col items-start gap-1 py-2 select-text"
+                                    className={`flex flex-col items-start gap-1 py-2 select-text ${
+                                        m.leido ? 'opacity-60' : ''
+                                    }`}
                                     onSelect={(e) => e.preventDefault()}
                                 >
                                     <div className="flex w-full items-start gap-2">
@@ -77,19 +123,42 @@ export function Notifications() {
                                                 </p>
                                             )}
                                             <p className="text-xs text-muted-foreground cursor-text w-fit">
-                                                Programado para hoy: {new Date(m.fecha_mantenimiento.replace('Z','')).toLocaleDateString()}
+                                                Programado para:{' '}
+                                                {new Date(
+                                                    m.fecha_mantenimiento
+                                                ).toLocaleDateString()}
                                             </p>
-                                            {m.detalle && <p className="text-xs mt-2 cursor-text w-fit">Descripcion: {m.detalle}</p>}
+                                            {m.detalle && (
+                                                <p className="text-xs mt-2 cursor-text w-fit">
+                                                    Descripción: {m.detalle}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="w-full flex justify-end">
+                                    <div className="flex w-full justify-end gap-2 mt-1">
+                                        {!m.leido && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-7 px-2 text-xs cursor-pointer"
+                                                onClick={() =>
+                                                    markAsRead(m.id)
+                                                }
+                                            >
+                                                <Check className="h-3 w-3 mr-1" />
+                                                Marcar leído
+                                            </Button>
+                                        )}
                                         <Button
                                             size="sm"
                                             variant="ghost"
-                                            className="h-7 px-2 text-xs cursor-pointer"
-                                            onClick={() => marcarLeido(m.id)}
+                                            className="h-7 px-2 text-xs cursor-pointer text-destructive hover:text-destructive"
+                                            onClick={() =>
+                                                deleteNotification(m.id)
+                                            }
                                         >
-                                            Marcar como leído
+                                            <Trash2 className="h-3 w-3 mr-1" />
+                                            Borrar
                                         </Button>
                                     </div>
                                 </DropdownMenuItem>

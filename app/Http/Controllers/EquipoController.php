@@ -19,8 +19,8 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Crypt;
 
 class EquipoController extends Controller
 {
@@ -66,7 +66,7 @@ class EquipoController extends Controller
         }
        
         // 5. Paginación (10 por página, puedes cambiar)
-        $equipos = $query->latest()->paginate(10)->withQueryString();
+        $equipos = $query->latest()->paginate(10)->onEachSide(1)->withQueryString();
 
         // 6. Datos para filtros (tipos, condiciones, ubicaciones)
         $tiposLabels = [];
@@ -82,11 +82,6 @@ class EquipoController extends Controller
             }
         }
 
-        $estadosLabels = [];
-        foreach (EstadoRegion::cases() as $estado) {
-            $estadosLabels[$estado->value] = $estado->label();
-        }
-
         // Solo mostrar ubicaciones que tengan equipos en las áreas permitidas
         $ubicacionesCargadas = Ubicacion::whereHas('equipos', function ($q) use ($allowedAreas, $user) {
             if (!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas)) {
@@ -96,7 +91,16 @@ class EquipoController extends Controller
 
         $ubicaciones = $this->getEstadosRegion();
 
-        
+        $estadosLabels = [];
+        foreach (EstadoRegion::cases() as $estado) {
+            $estadosLabels[$estado->value] = $estado->label();
+        }
+
+        $condicionesLabels = [];
+        foreach (CondicionEquipo::cases() as $condicion) {
+            $condicionesLabels[$condicion->value] = $condicion->label();
+        }
+
         // 7. Obtener permisos del usuario para acciones (opcional)
         $permissions = [
             'can_create' => $user->can('crear_equipos'),
@@ -110,15 +114,13 @@ class EquipoController extends Controller
         //dump($user->getAllPermissions()->pluck('name'));
         //dump($permissions);
 
-        $condiciones = collect(CondicionEquipo::cases())->map(fn($case) => [
-            'value' => $case->value,
-            'label' => $case->value === 'Operativo' ? 'Operativo' : 'No operativo',
-        ])->values();
+        $condiciones = $this->getCondiciones();
 
         return Inertia::render('equipos/index', [
             'equipos' => $equipos,
             'tiposLabels' => $tiposLabels,
             'estadosLabels' => $estadosLabels,
+            'condicionesLabels' => $condicionesLabels,
             'condiciones' => $condiciones,
             'ubicaciones' => $ubicaciones,
             'filters' => $request->only(['search', 'tipo', 'condicion', 'ubicacion_id']),
@@ -152,11 +154,13 @@ class EquipoController extends Controller
 
         //$ubicacionesCompletas = Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']);
         $ubicaciones = $this->getEstadosRegion();
+        $condiciones = $this->getCondiciones();
 
         return Inertia::render('equipos/create', [
             'tiposLabels' => $tiposLabels,
             'camposPorTipo' => $camposPorTipo,
             'ubicaciones' => $ubicaciones,
+            'condiciones' => $condiciones,
         ]);
     }
   
@@ -183,7 +187,8 @@ class EquipoController extends Controller
         $rules = [
             'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
             'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
-            'locacions' => ['nullable', 'string', 'max:255'],
+            'locacions' => ['required', 'string', 'max:255'],
+            'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
             'marca' => ['nullable', 'string', 'max:255'],
             'modelo' => ['required', 'string', 'max:255'],
             'serial' => ['required', 'string', 'max:255', 'unique:equipos,serial'],
@@ -247,6 +252,7 @@ class EquipoController extends Controller
                 'asignado_id' => $asignadoId,
                 'area' => $tipo->modulo()->value,
                 'tipo' => $tipo->value,
+                'condicion' => $validated['condicion'],
                 'marca' => $validated['marca'] ?: null,
                 'modelo' => $validated['modelo'],
                 'serial' => $validated['serial'],
@@ -257,9 +263,11 @@ class EquipoController extends Controller
             $datosEspecificos = collect($validated)->only($camposEspecificos)->toArray();
 
             if (array_key_exists('contraseña_bios', $datosEspecificos)) {
-                $datosEspecificos['contraseña_bios'] = Hash::make($datosEspecificos['contraseña_bios']);
+                //$datosEspecificos['contraseña_bios'] = Hash::make($datosEspecificos['contraseña_bios']);
+                $datosEspecificos['contraseña_bios'] = Crypt::encryptString($datosEspecificos['contraseña_bios']);
             }
 
+            
             $modeloEspecifico = match ($tipo->modulo()) {
                 Area::INFRAESTRUCTURA => Infraestructura::class,
                 Area::REDES => Rede::class,
@@ -282,15 +290,19 @@ class EquipoController extends Controller
     public function edit(Equipo $equipo)
     {
         $this->authorizeEdit($equipo);
+        $data = $this->buildEditData($equipo);
+        $data['condiciones'] = $this->getCondiciones();
 
-        return Inertia::render('equipos/edit', $this->buildEditData($equipo));
+        return Inertia::render('equipos/edit', $data );
     }
 
     public function editData(Equipo $equipo)
     {
         $this->authorizeEdit($equipo);
-
-        return response()->json($this->buildEditData($equipo));
+        $data = $this->buildEditData($equipo);
+        $data['condiciones'] = $this->getCondiciones();
+        
+        return response()->json($data);
     }
 
     private function authorizeEdit(Equipo $equipo): void
@@ -336,16 +348,24 @@ class EquipoController extends Controller
         $datosEspecificos = [];
         if ($registroEspecifico) {
             $datosEspecificos = collect($registroEspecifico->toArray())
-                ->except(['id', 'created_at', 'updated_at', 'equipo', 'contraseña_bios'])
-                ->map(fn ($valor) => $valor ?? '')
+                ->except(['id', 'created_at', 'updated_at', 'equipo'])
+                ->map(function ($valor, $key) use ($registrosEspecificos) {
+                    if($key === 'contraseña_bios' && $valor){
+                        return Crypt::decryptString($valor);
+                    }
+                    return $valor ?? '';
+                })
                 ->toArray();
         }
+
+        $ubicaciones = $this->getEstadosRegion();
 
         return [
             'equipo' => [
                 'id' => $equipo->id,
                 'tipo' => $tipoActual->value,
                 'ubicacion_id' => (string) $equipo->ubicacion_id,
+                'condicion' => $equipo->condicion->value ?? 'Operativo',
                 'marca' => $equipo->marca ?? '',
                 'modelo' => $equipo->modelo,
                 'serial' => $equipo->serial,
@@ -360,7 +380,7 @@ class EquipoController extends Controller
             ],
             'tiposLabels' => $tiposLabels,
             'camposPorTipo' => $camposPorTipo,
-            'ubicaciones' => Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']),
+            'ubicaciones' => $ubicaciones,
         ];
     }
    
@@ -384,6 +404,7 @@ class EquipoController extends Controller
         $rules = [
             'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
             'ubicacion_id' => ['required', 'integer', 'exists:ubicacions,id'],
+            'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
             'marca' => ['nullable', 'string', 'max:255'],
             'modelo' => ['required', 'string', 'max:255'],
             'serial' => ['required', 'string', 'max:255', Rule::unique('equipos', 'serial')->ignore($equipo->id)],
@@ -439,6 +460,7 @@ class EquipoController extends Controller
                 'ubicacion_id' => $validated['ubicacion_id'],
                 'asignado_id' => $asignadoId,
                 'tipo' => $tipo->value,
+                'condicion' => $validated['condicion'],
                 'marca' => $validated['marca'] ?: null,
                 'modelo' => $validated['modelo'],
                 'serial' => $validated['serial'],
@@ -471,10 +493,15 @@ class EquipoController extends Controller
             // La contraseña del BIOS es especial: si la dejaron en blanco,
             // conservamos la que ya estaba en vez de borrarla.
             if (array_key_exists('contraseña_bios', $datosEspecificos)) {
-                if (!empty($datosEspecificos['contraseña_bios'])) {
+                /*if (!empty($datosEspecificos['contraseña_bios'])) {
                     $datosEspecificos['contraseña_bios'] = Hash::make($datosEspecificos['contraseña_bios']);
                 } else {
                     $datosEspecificos['contraseña_bios'] = $registro?->contraseña_bios;
+                }*/
+                if (!empty($datosEspecificos['contraseña_bios'])) {
+                    $datosEspecificos['contraseña_bios'] = Crypt::encryptString($datosEspecificos['contraseña_bios']);
+                } else {
+                    $datosEspecificos['contraseña_bios'] = $registro?->contraseña_bios; // mantener la encriptada
                 }
             }
 
@@ -535,6 +562,14 @@ class EquipoController extends Controller
     private function getEstadosRegion(): Collection
     {
         return collect(EstadoRegion::cases())->map(fn($case) => [
+            'value' => $case->value,
+            'label' => $case->label(),
+        ])->values();
+    }
+
+    private function getCondiciones(): Collection
+    {
+        return collect(CondicionEquipo::cases())->map(fn($case) => [
             'value' => $case->value,
             'label' => $case->label(),
         ])->values();

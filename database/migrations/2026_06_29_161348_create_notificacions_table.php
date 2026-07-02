@@ -20,7 +20,7 @@ return new class extends Migration
             $table->boolean('leido')->default(false);
             $table->timestamps();
 
-            $table->index(['usuario_id', 'leido', 'fecha_mantenimiento']);
+            $table->index(['usuario_id', 'leido', 'fecha_mantenimiento', 'equipo_id']);
         });
     }
 

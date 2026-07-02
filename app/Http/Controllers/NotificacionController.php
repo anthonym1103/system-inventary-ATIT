@@ -60,4 +60,14 @@ class NotificacionController extends Controller
             'No tienes acceso a este equipo.'
         );
     }
+
+    public function destroy(Notificacion $notificacion)
+    {
+        // Verificar que la notificación pertenece al usuario autenticado
+        abort_unless($notificacion->usuario_id === Auth::id(), 403);
+
+        $notificacion->delete();
+
+        return back()->with('success', 'Notificación eliminada.');
+    }
 }

@@ -16,6 +16,64 @@ import { Separator } from '@/components/ui/separator';
 import { EquipoMantenimientoDialog } from '@/components/equipo-mantenimiento-dialog';
 
 
+function SkeletonCard() {
+    return (
+        <Card className="animate-pulse">
+            <CardContent className="pt-6 space-y-3">
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="rounded-lg bg-muted h-12 w-12" />
+                        <div className="space-y-2">
+                            <div className="h-4 w-24 bg-muted rounded" />
+                            <div className="h-3 w-16 bg-muted rounded" />
+                            <div className="h-3 w-20 bg-muted rounded" />
+                        </div>
+                    </div>
+                    <div className="h-5 w-16 bg-muted rounded" />
+                </div>
+                <div className="space-y-2">
+                    <div className="h-3 w-32 bg-muted rounded" />
+                    <div className="h-3 w-40 bg-muted rounded" />
+                    <div className="h-3 w-36 bg-muted rounded" />
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                    <div className="h-8 w-20 bg-muted rounded" />
+                    <div className="h-8 w-16 bg-muted rounded" />
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+function SkeletonGrid() {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonCard key={i} />
+            ))}
+        </div>
+    );
+}
+
+function SkeletonTable() {
+    return (
+        <div className="space-y-4 animate-pulse">
+            <div className="h-10 w-full bg-muted rounded" />
+            {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                    <div className="h-8 w-8 bg-muted rounded-full" />
+                    <div className="h-4 w-24 bg-muted rounded" />
+                    <div className="h-4 w-16 bg-muted rounded" />
+                    <div className="h-4 w-20 bg-muted rounded" />
+                    <div className="h-4 w-12 bg-muted rounded" />
+                    <div className="h-4 w-12 bg-muted rounded" />
+                    <div className="h-4 w-12 bg-muted rounded ml-auto" />
+                </div>
+            ))}
+        </div>
+    );
+}
+
 // Debounce manual
 function useDebounce<T>(value: T, delay: number): T {
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -33,7 +91,7 @@ interface Equipo {
     marca: string;
     modelo: string;
     serial: string;
-    condicion: 'Operativo' | 'No operativo';
+    condicion: 'operativo' | 'no_operativo';
     area: string;
     ubicacion: { id: number; estado: string; locacion: string };
     userAsignado?: { cedula: string; nombre: string; apellido: string } | null;
@@ -51,6 +109,7 @@ interface Props {
     };
     tiposLabels: Record<string, string>;
     estadosLabels: Record<string, string>;
+    condicionesLabels: Record<string, string>;
     condiciones: Array<{ value: string, label: string }>
     ubicaciones: Array<{ value: string, label: string }>;
     filters: {
@@ -67,7 +126,7 @@ interface Props {
     };
 }
 
-export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, condiciones, ubicaciones, filters, permissions }: Props) {
+export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, condicionesLabels, condiciones, ubicaciones, filters, permissions }: Props) {
     // Inicializar con undefined en lugar de '' para evitar el valor vacío
     const [search, setSearch] = useState(filters.search || '');
     const [tipo, setTipo] = useState<string | undefined>(filters.tipo || undefined);
@@ -82,9 +141,22 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
     const [scheduleEquipo, setScheduleEquipo] = useState<any>(null);
     const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
     const debouncedSearch = useDebounce(search, 300);
-
+    const [isLoading, setIsLoading] = useState(false);
     
     // Aplicar filtros cuando cambien
+
+    useEffect(() => {
+        const onStart = () => setIsLoading(true);
+        const onFinish = () => setIsLoading(false);
+
+        const removeStart = router.on('start', onStart);
+        const removeFinish = router.on('finish', onFinish);
+
+        return () => {
+            removeStart();
+            removeFinish();
+        };
+    }, []);
 
     
     useEffect(() => {
@@ -135,6 +207,9 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
         setScheduleEquipo(equipo);
         setScheduleModalOpen(true);
     };
+
+    // Determinar si mostrar skeleton
+    const showSkeleton = isLoading && equipos.data.length === 0;
 
     return (
         <>
@@ -238,7 +313,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                                 </SelectItem>
                                 {condiciones.map((c) => (
                                     <SelectItem key={c.value} value={c.value} className="cursor-pointer">
-                                        {c.value === 'Operativo' ? 'Operativo' : 'No operativo'}
+                                        {c.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -276,27 +351,31 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                 </div>
 
                 {/* Vista de equipos , flex flex-col gap-4*/}
-                <div className={classNameViewMode}>
-                    {equipos.data.length === 0 ? (
-                        <div className="col-span-full text-center py-12 text-muted-foreground">
-                            No se encontraron equipos
-                        </div>
-                    ) : (
-                        equipos.data.map((equipo) => (
-                            <EquipoCard
-                                key={equipo.id}
-                                equipo={equipo}
-                                tiposLabels={tiposLabels}
-                                estadosLabls={estadosLabels}
-                                permissions={permissions}
-                                onCardClick={handleCardClick}
-                                onCardEditClick={handleEditClick}
-                                onScheduleClick={handleScheduleClick}
-                            />
-                        ))
-                    )}
-                </div>
-                
+                {showSkeleton ? (
+                    viewMode === 'grid' ? <SkeletonGrid /> : <SkeletonTable />
+                ) : (
+                    <div className={classNameViewMode}>
+                        {equipos.data.length === 0 ? (
+                            <div className="col-span-full text-center py-12 text-muted-foreground">
+                                No se encontraron equipos
+                            </div>
+                        ) : (
+                            equipos.data.map((equipo) => (
+                                <EquipoCard
+                                    key={equipo.id}
+                                    equipo={equipo}
+                                    tiposLabels={tiposLabels}
+                                    estadosLabls={estadosLabels}
+                                    condicionesLabels={condicionesLabels}
+                                    permissions={permissions}
+                                    onCardClick={handleCardClick}
+                                    onCardEditClick={handleEditClick}
+                                    onScheduleClick={handleScheduleClick}
+                                />
+                            ))
+                        )}
+                    </div>
+                )}
 
                 {/* Paginación */}
                 <div className="flex items-center justify-between mt-4">

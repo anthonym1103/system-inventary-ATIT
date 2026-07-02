@@ -62,10 +62,10 @@ class RoleSeeder extends Seeder
         
         // Aquí se define qué permisos tiene cada cargo
         $permisos = match ($cargo) {
-            Cargo::SUPERVISOR => [
+            Cargo::SUPERVISOR->value => [
                 'ver_historial'
                 ],
-            Cargo::TECNICO => [
+            Cargo::TECNICO->value => [
                 'crear_equipos', 
                 'editar_equipos', 
                 'eliminar_equipos', 

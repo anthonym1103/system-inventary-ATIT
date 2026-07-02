@@ -24,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('mantenimientos/{mantenimiento}/leido', [NotificacionController::class, 'markAsRead'])->name('notificacion.leido');
     Route::get('historial', [HistorialController::class, 'index'])->name('historial.index');
     Route::get('usuarios', [UserController::class, 'index'])->name('usuarios.index');
+    Route::patch('usuarios/{user}/role', [UserController::class, 'updateRole'])->name('usuarios.update-role');
     
 });
 

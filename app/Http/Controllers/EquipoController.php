@@ -71,7 +71,7 @@ class EquipoController extends Controller
         // 6. Datos para filtros (tipos, condiciones, ubicaciones)
         $tiposLabels = [];
         foreach (TipoEquipo::cases() as $tipo) {
-            if(count($allowedAreas) === 1 || in_array($tipo->modulo()->value, $allowedAreas)){
+            if(count($allowedAreas) === 1 && in_array($tipo->modulo()->value, $allowedAreas)){
                 $tiposLabels[$tipo->value] = $tipo->label();
             }else{
                 foreach($allowedAreas as $area){
@@ -105,6 +105,10 @@ class EquipoController extends Controller
             'can_viewHistorial'=> $user->can('ver_historial'),
             'can_asigRoles' => $user->can('asignar_roles'),
         ];
+
+        //dump($user->getRoleNames());
+        //dump($user->getAllPermissions()->pluck('name'));
+        //dump($permissions);
 
         $condiciones = collect(CondicionEquipo::cases())->map(fn($case) => [
             'value' => $case->value,

@@ -210,7 +210,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                             <SelectTrigger className="cursor-pointer min-w-50">
                                 <SelectValue placeholder="Tipos de equipos" />
                             </SelectTrigger>
-                            <SelectContent >
+                            <SelectContent className="max-h-72 overflow-y-auto">
                                 <SelectItem key='all' value='all' className="cursor-pointer">
                                     Todos los tipos
                                 </SelectItem>

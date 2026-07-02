@@ -53,17 +53,15 @@ export interface UbicacionOption {
     locacion: string;
 }
 
-export interface AsignadoOption {
-    cedula: string;
-    nombre: string;
-    apellido: string;
-}
-
 export type EquipoFormData = {
     tipo: string;
     estados: string;
     locacions:string;
-    asignado_id: string;
+    asignado_cedula: string;
+    asignado_nombre: string;
+    asignado_apellido: string;
+    asignado_telefono: string;
+    asignado_gerencia: string;
     marca: string;
     modelo: string;
     serial: string;
@@ -77,19 +75,22 @@ interface EquipoFormProps {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
-    asignados: AsignadoOption[];
     initialData?: Partial<EquipoFormData>;
     tieneContrasenaBios?: boolean;
     onSuccess?: () => void;
     onCancel?: () => void;
 }
 
-export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, asignados, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
+export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
     const { data, setData, post, put, processing, errors, reset } = useForm<EquipoFormData>({
         tipo: '',
         estados: '',
         locacions: '',
-        asignado_id: '',
+        asignado_cedula: '',
+        asignado_nombre: '',
+        asignado_apellido: '',
+        asignado_telefono: '',
+        asignado_gerencia: '',
         marca: '',
         modelo: '',
         serial: '',
@@ -104,6 +105,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
 
     const handleTipoChange = (nuevoTipo: string) => {
         const nuevosCampos = camposPorTipo[nuevoTipo]?.campos ?? [];
+        const nuevoRequiereEncargado = camposPorTipo[nuevoTipo]?.requiereEncargado ?? false;
         const limpios: Record<string, string> = {};
 
         nuevosCampos.forEach((campo) => {
@@ -115,7 +117,13 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
         setData((prev) => ({
             ...prev,
             tipo: nuevoTipo,
-            asignado_id: camposPorTipo[nuevoTipo]?.requiereEncargado ? prev.asignado_id : '',
+            ...(! nuevoRequiereEncargado && {
+                asignado_cedula: '',
+                asignado_nombre: '',
+                asignado_apellido: '',
+                asignado_telefono: '',
+                asignado_gerencia: '',
+            }),
             ...limpios,
         }));
     };
@@ -145,7 +153,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">
-                        <Label>Tipo de Equipo</Label>
+                        <Label>Tipo de Equipo <span className="text-destructive">*</span></Label>
                         <Select value={data.tipo} onValueChange={handleTipoChange}>
                             <SelectTrigger className="w-full cursor-pointer">
                                 <SelectValue placeholder="Selecciona un tipo" />
@@ -162,7 +170,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Estado/Region</Label>
+                        <Label>Estado/Region <span className="text-destructive">*</span></Label>
                         <Select
                             value={data.estados}
                             onValueChange={(val) => setData('estados', val)}
@@ -182,7 +190,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Locacion del equipo</Label>
+                        <Label>Locacion del equipo {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
                         <textarea
                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             value={data.locacions}
@@ -192,30 +200,66 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     {requiereEncargado && (
-                        <div className="grid gap-2">
-                            <Label>Encargado</Label>
-                            <Select
-                                value={data.asignado_id}
-                                onValueChange={(val) => setData('asignado_id', val)}
-                            >
-                                <SelectTrigger className="w-full cursor-pointer">
-                                    <SelectValue placeholder="Selecciona un encargado" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {asignados.map((a) => (
-                                        <SelectItem key={a.cedula} value={a.cedula} className="cursor-pointer">
-                                            {a.nombre} {a.apellido} — {a.cedula}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <InputError message={errors.asignado_id} />
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <p className="text-sm font-medium">Encargado del equipo</p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Cédula <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        value={data.asignado_cedula}
+                                        onChange={(e) => setData('asignado_cedula', e.target.value)}
+                                        placeholder="Ej. V12345678"
+                                    />
+                                     <InputError message={errors.asignado_cedula} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Nombre <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        value={data.asignado_nombre}
+                                        onChange={(e) => setData('asignado_nombre', e.target.value)}
+                                        placeholder="Nombre"
+                                    />
+                                    <InputError message={errors.asignado_nombre} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Apellido <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        value={data.asignado_apellido}
+                                        onChange={(e) => setData('asignado_apellido', e.target.value)}
+                                        placeholder="Apellido"
+                                    />
+                                    <InputError message={errors.asignado_apellido} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Teléfono {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
+                                    <Input
+                                        value={data.asignado_telefono}
+                                        onChange={(e) => setData('asignado_telefono', e.target.value)}
+                                        placeholder="Ej. +584121234567"
+                                    />
+                                    <InputError message={errors.asignado_telefono} />
+                                </div>
+
+                                <div className="grid gap-2 sm:col-span-2">
+                                    <Label>Gerencia {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
+                                    <Input
+                                        value={data.asignado_gerencia}
+                                        onChange={(e) => setData('asignado_gerencia', e.target.value)}
+                                        placeholder="Ej. Gerencia ATIT"
+                                    />
+                                    <InputError message={errors.asignado_gerencia} />
+                                </div>
+                            </div>
                         </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                            <Label>Marca</Label>
+                            <Label>Marca {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
                             <Input
                                 value={data.marca}
                                 onChange={(e) => setData('marca', e.target.value)}
@@ -223,7 +267,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                             <InputError message={errors.marca} />
                         </div>
                         <div className="grid gap-2">
-                            <Label>Modelo</Label>
+                            <Label>Modelo {mode === 'create' && <span className="text-destructive">*</span>}</Label>
                             <Input
                                 value={data.modelo}
                                 onChange={(e) => setData('modelo', e.target.value)}
@@ -233,7 +277,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Serial</Label>
+                        <Label>Serial {mode === 'create' && <span className="text-destructive">*</span>}</Label>
                         <Input
                             value={data.serial}
                             onChange={(e) => setData('serial', e.target.value)}
@@ -242,7 +286,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Observaciones</Label>
+                        <Label>Observaciones {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
                         <textarea
                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             value={data.detalle}
@@ -250,6 +294,8 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         />
                         <InputError message={errors.detalle} />
                     </div>
+
+                    
                 </CardContent>
             </Card>
 

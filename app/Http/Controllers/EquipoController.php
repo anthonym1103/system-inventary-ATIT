@@ -150,14 +150,13 @@ class EquipoController extends Controller
             ];
         }
 
-        $ubicacionesCompletas = Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']);
+        //$ubicacionesCompletas = Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']);
         $ubicaciones = $this->getEstadosRegion();
 
         return Inertia::render('equipos/create', [
             'tiposLabels' => $tiposLabels,
             'camposPorTipo' => $camposPorTipo,
             'ubicaciones' => $ubicaciones,
-            'asignados' => UserAsignado::orderBy('nombre')->get(['cedula', 'nombre', 'apellido']),
         ]);
     }
   
@@ -189,9 +188,11 @@ class EquipoController extends Controller
             'modelo' => ['required', 'string', 'max:255'],
             'serial' => ['required', 'string', 'max:255', 'unique:equipos,serial'],
             'detalle' => ['nullable', 'string'],
-            'asignado_id' => $requiereEncargado
-                ? ['required', 'string', 'exists:user_asignados,cedula']
-                : ['prohibited'],
+            'asignado_cedula'    => $requiereEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
+            'asignado_nombre'    => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
+            'asignado_apellido'  => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
+            'asignado_telefono'  => ['nullable', 'string', 'max:20'],
+            'asignado_gerencia'  => ['nullable', 'string', 'max:255'],
         ];
 
         // Reglas por campo específico de la tabla del área correspondiente.
@@ -221,6 +222,21 @@ class EquipoController extends Controller
         $validated = $request->validate($rules);
 
         DB::transaction(function () use ($validated, $tipo, $camposEspecificos) {
+            $asignadoId = null;
+
+            if ($requiereEncargado && ! empty($validated['asignado_cedula'])) {
+                $asignado = UserAsignado::updateOrCreate(
+                    ['cedula' => $validated['asignado_cedula']],
+                    [
+                        'nombre'   => $validated['asignado_nombre'],
+                        'apellido' => $validated['asignado_apellido'],
+                        'telefono' => $validated['asignado_telefono'] ?: null,
+                        'gerencia' => $validated['asignado_gerencia'] ?: null,
+                    ]
+                );
+                $asignadoId = $asignado->cedula;
+            }
+
             $ubicacion = Ubicacion::firstOrCreate([
                     'estado' => $validated['estados'],
                     'locacion' => $validated['locacions'],
@@ -228,7 +244,7 @@ class EquipoController extends Controller
 
             $equipo = Equipo::create([
                 'ubicacion_id' => $ubicacion->id,
-                'asignado_id' => $validated['asignado_id'] ?: null,
+                'asignado_id' => $asignadoId,
                 'area' => $tipo->modulo()->value,
                 'tipo' => $tipo->value,
                 'marca' => $validated['marca'] ?: null,
@@ -330,18 +346,21 @@ class EquipoController extends Controller
                 'id' => $equipo->id,
                 'tipo' => $tipoActual->value,
                 'ubicacion_id' => (string) $equipo->ubicacion_id,
-                'asignado_id' => $equipo->asignado_id ?? '',
                 'marca' => $equipo->marca ?? '',
                 'modelo' => $equipo->modelo,
                 'serial' => $equipo->serial,
                 'detalle' => $equipo->detalle ?? '',
                 'tiene_contrasena_bios' => (bool) ($registroEspecifico?->contraseña_bios ?? null),
+                'asignado_cedula'     => $equipo->userAsignado?->cedula ?? '',
+                'asignado_nombre'     => $equipo->userAsignado?->nombre ?? '',
+                'asignado_apellido'   => $equipo->userAsignado?->apellido ?? '',
+                'asignado_telefono'   => $equipo->userAsignado?->telefono ?? '',
+                'asignado_gerencia'   => $equipo->userAsignado?->gerencia ?? '',
                 ...$datosEspecificos,
             ],
             'tiposLabels' => $tiposLabels,
             'camposPorTipo' => $camposPorTipo,
             'ubicaciones' => Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']),
-            'asignados' => UserAsignado::orderBy('nombre')->get(['cedula', 'nombre', 'apellido']),
         ];
     }
    
@@ -369,9 +388,11 @@ class EquipoController extends Controller
             'modelo' => ['required', 'string', 'max:255'],
             'serial' => ['required', 'string', 'max:255', Rule::unique('equipos', 'serial')->ignore($equipo->id)],
             'detalle' => ['nullable', 'string'],
-            'asignado_id' => $requiereEncargado
-                ? ['required', 'string', 'exists:user_asignados,cedula']
-                : ['prohibited'],
+            'asignado_cedula'   => $requiereEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
+            'asignado_nombre'   => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
+            'asignado_apellido' => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
+            'asignado_telefono' => ['nullable', 'string', 'max:20'],
+            'asignado_gerencia' => ['nullable', 'string', 'max:255'],
         ];
 
         $reglasCampos = [
@@ -399,10 +420,24 @@ class EquipoController extends Controller
 
         $validated = $request->validate($rules);
 
-        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $equipo) {
+        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $equipo, $requiereEncargado) {
+            $asignadoId = null;
+            if ($requiereEncargado && ! empty($validated['asignado_cedula'])) {
+                $asignado = UserAsignado::updateOrCreate(
+                    ['cedula' => $validated['asignado_cedula']],
+                    [
+                        'nombre'   => $validated['asignado_nombre'],
+                        'apellido' => $validated['asignado_apellido'],
+                        'telefono' => $validated['asignado_telefono'] ?: null,
+                        'gerencia' => $validated['asignado_gerencia'] ?: null,
+                    ]
+                );
+                $asignadoId = $asignado->cedula;
+            }
+        
             $equipo->update([
                 'ubicacion_id' => $validated['ubicacion_id'],
-                'asignado_id' => $validated['asignado_id'] ?: null,
+                'asignado_id' => $asignadoId,
                 'tipo' => $tipo->value,
                 'marca' => $validated['marca'] ?: null,
                 'modelo' => $validated['modelo'],

@@ -15,8 +15,8 @@ return new class extends Migration
             $table->string('cedula')->primary();
             $table->string('nombre');
             $table->string('apellido');
-            $table->string('telefono');
-            $table->string('gerencia');
+            $table->string('telefono')->nullable();
+            $table->string('gerencia')->nullable();
             $table->timestamps();
         });
     }

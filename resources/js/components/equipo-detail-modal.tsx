@@ -15,9 +15,10 @@ interface EquipoDetailModalProps {
     onClose: () => void;
     tiposLabels: Record<string, string>;
     estadosLabels: Record<string, string>;
+    condidicionesLabels: Record<string, string>;
 }
 
-export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels, estadosLabels }: EquipoDetailModalProps) {
+export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels, estadosLabels ,condidicionesLabels }: EquipoDetailModalProps) {
     if (!equipo) return null;
 
     
@@ -76,7 +77,7 @@ export function EquipoDetailModal({ equipo, isOpen, onClose, tiposLabels, estado
                     <DialogTitle className="flex items-center gap-2">
                         {tiposLabels[equipo.tipo] || equipo.tipo}
                         <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
-                            {equipo.condicion}
+                            {condidicionesLabels[equipo.condicion]}
                         </Badge>
                     </DialogTitle>
                     <DialogDescription>

@@ -1,9 +1,9 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, ClipboardList, FolderGit2, LayoutGrid, Package, LayoutDashboard, History, Layers, LucideUsers } from 'lucide-react';
+import { LayoutDashboard, History, Layers, LucideUsers } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { Notifications } from '@/components/notifications';
-import { usePage } from '@inertiajs/react';
+import { usePage} from '@inertiajs/react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
+import { useState } from 'react';
 
 const baseNavItems: NavItem[] = [
     {
@@ -34,16 +35,43 @@ const baseNavItems: NavItem[] = [
     },
 ];
 
+
 function getNavItems(data: any): NavItem[] {
     if (!data) return baseNavItems;
     const items = [...baseNavItems];
-
+    
     if (data.permissions.includes('asignar_roles')) {
         items.push({
             title: 'Gestion de Usuarios',
             href: '/usuarios',
             icon: LucideUsers,
         });
+    }
+
+    if(data.role === 'administrador'){
+        const itemsFildrado = items.filter((navItems) => navItems.title !== 'Inventario');
+
+        const navItems = [{
+            title: 'Inventario Infraestructura',
+            href: '/equipos',
+            icon: Layers,
+        },{
+            title: 'Inventario Redes',
+            href: '/equipos',
+            icon: Layers,
+        },{
+            title: 'Inventario Transmisión',
+            href: '/equipos',
+            icon: Layers,
+        }];
+
+        const newItems = [
+            ...itemsFildrado.slice(0,1),
+            ...navItems,
+            ...itemsFildrado.slice(1),
+        ];
+
+        return newItems;
     }
 
     return items;

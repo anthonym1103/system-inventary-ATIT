@@ -51,16 +51,21 @@ class Equipo extends Model
             $cambios = [];
             foreach ($equipo->getDirty() as $campo => $nuevoValor) {
                 $original = $equipo->getOriginal($campo);
-                if ($original != $nuevoValor) {
-                    $cambios[] = "{$campo}: de '{$original}' a '{$nuevoValor}'";
+            
+                // Convertir valores enum a su representación escalar
+                $originalValue = $original instanceof \UnitEnum ? $original->value : $original;
+                $newValue = $nuevoValor instanceof \UnitEnum ? $nuevoValor->value : $nuevoValor;
+            
+                if ($originalValue != $newValue) {
+                    $cambios[] = "{$campo}: de '{$originalValue}' a '{$newValue}'";
                 }
             }
             if (!empty($cambios)) {
                 HistorialEquipo::create([
-                'usuario_id' => auth()->id(),
-                'equipo_id' => $equipo->id,
-                'detalle' => 'Modificación: ' . implode(', ', $cambios),
-                'fecha_ajuste' => now(),
+                    'usuario_id' => auth()->id(),
+                    'equipo_id'  => $equipo->id,
+                    'detalle'    => 'Modificación: ' . implode(', ', $cambios),
+                    'fecha_ajuste' => now(),
                 ]);
             }
         });

@@ -27,9 +27,22 @@ class EquipoController extends Controller
 
     public function index(Request $request){
         $user = Auth::user();
+        $areaFilter = $request->input('area');
 
-        // 1. Determinar áreas permitidas (igual que en DashboardController)
-        $allowedAreas = $this->getUserAllowedAreas($user);
+        if ($user->hasRole(Cargo::ADMINISTRADOR->value) && empty($areaFilter)) {
+            return redirect()->route('equipos.index', ['area' => 'infraestructura']);
+        }
+
+        if (!$user->hasRole(Cargo::ADMINISTRADOR->value) && $areaFilter && $areaFilter !== $user->area->value) {
+            return redirect()->route('equipos.index');
+        }
+
+        if($user->hasRole(Cargo::ADMINISTRADOR->value) && $areaFilter && in_array($areaFilter, array_column(Area::cases(), 'value'))){
+            $allowedAreas = [$areaFilter];
+        }else{
+            $allowedAreas = $this->getUserAllowedAreas($user);
+        }
+
         $relacionEquipo = $this->getRelacionEquipo($allowedAreas);
 
         // 2. Query base con filtro de áreas
@@ -63,6 +76,9 @@ class EquipoController extends Controller
             $query->whereHas('ubicacion', function($q) use ($estadosBuscados){
                 $q->where('estado', $estadosBuscados);
             });
+        }
+        if($areaFilter){
+            $query->where('area', $areaFilter);
         }
 
         // 5. Paginación (10 por página, puedes cambiar)
@@ -119,7 +135,7 @@ class EquipoController extends Controller
             'condicionesLabels' => $condicionesLabels,
             'condiciones' => $condiciones,
             'ubicaciones' => $ubicaciones,
-            'filters' => $request->only(['search', 'tipo', 'condicion', 'ubicacion_id']),
+            'filters' => $request->only(['search', 'tipo', 'condicion', 'ubicacion_id']) +  ['area' => $areaFilter],
             'permissions' => $permissions,
         ]);
 

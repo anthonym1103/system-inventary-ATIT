@@ -117,6 +117,7 @@ interface Props {
         tipo: string;
         condicion: string;
         estado_region: string;
+        area: string;
     };
     permissions: {
         can_create: boolean;
@@ -132,6 +133,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
     const [tipo, setTipo] = useState<string | undefined>(filters.tipo || undefined);
     const [condicion, setCondicion] = useState<string | undefined>(filters.condicion || undefined);
     const [region, setRegion] = useState<string | undefined>(filters.estado_region || undefined);
+    const [area] = useState<string | undefined>(filters.area || undefined);
     const [selectedEquipo, setSelectedEquipo] = useState<any>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [editEquipoId, setEditEquipoId] = useState<number | null>(null);
@@ -142,7 +144,8 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
     const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
     const debouncedSearch = useDebounce(search, 300);
     const [isLoading, setIsLoading] = useState(false);
-    
+    const params: Record<string, string> = {};
+
     // Aplicar filtros cuando cambien
 
     useEffect(() => {
@@ -160,25 +163,33 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
 
     
     useEffect(() => {
-        const params: Record<string, string> = {};
         if (debouncedSearch) params.search = debouncedSearch;
         if (tipo) params.tipo = tipo;
         if (condicion) params.condicion = condicion;
         if (region) params.estado_region = region;
+        if (area) params.area = area;
+
+        console.log(params);
         
         router.get('/equipos', params, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
         });
-    }, [debouncedSearch, tipo, condicion, region]);
+    }, [debouncedSearch, tipo, condicion, region, area]);
 
     const clearFilters = () => {
         setSearch('');
         setTipo(undefined);
         setCondicion(undefined);
         setRegion(undefined);
-        router.get('/equipos', {}, { preserveState: false });
+
+        if(area){
+            router.get('/equipos', {area: area}, { preserveState: false });
+        }else{
+            router.get('/equipos', {}, { preserveState: false });
+        }
+
     };
 
     const handlePageChange = (url: string | null) => {

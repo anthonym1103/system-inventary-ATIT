@@ -53,15 +53,15 @@ function getNavItems(data: any): NavItem[] {
 
         const navItems = [{
             title: 'Inventario Infraestructura',
-            href: '/equipos',
+            href: '/equipos?area=infraestructura',
             icon: Layers,
         },{
             title: 'Inventario Redes',
-            href: '/equipos',
+            href: '/equipos?area=redes',
             icon: Layers,
         },{
             title: 'Inventario Transmisión',
-            href: '/equipos',
+            href: '/equipos?area=transmision_datos',
             icon: Layers,
         }];
 

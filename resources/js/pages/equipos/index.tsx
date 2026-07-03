@@ -168,8 +168,6 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
         if (condicion) params.condicion = condicion;
         if (region) params.estado_region = region;
         if (area) params.area = area;
-
-        console.log(params);
         
         router.get('/equipos', params, {
             preserveState: true,

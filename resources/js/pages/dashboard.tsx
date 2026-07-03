@@ -38,8 +38,6 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
         return map[area] || area;
     };
 
-    console.log(ultimosEquipos)
-
     const { tiposLabels } = usePage().props as any;
 
     return (

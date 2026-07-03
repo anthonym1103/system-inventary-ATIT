@@ -78,11 +78,6 @@ export default function UsuariosIndex({
     const [selectedRole, setSelectedRole] = useState<string>('');
     const [processing, setProcessing] = useState(false);
 
-    console.log(users);
-    console.log(rolesByArea);
-    console.log(areaLabels);
-    console.log(filters);
-
     useEffect(() => {
         const params: Record<string, string> = {};
 

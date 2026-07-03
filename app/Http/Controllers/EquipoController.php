@@ -24,21 +24,21 @@ use Illuminate\Support\Facades\Crypt;
 
 class EquipoController extends Controller
 {
-    
+
     public function index(Request $request){
         $user = Auth::user();
-        
+
         // 1. Determinar áreas permitidas (igual que en DashboardController)
         $allowedAreas = $this->getUserAllowedAreas($user);
         $relacionEquipo = $this->getRelacionEquipo($allowedAreas);
-    
+
         // 2. Query base con filtro de áreas
         $query = Equipo::query()
             ->with(array_merge(['ubicacion', 'userAsignado'], $relacionEquipo))
             ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), function ($q) use ($allowedAreas) {
                 $q->whereIn('area', $allowedAreas);
             });
-        
+
         // 3. Búsqueda por texto (serial, marca, modelo, tipo)
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -49,7 +49,7 @@ class EquipoController extends Controller
                   ->orWhere('tipo', 'ILIKE', "%{$search}%");
             });
         }
-        
+
         // 4. Filtros adicionales (por tipo, condición, ubicación)
         if ($request->filled('tipo') && $request->input('tipo') !== 'all') {
             $query->where('tipo', $request->input('tipo'));
@@ -64,7 +64,7 @@ class EquipoController extends Controller
                 $q->where('estado', $estadosBuscados);
             });
         }
-       
+
         // 5. Paginación (10 por página, puedes cambiar)
         $equipos = $query->latest()->paginate(10)->onEachSide(1)->withQueryString();
 
@@ -110,10 +110,6 @@ class EquipoController extends Controller
             'can_asigRoles' => $user->can('asignar_roles'),
         ];
 
-        //dump($user->getRoleNames());
-        //dump($user->getAllPermissions()->pluck('name'));
-        //dump($permissions);
-
         $condiciones = $this->getCondiciones();
 
         return Inertia::render('equipos/index', [
@@ -152,7 +148,6 @@ class EquipoController extends Controller
             ];
         }
 
-        //$ubicacionesCompletas = Ubicacion::orderBy('locacion')->get(['id', 'estado', 'locacion']);
         $ubicaciones = $this->getEstadosRegion();
         $condiciones = $this->getCondiciones();
 
@@ -163,7 +158,7 @@ class EquipoController extends Controller
             'condiciones' => $condiciones,
         ]);
     }
-  
+
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -226,7 +221,10 @@ class EquipoController extends Controller
 
         $validated = $request->validate($rules);
 
-        DB::transaction(function () use ($validated, $tipo, $camposEspecificos) {
+        // FIX #2: se agregó $requiereEncargado al "use" del closure, ya que se
+        // utiliza dentro para decidir si se crea el UserAsignado. Antes no
+        // estaba importado y provocaba un error de variable indefinida.
+        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $requiereEncargado) {
             $asignadoId = null;
 
             if ($requiereEncargado && ! empty($validated['asignado_cedula'])) {
@@ -263,11 +261,9 @@ class EquipoController extends Controller
             $datosEspecificos = collect($validated)->only($camposEspecificos)->toArray();
 
             if (array_key_exists('contraseña_bios', $datosEspecificos)) {
-                //$datosEspecificos['contraseña_bios'] = Hash::make($datosEspecificos['contraseña_bios']);
                 $datosEspecificos['contraseña_bios'] = Crypt::encryptString($datosEspecificos['contraseña_bios']);
             }
 
-            
             $modeloEspecifico = match ($tipo->modulo()) {
                 Area::INFRAESTRUCTURA => Infraestructura::class,
                 Area::REDES => Rede::class,
@@ -284,7 +280,7 @@ class EquipoController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Equipo creado correctamente.']);
 
-        return to_route('equipos.index');        
+        return to_route('equipos.index');
     }
 
     public function edit(Equipo $equipo)
@@ -301,7 +297,7 @@ class EquipoController extends Controller
         $this->authorizeEdit($equipo);
         $data = $this->buildEditData($equipo);
         $data['condiciones'] = $this->getCondiciones();
-        
+
         return response()->json($data);
     }
 
@@ -319,6 +315,12 @@ class EquipoController extends Controller
         $tipoActual = $equipo->tipo;
 
         $equipo->load(['ubicacion', 'userAsignado']);
+
+        // Se usa la ubicación ya cargada para exponer "estados" y "locacions",
+        // los mismos nombres de campo que usa el formulario tanto en crear
+        // como en editar. Antes se devolvía "ubicacion_id", que el formulario
+        // nunca leía ni enviaba, dejando el Select de Estado/Región vacío.
+        $ubicacionActual = $equipo->ubicacion;
 
         $relacion = match ($tipoActual->modulo()) {
             Area::INFRAESTRUCTURA => 'infraestructura',
@@ -347,10 +349,14 @@ class EquipoController extends Controller
 
         $datosEspecificos = [];
         if ($registroEspecifico) {
+            // FIX #1: el closure usaba "$registrosEspecificos" (plural, no existía
+            // en este scope), lo que lanzaba "Undefined variable" y provocaba el
+            // error 500 -> "No se pudo cargar la información del equipo" en el modal.
+            // Corregido a "$registroEspecifico" (singular), que sí existe arriba.
             $datosEspecificos = collect($registroEspecifico->toArray())
                 ->except(['id', 'created_at', 'updated_at', 'equipo'])
-                ->map(function ($valor, $key) use ($registrosEspecificos) {
-                    if($key === 'contraseña_bios' && $valor){
+                ->map(function ($valor, $key) use ($registroEspecifico) {
+                    if ($key === 'contraseña_bios' && $valor) {
                         return Crypt::decryptString($valor);
                     }
                     return $valor ?? '';
@@ -364,8 +370,9 @@ class EquipoController extends Controller
             'equipo' => [
                 'id' => $equipo->id,
                 'tipo' => $tipoActual->value,
-                'ubicacion_id' => (string) $equipo->ubicacion_id,
-                'condicion' => $equipo->condicion->value ?? 'Operativo',
+                'estados' => $ubicacionActual?->estado ?? '',
+                'locacions' => $ubicacionActual?->locacion ?? '',
+                'condicion' => $equipo->condicion->value ?? 'operativo',
                 'marca' => $equipo->marca ?? '',
                 'modelo' => $equipo->modelo,
                 'serial' => $equipo->serial,
@@ -383,7 +390,7 @@ class EquipoController extends Controller
             'ubicaciones' => $ubicaciones,
         ];
     }
-   
+
     public function update(Request $request, Equipo $equipo)
     {
         $user = Auth::user();
@@ -403,7 +410,11 @@ class EquipoController extends Controller
 
         $rules = [
             'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
-            'ubicacion_id' => ['required', 'integer', 'exists:ubicacions,id'],
+            // FIX: antes se pedía "ubicacion_id", pero el formulario (igual en
+            // crear y editar) envía "estados" + "locacions". Se homologa con
+            // store() para no depender de un campo que el form nunca completa.
+            'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
+            'locacions' => ['required', 'string', 'max:255'],
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
             'marca' => ['nullable', 'string', 'max:255'],
             'modelo' => ['required', 'string', 'max:255'],
@@ -455,9 +466,19 @@ class EquipoController extends Controller
                 );
                 $asignadoId = $asignado->cedula;
             }
-        
+
+            // FIX: se reemplaza el uso directo de "ubicacion_id" (que ya no
+            // llega desde el formulario) por firstOrCreate, igual que en
+            // store(). Si el usuario deja el mismo estado/locación, reutiliza
+            // la ubicación existente; si la cambia, crea o reutiliza la que
+            // corresponda.
+            $ubicacion = Ubicacion::firstOrCreate([
+                'estado' => $validated['estados'],
+                'locacion' => $validated['locacions'],
+            ]);
+
             $equipo->update([
-                'ubicacion_id' => $validated['ubicacion_id'],
+                'ubicacion_id' => $ubicacion->id,
                 'asignado_id' => $asignadoId,
                 'tipo' => $tipo->value,
                 'condicion' => $validated['condicion'],
@@ -493,11 +514,6 @@ class EquipoController extends Controller
             // La contraseña del BIOS es especial: si la dejaron en blanco,
             // conservamos la que ya estaba en vez de borrarla.
             if (array_key_exists('contraseña_bios', $datosEspecificos)) {
-                /*if (!empty($datosEspecificos['contraseña_bios'])) {
-                    $datosEspecificos['contraseña_bios'] = Hash::make($datosEspecificos['contraseña_bios']);
-                } else {
-                    $datosEspecificos['contraseña_bios'] = $registro?->contraseña_bios;
-                }*/
                 if (!empty($datosEspecificos['contraseña_bios'])) {
                     $datosEspecificos['contraseña_bios'] = Crypt::encryptString($datosEspecificos['contraseña_bios']);
                 } else {
@@ -536,7 +552,7 @@ class EquipoController extends Controller
                     } else {
                         $changes[] = "{$field}: de '{$old}' a '{$new}'";
                     }
-                }           
+                }
             }
 
             if (!empty($changes)) {
@@ -553,10 +569,10 @@ class EquipoController extends Controller
         return to_route('equipos.index');
     }
 
-   
+
     public function destroy(Equipo $equipo)
     {
-        
+
     }
 
     private function getEstadosRegion(): Collection
@@ -610,5 +626,5 @@ class EquipoController extends Controller
         }
         return $relacion;
     }
-   
+
 }

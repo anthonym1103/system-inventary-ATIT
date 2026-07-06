@@ -127,7 +127,7 @@ export default function UsuariosIndex({
         }
 
         if (roleValue === 'administrador') {
-            return 'administrador';
+            return 'Administrador';
         }
 
         for (const options of Object.values(rolesByArea)) {
@@ -237,7 +237,7 @@ export default function UsuariosIndex({
                                                         value={selectedRole}
                                                         onValueChange={setSelectedRole}
                                                     >
-                                                        <SelectTrigger className="w-48">
+                                                        <SelectTrigger className="w-full">
                                                             <SelectValue placeholder="Selecciona un rol" />
                                                         </SelectTrigger>
                                                         <SelectContent>

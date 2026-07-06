@@ -43,7 +43,6 @@ export default function HistorialIndex({ historial, filters, usuarios, equipos, 
         <>
             <Head title="Historial de Cambios" />
             <div className="p-6 space-y-6">
-                <h1 className="text-2xl font-bold">Historial de Cambios</h1>
 
                 {/* Filtros */}
                 <div className="flex flex-wrap gap-4 items-end">

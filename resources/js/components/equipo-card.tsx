@@ -32,7 +32,7 @@ interface EquipoCardProps {
 export function EquipoCard({ equipo, tiposLabels, estadosLabls, condicionesLabels,permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
     const Icon = equipoIconMap[equipo.tipo] || equipoIconMap.micro_escritorio;
     const colorClass = equipoColorMap[equipo.tipo] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
-
+    
     const handleCardClick = (e: React.MouseEvent) => {
         // Evitar que el click en los botones de acción dispare el modal
         if ((e.target as HTMLElement).closest('button')) return;

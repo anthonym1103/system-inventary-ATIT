@@ -216,15 +216,16 @@ class EquipoController extends Controller
             'anio' => ['nullable', 'digits:4'],
             'ram' => ['required', 'string', 'max:50'],
             'disco' => ['required', 'string', 'max:100'],
-            'direccion_mac' => ['required', 'string', 'regex:/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/'],
+            'direccion_mac' => ['nullable', 'string', 'regex:/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/'],
             'sistema_operativo' => ['required', 'string', 'max:100'],
             'numero_inventario' => ['required', 'string', 'max:100'],
             'dominio' => ['nullable', 'string', 'max:255'],
             'puerto' => ['required', 'string', 'max:50'],
+            'puerto_fibra' => ['nullable', 'string', 'max:50'],
             'contraseña_bios' => ['required', 'string', 'min:4'],
-            'direccion_ip' => ['required', 'ip'],
-            'extension' => ['required', 'string', 'max:50'],
-            'ubicacion_puerto' => ['required', 'string', 'max:100'],
+            'direccion_ip' => ['nullable', 'ip'],
+            'extension' => ['nullable', 'string', 'max:50'],
+            'ubicacion_puerto' => ['nullable', 'string', 'max:100'],
             'potencia' => ['required', 'string', 'max:50'],
             'rango_frecuencia' => ['required', 'string', 'max:100'],
             'unidad_usuario' => ['required', 'string', 'max:255'],
@@ -380,6 +381,8 @@ class EquipoController extends Controller
                 ->toArray();
         }
 
+        dump($datosEspecificos);
+
         $ubicaciones = $this->getEstadosRegion();
 
         return [
@@ -447,15 +450,16 @@ class EquipoController extends Controller
             'anio' => ['nullable', 'digits:4'],
             'ram' => ['required', 'string', 'max:50'],
             'disco' => ['required', 'string', 'max:100'],
-            'direccion_mac' => ['required', 'string', 'regex:/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/'],
+            'direccion_mac' => ['nullable', 'string', 'regex:/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/'],
             'sistema_operativo' => ['required', 'string', 'max:100'],
             'numero_inventario' => ['required', 'string', 'max:100'],
             'dominio' => ['nullable', 'string', 'max:255'],
             'puerto' => ['required', 'string', 'max:50'],
+            'puerto_fibra' => ['nullable', 'string','max:50'],
             'contraseña_bios' => ['nullable', 'string', 'min:4'],
-            'direccion_ip' => ['required', 'ip'],
-            'extension' => ['required', 'string', 'max:50'],
-            'ubicacion_puerto' => ['required', 'string', 'max:100'],
+            'direccion_ip' => ['nullable', 'ip'],
+            'extension' => ['nullable', 'string', 'max:50'],
+            'ubicacion_puerto' => ['nullable', 'string', 'max:100'],
             'potencia' => ['required', 'string', 'max:50'],
             'rango_frecuencia' => ['required', 'string', 'max:100'],
             'unidad_usuario' => ['required', 'string', 'max:255'],

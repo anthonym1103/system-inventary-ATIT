@@ -18,6 +18,7 @@ import { Spinner } from '@/components/ui/spinner';
 
 interface CampoConfig {
     label: string;
+    holdertext?: string;
     type?: 'password';
     textarea?: boolean;
 }
@@ -30,16 +31,18 @@ const CAMPO_CONFIG: Record<string, CampoConfig> = {
     sistema_operativo: { label: 'Sistema Operativo' },
     numero_inventario: { label: 'Número de Inventario' },
     dominio: { label: 'Dominio' },
-    puerto: { label: 'Puerto' },
+    puerto: { label: 'Puerto', holdertext: 'Ingrese el puerto del equipo...' },
     contraseña_bios: { label: 'Contraseña BIOS', type: 'password' },
-    direccion_ip: { label: 'Dirección IP' },
-    extension: { label: 'Extensión' },
+    direccion_ip: { label: 'Dirección IP', holdertext: 'Ingrese la ip del equipo...' },
+    extension: { label: 'Extensión', holdertext: 'Ingrese la extension del equipo...' },
     ubicacion_puerto: { label: 'Ubicación del Puerto' },
     potencia: { label: 'Potencia' },
     rango_frecuencia: { label: 'Rango de Frecuencia' },
     unidad_usuario: { label: 'Unidad / Usuario' },
     caracteristicas: { label: 'Características', textarea: true },
 };
+
+
 
 export interface TipoConfig {
     area: string;
@@ -143,6 +146,18 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
         }
     };
 
+    const formatUbicacionPuerto = (value: string): string => {
+        // Eliminar todo lo que no sea dígito
+        const digits = value.replace(/\D/g, '');
+         // Limitar a 8 dígitos (4 pares)
+        const limited = digits.slice(0, 8);
+        // Insertar guiones después de cada 2 dígitos
+        const parts = limited.match(/.{1,2}/g) || [];
+        return parts.join('-');
+    };
+
+
+
     return (
         <form onSubmit={handleSubmit}>
             <Card className = {cardForMode}>
@@ -151,7 +166,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">
-                        <Label>Tipo de Equipo {mode === 'create' && <span className="text-destructive">*</span>}</Label>
+                        <Label className="cursor-text select-text w-fit">Tipo de Equipo {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
                         <Select value={data.tipo} onValueChange={handleTipoChange}>
                             <SelectTrigger className="w-full cursor-pointer">
                                 <SelectValue placeholder="Selecciona un tipo" />
@@ -168,7 +183,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Estado/Region {mode === 'create' && <span className="text-destructive">*</span>}</Label>
+                        <Label className="cursor-text select-text w-fit">Estado/Region {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
                         <Select
                             value={data.estados}
                             onValueChange={(val) => setData('estados', val)}
@@ -188,7 +203,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Locacion del equipo {mode === 'create' && <span className="text-destructive">*</span>}</Label>
+                        <Label className="cursor-text select-text w-fit">Locacion del equipo {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
                         <textarea
                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             value={data.locacions}
@@ -203,7 +218,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label>Cédula <span className="text-destructive">*</span></Label>
+                                    <Label className="cursor-text select-text w-fit">Cédula <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
                                     <Input
                                         value={data.asignado_cedula}
                                         onChange={(e) => setData('asignado_cedula', e.target.value)}
@@ -213,7 +228,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label>Nombre <span className="text-destructive">*</span></Label>
+                                    <Label cursor-text select-text w-fit>Nombre <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
                                     <Input
                                         value={data.asignado_nombre}
                                         onChange={(e) => setData('asignado_nombre', e.target.value)}
@@ -223,7 +238,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label>Apellido <span className="text-destructive">*</span></Label>
+                                    <Label className="cursor-text select-text w-fit"> Apellido <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
                                     <Input
                                         value={data.asignado_apellido}
                                         onChange={(e) => setData('asignado_apellido', e.target.value)}
@@ -233,7 +248,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label>Teléfono {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
+                                    <Label className="cursor-text select-text w-fit">Teléfono {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
                                     <Input
                                         value={data.asignado_telefono}
                                         onChange={(e) => setData('asignado_telefono', e.target.value)}
@@ -257,7 +272,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
 
                     {mode==='edit' && (
                         <div className="grid gap-2">
-                            <Label>Condición <span className="text-destructive">*</span></Label>
+                            <Label className="cursor-text select-text w-fit">Condición <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
                             <Select
                                 value={data.condicion}
                                 onValueChange={(val) => setData('condicion', val)}
@@ -279,34 +294,37 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                            <Label>Marca {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
+                            <Label className="cursor-text select-text w-fit">Marca {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
                             <Input
                                 value={data.marca}
                                 onChange={(e) => setData('marca', e.target.value)}
+                                placeholder="Ingrese la marca del equipo..."
                             />
                             <InputError message={errors.marca} />
                         </div>
                         <div className="grid gap-2">
-                            <Label>Modelo {mode === 'create' && <span className="text-destructive">*</span>}</Label>
+                            <Label className="cursor-text select-text w-fit">Modelo {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
                             <Input
                                 value={data.modelo}
                                 onChange={(e) => setData('modelo', e.target.value)}
+                                placeholder="Ingrese el modelo del equipo..."
                             />
                             <InputError message={errors.modelo} />
                         </div>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Serial {mode === 'create' && <span className="text-destructive">*</span>}</Label>
+                        <Label className="cursor-text select-text w-fit"> Serial {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
                         <Input
                             value={data.serial}
                             onChange={(e) => setData('serial', e.target.value)}
+                            placeholder="Ingrese el serial del equipo..."
                         />
                         <InputError message={errors.serial} />
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Observaciones {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
+                        <Label className="cursor-text select-text w-fit">Observaciones {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
                         <textarea
                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             value={data.detalle}
@@ -334,8 +352,31 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     key={campo}
                                     className={`grid gap-2 ${config.textarea ? 'sm:col-span-2' : ''}`}
                                 >
-                                    <Label>{config.label}</Label>
-                                    {config.textarea ? (
+                                    <Label className="cursor-text select-text w-fit">{config.label}</Label>
+                                    {campo === 'direccion_mac' ? (
+                                        <Input
+                                            className="cursor-text select-text"
+                                            value={data[campo] ?? ''}
+                                            onChange={(e) => {
+                                                const valor = e.target.value;
+                                                const formatted = formatUbicacionPuerto(valor);
+                                                setData(campo, formatted);
+                                                }}
+                                            placeholder="Ej. 00:1A:2B:3C:4D:5E"
+                                            maxLength={17} // 12 dígitos + 5 dos puntos
+                                        />
+                                    ) : campo === 'ubicacion_puerto' ? (
+                                        <Input
+                                            value={data[campo] ?? ''}
+                                            onChange={(e) => {
+                                                const valor = e.target.value;
+                                                const formatted = formatUbicacionPuerto(valor);
+                                                setData(campo, formatted);
+                                                }}
+                                            placeholder="Ej. 12-34-56-78"
+                                            maxLength={11} // 8 dígitos + 3 guiones
+                                        />
+                                    ) : config.textarea ? (
                                         <textarea
                                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                                             value={data[campo] ?? ''}
@@ -349,7 +390,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                                 placeholder={
                                                     esPasswordEnEdicion
                                                         ? 'Dejar en blanco para no cambiarla'
-                                                        : undefined
+                                                        : 'Ingrese la contraseña...'
                                                 }
                                             />
                                             {esPasswordEnEdicion && tieneContrasenaBios && (
@@ -362,6 +403,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                         <Input
                                             value={data[campo] ?? ''}
                                             onChange={(e) => setData(campo, e.target.value)}
+                                            placeholder = {config.holdertext}
                                         />
                                     )}
                                     <InputError message={errors[campo]} />

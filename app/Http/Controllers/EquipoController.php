@@ -366,10 +366,6 @@ class EquipoController extends Controller
 
         $datosEspecificos = [];
         if ($registroEspecifico) {
-            // FIX #1: el closure usaba "$registrosEspecificos" (plural, no existía
-            // en este scope), lo que lanzaba "Undefined variable" y provocaba el
-            // error 500 -> "No se pudo cargar la información del equipo" en el modal.
-            // Corregido a "$registroEspecifico" (singular), que sí existe arriba.
             $datosEspecificos = collect($registroEspecifico->toArray())
                 ->except(['id', 'created_at', 'updated_at', 'equipo'])
                 ->map(function ($valor, $key) use ($registroEspecifico) {
@@ -380,8 +376,6 @@ class EquipoController extends Controller
                 })
                 ->toArray();
         }
-
-        dump($datosEspecificos);
 
         $ubicaciones = $this->getEstadosRegion();
 

@@ -23,7 +23,7 @@ const translate = (key: string, message: string) => {
 export default function ForgotPassword({ status }: { status?: string }) {
     return (
         <>
-            <Head title="Forgot password" />
+            <Head title="Recuperar contraseña" />
 
             {status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
@@ -36,7 +36,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Direccion de correo electronico</Label>
+                                <Label htmlFor="email" className="select-text cursor-text">Direccion de correo electronico</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -51,7 +51,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
                             <div className="my-6 flex items-center justify-start">
                                 <Button
-                                    className="w-full"
+                                    className="w-full cursor-pointer"
                                     disabled={processing}
                                     data-test="email-password-reset-link-button"
                                 >

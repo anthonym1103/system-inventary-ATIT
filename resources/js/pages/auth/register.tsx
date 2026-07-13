@@ -27,7 +27,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
 
     return (
         <>
-            <Head title="Register"/>
+            <Head title="Registarse"/>
             <Form
                 {...store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
@@ -38,7 +38,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Nombre</Label>
+                                <Label htmlFor="name" className="select-text cursor-text">Nombre</Label>
                                 <Input
                                     id="name"
                                     type="text"
@@ -56,7 +56,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="user_name">Nombre de usuario </Label>
+                                <Label htmlFor="user_name" className="select-text cursor-text">Nombre de usuario </Label>
                                 <Input
                                     id="user_name"
                                     type="text"
@@ -73,7 +73,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                             </div>
                             
                             <div className="grid gap-2">
-                                <Label htmlFor="area">Area</Label>
+                                <Label htmlFor="area" className="select-text cursor-text">Area</Label>
                                 <Select
                                     value={selectedArea}
                                     onValueChange={(value) => setSelectedArea(value)}
@@ -99,7 +99,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                             </div> 
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Direccion de correo electronico</Label>
+                                <Label htmlFor="email" className="select-text cursor-text">Direccion de correo electronico</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -131,7 +131,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                             </div>*/}
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Contraseña</Label>
+                                <Label htmlFor="password" className="select-text cursor-text">Contraseña</Label>
                                 <PasswordInput
                                     id="password"
                                     required
@@ -144,7 +144,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
+                                <Label htmlFor="password_confirmation" className="select-text cursor-text">
                                     Confirmar contraseña
                                 </Label>
                                 <PasswordInput
@@ -162,7 +162,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
 
                             <Button
                                 type="submit"
-                                className="mt-2 w-full"
+                                className="mt-2 w-full cursor-pointer"
                                 tabIndex={7}
                                 data-test="register-user-button"
                             >

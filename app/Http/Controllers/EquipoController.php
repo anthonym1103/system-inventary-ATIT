@@ -141,6 +141,28 @@ class EquipoController extends Controller
 
     }
 
+    public function show(Equipo $equipo)
+    {
+        $user = Auth::user();
+        $allowedAreas = $this->getUserAllowedAreas($user);
+        abort_unless(in_array($equipo->area->value, $allowedAreas), 403);
+
+        $relacion = match ($equipo->tipo->modulo()) {
+            Area::INFRAESTRUCTURA => 'infraestructura',
+            Area::REDES => 'rede',
+            Area::TRANSMISION => 'transmision',
+        };
+
+        $equipo->load(['ubicacion', 'userAsignado', $relacion]);
+        $registroEspecifico = $equipo->{$relacion};
+
+        if ($registroEspecifico && !empty($registroEspecifico->contraseña_bios)) {
+            $registroEspecifico->contraseña_bios = Crypt::decryptString($registroEspecifico->contraseña_bios);
+        }
+
+        return response()->json($equipo);
+    }
+
     public function create()
     {
         $user = Auth::user();
@@ -293,6 +315,44 @@ class EquipoController extends Controller
             $registro->forceFill($datosEspecificos);
             $registro->id = $equipo->id;
             $registro->save();
+
+            // --- Registro de historial de creación ---
+            $camposLabels = [
+                'anio' => 'Año', 'ram' => 'RAM', 'disco' => 'Disco',
+                'direccion_mac' => 'Dirección MAC', 'sistema_operativo' => 'Sistema Operativo',
+                'numero_inventario' => 'Número de Inventario', 'dominio' => 'Dominio',
+                'puerto' => 'Puerto', 'puerto_fibra' => 'Puerto Fibra',
+                'direccion_ip' => 'Dirección IP', 'extension' => 'Extensión',
+                'ubicacion_puerto' => 'Ubicación del Puerto', 'potencia' => 'Potencia',
+                'rango_frecuencia' => 'Rango de Frecuencia', 'unidad_usuario' => 'Unidad / Usuario',
+                'caracteristicas' => 'Características',
+            ];
+
+            $detalleCreacion = [
+                "Tipo: {$tipo->label()}",
+                "Marca: " . ($validated['marca'] ?: '—'),
+                "Modelo: {$validated['modelo']}",
+                "Serial: {$validated['serial']}",
+            ];
+
+            foreach ($camposEspecificos as $campo) {
+                if ($campo === 'contraseña_bios') {
+                    continue; // nunca se registra en texto plano
+                }
+
+                $valor = $validated[$campo] ?? null;
+                if ($valor) {
+                    $label = $camposLabels[$campo] ?? $campo;
+                    $detalleCreacion[] = "{$label}: {$valor}";
+                }
+            }
+
+            HistorialEquipo::create([
+                'usuario_id' => auth()->id(),
+                'equipo_id'  => $equipo->id,
+                'detalle'    => 'Equipo registrado: ' . implode('; ', $detalleCreacion),
+                'fecha_ajuste' => now(),
+            ]);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Equipo creado correctamente.']);
@@ -417,15 +477,13 @@ class EquipoController extends Controller
         if (! $tipo || $tipo->modulo() !== $equipo->area) {
             return back()->withErrors(['tipo' => 'Tipo de equipo inválido para esta área.'])->withInput();
         }
+   
 
         $camposEspecificos = $tipo->camposEspecificos();
         $requiereEncargado = $tipo->requiereEncargado();
 
         $rules = [
             'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
-            // FIX: antes se pedía "ubicacion_id", pero el formulario (igual en
-            // crear y editar) envía "estados" + "locacions". Se homologa con
-            // store() para no depender de un campo que el form nunca completa.
             'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
             'locacions' => ['required', 'string', 'max:255'],
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
@@ -467,6 +525,24 @@ class EquipoController extends Controller
         $validated = $request->validate($rules);
 
         DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $equipo, $requiereEncargado) {
+            $changes = [];
+
+            $generalLabels = [
+                'tipo' => 'Tipo de equipo',
+                'marca' => 'Marca',
+                'modelo' => 'Modelo',
+                'serial' => 'Serial',
+                'detalle' => 'Observaciones',
+                'condicion' => 'Condición',
+            ];
+
+            $fieldsGenerales = array_merge(array_keys($generalLabels), ['ubicacion_id', 'asignado_id']);
+
+            $before = [];
+            foreach ($fieldsGenerales as $f) {
+                $before[$f] = $equipo->getAttributes()[$f] ?? null;
+            }
+
             $asignadoId = null;
             if ($requiereEncargado && ! empty($validated['asignado_cedula'])) {
                 $asignado = UserAsignado::updateOrCreate(
@@ -481,11 +557,6 @@ class EquipoController extends Controller
                 $asignadoId = $asignado->cedula;
             }
 
-            // FIX: se reemplaza el uso directo de "ubicacion_id" (que ya no
-            // llega desde el formulario) por firstOrCreate, igual que en
-            // store(). Si el usuario deja el mismo estado/locación, reutiliza
-            // la ubicación existente; si la cambia, crea o reutiliza la que
-            // corresponda.
             $ubicacion = Ubicacion::firstOrCreate([
                 'estado' => $validated['estados'],
                 'locacion' => $validated['locacions'],
@@ -502,6 +573,38 @@ class EquipoController extends Controller
                 'detalle' => $validated['detalle'] ?: null,
             ]);
 
+            $after = [];
+            foreach ($fieldsGenerales as $f) {
+                $after[$f] = $equipo->getAttributes()[$f] ?? null;
+            }
+
+            foreach ($generalLabels as $field => $label) {
+                $old = $before[$field];
+                $new = $after[$field];
+
+                if ($old == $new) {
+                    continue;
+                }
+
+                if ($field === 'tipo') {
+                    $old = TipoEquipo::tryFrom($old)?->label() ?? $old;
+                    $new = TipoEquipo::tryFrom($new)?->label() ?? $new;
+                } elseif ($field === 'condicion') {
+                    $old = CondicionEquipo::tryFrom($old)?->label() ?? $old;
+                    $new = CondicionEquipo::tryFrom($new)?->label() ?? $new;
+                }
+
+                $changes[] = "{$label}: '" . ($old ?? '—') . "' → '" . ($new ?? '—') . "'";
+            }
+
+            if ($before['ubicacion_id'] != $after['ubicacion_id']) {
+                $changes[] = 'Ubicación actualizada';
+            }
+            if ($before['asignado_id'] != $after['asignado_id']) {
+                $changes[] = 'Encargado actualizado';
+            }
+
+            // --- Campos específicos del área (sin cambios respecto a antes) ---
             $modeloEspecifico = match ($tipo->modulo()) {
                 Area::INFRAESTRUCTURA => Infraestructura::class,
                 Area::REDES => Rede::class,
@@ -514,66 +617,80 @@ class EquipoController extends Controller
                 Area::TRANSMISION => ['potencia', 'rango_frecuencia', 'unidad_usuario', 'caracteristicas', 'numero_inventario'],
             };
 
-            // Reseteamos a null TODOS los campos posibles de esta tabla y solo
-            // dejamos los del tipo seleccionado. Así, si cambian de "micro_escritorio"
-            // a "impresora", no quedan datos viejos (ram, disco, etc.) huérfanos.
-            $datosEspecificos = array_fill_keys($camposPosibles, null);
+            $camposLabels = [
+                'anio' => 'Año', 'ram' => 'RAM', 'disco' => 'Disco',
+                'direccion_mac' => 'Dirección MAC', 'sistema_operativo' => 'Sistema Operativo',
+                'numero_inventario' => 'Número de Inventario', 'dominio' => 'Dominio',
+                'puerto' => 'Puerto', 'puerto_fibra' => 'Puerto Fibra',
+                'direccion_ip' => 'Dirección IP', 'extension' => 'Extensión',
+                'ubicacion_puerto' => 'Ubicación del Puerto', 'potencia' => 'Potencia',
+                'rango_frecuencia' => 'Rango de Frecuencia', 'unidad_usuario' => 'Unidad / Usuario',
+                'caracteristicas' => 'Características',
+            ];
 
+            $datosEspecificos = array_fill_keys($camposPosibles, null);
             foreach ($camposEspecificos as $campo) {
                 $datosEspecificos[$campo] = $validated[$campo] ?? null;
             }
 
             $registro = $modeloEspecifico::find($equipo->id);
+            $oldData = $registro?->getAttributes() ?? [];
 
-            // La contraseña del BIOS es especial: si la dejaron en blanco,
-            // conservamos la que ya estaba en vez de borrarla.
+            $oldPasswordDecrypted = null;
+            if (!empty($oldData['contraseña_bios'] ?? null)) {
+                try {
+                $oldPasswordDecrypted = Crypt::decryptString($oldData['contraseña_bios']);
+                } catch (\Exception $e) {
+                    $oldPasswordDecrypted = null;
+                }
+            }
+
+            $passwordCambiada = false;
             if (array_key_exists('contraseña_bios', $datosEspecificos)) {
-                if (!empty($datosEspecificos['contraseña_bios'])) {
-                    $datosEspecificos['contraseña_bios'] = Crypt::encryptString($datosEspecificos['contraseña_bios']);
+                $submitted = $datosEspecificos['contraseña_bios'];
+
+                if (!empty($submitted) && $submitted !== $oldPasswordDecrypted) {
+                    $passwordCambiada = true;
+                    $datosEspecificos['contraseña_bios'] = Crypt::encryptString($submitted);
                 } else {
-                    $datosEspecificos['contraseña_bios'] = $registro?->contraseña_bios; // mantener la encriptada
+                    $datosEspecificos['contraseña_bios'] = $oldData['contraseña_bios'] ?? null;
                 }
             }
 
             if ($registro) {
                 $registro->forceFill($datosEspecificos)->save();
             } else {
-                $nuevo = new $modeloEspecifico();
-                $nuevo->forceFill($datosEspecificos);
-                $nuevo->id = $equipo->id;
-                $nuevo->save();
+                $registro = new $modeloEspecifico();
+                $registro->forceFill($datosEspecificos);
+                $registro->id = $equipo->id;
+                $registro->save();
             }
 
-            $oldData = $registro->getOriginal();
             $newData = $registro->getAttributes();
 
-            // Definir los campos que queremos comparar (según el área)
-            $fieldsToCompare = match ($tipo->modulo()) {
-                Area::INFRAESTRUCTURA => ['anio', 'ram', 'disco', 'direccion_mac', 'sistema_operativo', 'numero_inventario', 'dominio'],
-                Area::REDES         => ['puerto', 'puerto_fibra', 'direccion_ip', 'direccion_mac', 'extension', 'ubicacion_puerto'],
-                Area::TRANSMISION   => ['potencia', 'rango_frecuencia', 'unidad_usuario', 'caracteristicas', 'numero_inventario'],
-                default => [],
-            };
+            foreach ($camposPosibles as $field) {
+                if ($field === 'contraseña_bios') {
+                    continue;
+                }
 
-            $changes = [];
-            foreach ($fieldsToCompare as $field) {
                 $old = $oldData[$field] ?? null;
                 $new = $newData[$field] ?? null;
+
                 if ($old != $new) {
-                    // Si es contraseña, no mostrar el valor, solo indicar que cambió
-                    if ($field === 'contraseña_bios') {
-                        $changes[] = "contraseña BIOS: modificada";
-                    } else {
-                        $changes[] = "{$field}: de '{$old}' a '{$new}'";
-                    }
+                    $label = $camposLabels[$field] ?? $field;
+                    $changes[] = "{$label}: '" . ($old ?? '—') . "' → '" . ($new ?? '—') . "'";
                 }
+            }
+
+            if ($passwordCambiada) {
+                $changes[] = 'Contraseña BIOS: modificada';
             }
 
             if (!empty($changes)) {
                 HistorialEquipo::create([
                     'usuario_id' => auth()->id(),
                     'equipo_id'  => $equipo->id,
-                    'detalle'    => 'Cambios en ' . $tipo->modulo()->value . ': ' . implode(', ', $changes),
+                    'detalle'    => 'Equipo actualizado: ' . implode('; ', $changes),
                     'fecha_ajuste' => now(),
                 ]);
             }

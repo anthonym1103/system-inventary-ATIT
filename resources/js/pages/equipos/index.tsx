@@ -134,7 +134,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
     const [condicion, setCondicion] = useState<string | undefined>(filters.condicion || undefined);
     const [region, setRegion] = useState<string | undefined>(filters.estado_region || undefined);
     const [area] = useState<string | undefined>(filters.area || undefined);
-    const [selectedEquipo, setSelectedEquipo] = useState<any>(null);
+    const [selectedEquipoId, setSelectedEquipoId] = useState<number | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [editEquipoId, setEditEquipoId] = useState<number | null>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -198,7 +198,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
         // Cargar detalles completos del equipo (con relaciones) si no están cargados
         // En tu caso, podrías hacer una llamada a /equipos/{id} con ?with=infraestructura,rede,transmision
         // O pasar los datos completos desde el controlador
-        setSelectedEquipo(equipo);
+        setSelectedEquipoId(equipo.id);
         setModalOpen(true);
     };
 
@@ -407,7 +407,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                 </div>
 
                 <EquipoDetailModal
-                    equipo={selectedEquipo}
+                    equipoId={selectedEquipoId}
                     isOpen={modalOpen}
                     onClose={() => setModalOpen(false)}
                     tiposLabels={tiposLabels}

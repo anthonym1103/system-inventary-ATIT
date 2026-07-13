@@ -32,7 +32,7 @@ export default function Login({
 }: Props) {
     return (
         <>
-            <Head title="Log in" />
+            <Head title="Iniciar sesión" />
 
             <Form
                 {...store.form()}
@@ -43,7 +43,9 @@ export default function Login({
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="user_name">Nombre de usuario</Label>
+                                <Label htmlFor="user_name" className="select-text cursor-text">
+                                    Nombre de usuario
+                                </Label>
                                 <Input
                                     id="user_name"
                                     type="text"
@@ -59,7 +61,7 @@ export default function Login({
 
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Contraseña</Label>
+                                    <Label htmlFor="password" className="select-text cursor-text">Contraseña</Label>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
@@ -85,14 +87,17 @@ export default function Login({
                                 <Checkbox
                                     id="remember"
                                     name="remember"
+                                    className="rounded border-border text-primary focus:ring-ring focus:ring-offset-background cursor-pointer"
                                     tabIndex={3}
                                 />
-                                <Label htmlFor="remember">Recuerdame</Label>
+                                <Label htmlFor="remember" className="select-none cursor-pointer max-w-fit">
+                                    Recuerdame
+                                </Label>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="mt-4 w-full cursor-pointer"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
@@ -125,5 +130,4 @@ export default function Login({
 
 Login.layout = {
     title: 'Inicia sesion en tu cuenta',
-    description: 'Ingresa tu correo electronico y contraseña a continuacion para iniciar sesion',
 };

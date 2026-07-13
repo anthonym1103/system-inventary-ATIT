@@ -167,14 +167,14 @@ export default function UsuariosIndex({
 
                 <Card>
                     <CardContent className="pt-6">
-                        <Table>
+                        <Table className="w-full table-fixed">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Usuario</TableHead>
-                                    <TableHead>Correo</TableHead>
-                                    <TableHead>Área</TableHead>
-                                    <TableHead>Rol</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
+                                    <TableHead className="w-[25%] text-center">Usuario</TableHead>
+                                    <TableHead className="w-[25%] text-center">Correo</TableHead>
+                                    <TableHead className="w-[18%] text-center">Área</TableHead>
+                                    <TableHead className="w-[17%] text-center">Rol</TableHead>
+                                    <TableHead className="w-[15%] text-center">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -185,8 +185,8 @@ export default function UsuariosIndex({
 
                                     return (
                                         <TableRow key={user.id}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
+                                            <TableCell> 
+                                                <div className="flex justify-center gap-2">
                                                     <Avatar className="h-8 w-8">
                                                         <AvatarImage
                                                             src={user.avatar}
@@ -196,24 +196,24 @@ export default function UsuariosIndex({
                                                             {getInitials(user.name)}
                                                         </AvatarFallback>
                                                     </Avatar>
-                                                    <div>
-                                                        <p className="font-medium leading-none">
+                                                    <div className="truncate">
+                                                        <p className="font-medium leading-none truncate">
                                                             {user.name}
                                                         </p>
-                                                        <p className="text-xs text-muted-foreground">
+                                                        <p className="text-xs text-muted-foreground truncate">
                                                             @{user.user_name}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </TableCell>
 
-                                            <TableCell>
-                                                <div className="space-y-0.5">
-                                                    <p className="text-sm">{user.email}</p>
+                                            <TableCell >
+                                                <div className="flex flex-col items-center justify-center space-y-0.5 truncate">
+                                                    <p className="text-sm truncate">{user.email}</p>
                                                     {!user.email_verified_at && (
                                                         <Badge
                                                             variant="outline"
-                                                            className="text-xs text-muted-foreground"
+                                                            className="text-xs text-muted-foreground w-fit"
                                                         >
                                                             Sin verificar
                                                         </Badge>
@@ -222,52 +222,59 @@ export default function UsuariosIndex({
                                             </TableCell>
 
                                             <TableCell>
-                                                {user.area
-                                                    ? (areaLabels[user.area] ?? user.area)
-                                                    : (
-                                                        <span className="text-muted-foreground text-sm">
-                                                            Sin área
-                                                        </span>
+                                                <div className="flex justify-center">
+                                                    {user.area
+                                                        ? (isAdmin(user.role) ? (
+                                                                "Todas"
+                                                            ):(areaLabels[user.area] ?? user.area)
+                                                        ):(
+                                                            <span className="text-muted-foreground text-sm">
+                                                                Sin área
+                                                            </span>
+                                                        )}
+                                                </div>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <div className="flex justify-center">
+                                                    {isEditing ? (
+                                                        <Select
+                                                            value={selectedRole}
+                                                            onValueChange={setSelectedRole}
+                                                        >
+                                                            <SelectTrigger className="w-fit">
+                                                                <SelectValue placeholder="Selecciona un rol" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {options.map((opt) => (
+                                                                    <SelectItem
+                                                                        key={opt.value}
+                                                                        value={opt.value}
+                                                                        className="cursor-pointer"
+                                                                    >
+                                                                        {opt.label}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    ) : (
+                                                        <Badge
+                                                            className="w-fit px-2 py-1"
+                                                            variant={
+                                                                isAdmin(user.role)
+                                                                    ? 'default'
+                                                                    : 'secondary'
+                                                            }
+                                                        >
+                                                            {roleLabel(user.role)}
+                                                        </Badge>
                                                     )}
+                                                </div>
                                             </TableCell>
 
                                             <TableCell>
                                                 {isEditing ? (
-                                                    <Select
-                                                        value={selectedRole}
-                                                        onValueChange={setSelectedRole}
-                                                    >
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Selecciona un rol" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {options.map((opt) => (
-                                                                <SelectItem
-                                                                    key={opt.value}
-                                                                    value={opt.value}
-                                                                    className="cursor-pointer"
-                                                                >
-                                                                    {opt.label}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                ) : (
-                                                    <Badge
-                                                        variant={
-                                                            isAdmin(user.role)
-                                                                ? 'default'
-                                                                : 'secondary'
-                                                        }
-                                                    >
-                                                        {roleLabel(user.role)}
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-
-                                            <TableCell className="text-right">
-                                                {isEditing ? (
-                                                    <div className="flex justify-end gap-2">
+                                                    <div className="flex justify-center gap-2">
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
@@ -288,23 +295,25 @@ export default function UsuariosIndex({
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => startEditing(user)}
-                                                        disabled={!editable}
-                                                        className="cursor-pointer"
-                                                        title={
-                                                            isSelf(user.id)
-                                                                ? 'No puedes modificar tu propio rol'
-                                                                : isAdmin(user.role)
-                                                                  ? 'El rol Administrador no se puede modificar desde aquí'
-                                                                  : undefined
-                                                        }
-                                                    >
-                                                        <Pencil className="h-3.5 w-3.5" />
-                                                        Editar rol
-                                                    </Button>
+                                                    <div className="flex justify-center">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => startEditing(user)}
+                                                            disabled={!editable}
+                                                            className="cursor-pointer"
+                                                            title={
+                                                                isSelf(user.id)
+                                                                    ? 'No puedes modificar tu propio rol'
+                                                                    : isAdmin(user.role)
+                                                                        ? 'El rol Administrador no se puede modificar desde aquí'
+                                                                            : undefined
+                                                            }
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                            Editar rol
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </TableCell>
                                         </TableRow>

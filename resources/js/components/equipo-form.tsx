@@ -156,6 +156,16 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
         return parts.join('-');
     };
 
+    const formatDireccionMAC = (value: string): string => {
+        // 1. Convertir a mayúsculas y eliminar todo lo que no sea hexadecimal (0-9, A-F)
+        const hexDigits = value.toUpperCase().replace(/[^0-9A-F]/g, '');
+        // 2. Limitar a 12 caracteres hexadecimales (6 pares)
+        const limited = hexDigits.slice(0, 12);
+        // 3. Agrupar de a 2 caracteres
+        const parts = limited.match(/.{1,2}/g) || [];
+        // 4. Unir con guiones (puedes cambiar '-' por ':' si prefieres ese formato)
+        return parts.join(':');
+    };
 
 
     return (
@@ -359,7 +369,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                             value={data[campo] ?? ''}
                                             onChange={(e) => {
                                                 const valor = e.target.value;
-                                                const formatted = formatUbicacionPuerto(valor);
+                                                const formatted = formatDireccionMAC(valor);
                                                 setData(campo, formatted);
                                                 }}
                                             placeholder="Ej. 00:1A:2B:3C:4D:5E"

@@ -24,7 +24,7 @@ export default function ConfirmPassword() {
                 {({ processing, errors }) => (
                     <div className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Contraseña</Label>
+                            <Label htmlFor="password" className="select-text cursor-text">Contraseña</Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
@@ -38,7 +38,7 @@ export default function ConfirmPassword() {
 
                         <div className="flex items-center">
                             <Button
-                                className="w-full"
+                                className="w-full cursor-pointer"
                                 disabled={processing}
                                 data-test="confirm-password-button"
                             >

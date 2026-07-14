@@ -3,6 +3,7 @@ import { dashboard, login, register } from '@/routes';
 import AppearanceTabs from '@/components/appearance-tabs';
 import AppLogoMiniIcon from '@/components/app-logo-mini-icon';
 import { ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Welcome({
     canRegister = true,
@@ -28,7 +29,7 @@ export default function Welcome({
                             <div className="flex aspect-square size-9 items-center justify-center rounded-xl p-1.5">
                                 <AppLogoMiniIcon className="size-full" />
                             </div>
-                            <span className="text-sm font-bold tracking-wide text-primary">
+                            <span className="text-sm font-bold tracking-wide text-primary select-none">
                                 ATIT ORINOCO
                             </span>
                         </div>
@@ -39,46 +40,49 @@ export default function Welcome({
                             </div>
 
                             <div className="flex items-center gap-2">
-                                {auth.user ? (
+                                {auth.user && (
                                     <Link
                                         href={dashboard()}
                                         className="inline-flex h-9 items-center justify-center rounded-lg bg-[#1b1b18] px-4 text-sm font-medium text-[#FDFDFC] shadow-xs transition-colors hover:bg-[#1b1b18]/90 dark:bg-[#EDEDEC] dark:text-[#0a0a0a] dark:hover:bg-[#EDEDEC]/90"
                                     >
                                         Dashboard
                                     </Link>
-                                ) : (
-                                    <>
-                                        <Link
-                                            href={login()}
-                                            className="group inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                        >
-                                            Iniciar Sesión
-                                            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                                        </Link>
-                                        {canRegister && (
-                                            <Link
-                                                href={register()}
-                                                className="inline-flex items-center justify-center rounded-md border border-border px-5 py-2.5 text-sm font-semibold text-foreground transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                            >
-                                                Crear cuenta
-                                            </Link>
-                                        )}
-                                    </>
-                                )}
+                                ) }
                             </div>
                         </div>
                     </nav>
                 </header>
 
-                <main>
-                    <div className="mx-auto flex min-h-[calc(100vh-9rem)] max-w-7xl flex-col items-center justify-center gap-6 px-6 lg:px-8">
-                        <div className="flex flex-col items-center gap-4 text-center">
-                            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                                Bienvenidos a ATIT ORINOCO
-                            </h1>
-                            <p className="max-w-[42rem] text-lg text-[#1b1b18]/80 dark:text-[#EDEDEC]/80">
-                                Sistema de inventario técnico Corpoelec.
-                            </p>
+                <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+                    <div className="max-w-4xl text-center space-y-6">
+                        <div className="flex justify-center mb-4">
+                            
+                        </div>
+                        
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
+                            Sistema de Gestion
+                            <span className="block text-primary mt-2">ATIT ORINOCO</span>
+                        </h1>
+                        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+                            Administra y da seguimiento a los equipos de la Gerencia ATIT ORINOCO de CORPOELEC.
+                        </p>
+                        
+                        <div className="flex flex-wrap justify-center gap-4 pt-6">
+                            {!auth.user && (
+                                <>
+                                    <Button asChild size="lg" variant="default">
+                                        <Link href={login()}>
+                                            Iniciar Sesión
+                                            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                                        </Link>
+                                    </Button>
+                                    {canRegister && (
+                                        <Button asChild size="lg" variant="outline">
+                                            <Link href={register()}>Solicitar Cuenta</Link>
+                                        </Button>
+                                    )}
+                                </>
+                            )}
                         </div>
                     </div>
                 </main>

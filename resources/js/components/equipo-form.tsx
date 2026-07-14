@@ -24,22 +24,22 @@ interface CampoConfig {
 }
 
 const CAMPO_CONFIG: Record<string, CampoConfig> = {
-    anio: { label: 'Año' },
-    ram: { label: 'RAM' },
-    disco: { label: 'Disco' },
-    direccion_mac: { label: 'Dirección MAC' },
-    sistema_operativo: { label: 'Sistema Operativo' },
-    numero_inventario: { label: 'Número de Inventario' },
-    dominio: { label: 'Dominio' },
-    puerto: { label: 'Puerto', holdertext: 'Ingrese el puerto del equipo...' },
-    contraseña_bios: { label: 'Contraseña BIOS', type: 'password' },
-    direccion_ip: { label: 'Dirección IP', holdertext: 'Ingrese la ip del equipo...' },
-    extension: { label: 'Extensión', holdertext: 'Ingrese la extension del equipo...' },
-    ubicacion_puerto: { label: 'Ubicación del Puerto' },
-    potencia: { label: 'Potencia' },
-    rango_frecuencia: { label: 'Rango de Frecuencia' },
-    unidad_usuario: { label: 'Unidad / Usuario' },
-    caracteristicas: { label: 'Características', textarea: true },
+    anio: { label: 'Año', holdertext: 'Ingrese el año...' },
+    ram: { label: 'RAM', holdertext: 'Ingrese la cantidad de ram...' },
+    disco: { label: 'Disco', holdertext: 'Ingrese el tamaño del disco...' },
+    direccion_mac: { label: 'Dirección MAC', holdertext: 'Ej. 00:1A:2B:3C:4D:5E'},
+    sistema_operativo: { label: 'Sistema Operativo', holdertext: 'Ingrese el sistema operativo...' },
+    numero_inventario: { label: 'Número de Inventario', holdertext: 'Ingrese el numero de inventario...' },
+    dominio: { label: 'Dominio', holdertext: 'Ingrese el dominio...'},
+    puerto: { label: 'Puerto', holdertext: 'Ingrese el puerto...' },
+    contraseña_bios: { label: 'Contraseña BIOS', type: 'password', holdertext: 'Ingrese la contraseña...' },
+    direccion_ip: { label: 'Dirección IP', holdertext: 'Ej. 192.168.100.256' },
+    extension: { label: 'Extensión', holdertext: 'Ingrese la extension...' },
+    ubicacion_puerto: { label: 'Ubicación del Puerto', holdertext: 'Ej. 03-04-05-06' },
+    potencia: { label: 'Potencia', holdertext: 'Ingrese la potencia...' },
+    rango_frecuencia: { label: 'Rango de Frecuencia', holdertext: 'Ingrese la frecuenia...' },
+    unidad_usuario: { label: 'Unidad / Usuario', holdertext: 'Ingrese unidad/usuario...' },
+    caracteristicas: { label: 'Características', textarea: true, holdertext: 'Ingrese caracteristicas...' },
 };
 
 
@@ -146,27 +146,24 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
         }
     };
 
-    const formatUbicacionPuerto = (value: string): string => {
-        // Eliminar todo lo que no sea dígito
-        const digits = value.replace(/\D/g, '');
-         // Limitar a 8 dígitos (4 pares)
-        const limited = digits.slice(0, 8);
-        // Insertar guiones después de cada 2 dígitos
-        const parts = limited.match(/.{1,2}/g) || [];
-        return parts.join('-');
-    };
-
-    const formatDireccionMAC = (value: string): string => {
-        // 1. Convertir a mayúsculas y eliminar todo lo que no sea hexadecimal (0-9, A-F)
-        const hexDigits = value.toUpperCase().replace(/[^0-9A-F]/g, '');
-        // 2. Limitar a 12 caracteres hexadecimales (6 pares)
-        const limited = hexDigits.slice(0, 12);
-        // 3. Agrupar de a 2 caracteres
-        const parts = limited.match(/.{1,2}/g) || [];
-        // 4. Unir con guiones (puedes cambiar '-' por ':' si prefieres ese formato)
-        return parts.join(':');
-    };
-
+    const formatInput = (type: string, value:string): string =>{
+        var limited = '';
+        var parts =  [];
+        switch(type){
+            case 'direccion_mac':
+                const hexDigits = value.toUpperCase().replace(/[^0-9A-F]/g, '');
+                limited = hexDigits.slice(0, 12);
+                parts = limited.match(/.{1,2}/g) || [];
+                return parts.join(':');
+            case 'ubicacion_puerto':
+                const digits = value.replace(/\D/g, '');
+                limited = digits.slice(0, 8);
+                parts = limited.match(/.{1,2}/g) || [];
+                return parts.join('-');
+            default:
+                return value;
+        }
+    }
 
     return (
         <form onSubmit={handleSubmit}>
@@ -363,34 +360,12 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     className={`grid gap-2 ${config.textarea ? 'sm:col-span-2' : ''}`}
                                 >
                                     <Label className="cursor-text select-text w-fit">{config.label}</Label>
-                                    {campo === 'direccion_mac' ? (
-                                        <Input
-                                            className="cursor-text select-text"
-                                            value={data[campo] ?? ''}
-                                            onChange={(e) => {
-                                                const valor = e.target.value;
-                                                const formatted = formatDireccionMAC(valor);
-                                                setData(campo, formatted);
-                                                }}
-                                            placeholder="Ej. 00:1A:2B:3C:4D:5E"
-                                            maxLength={17} // 12 dígitos + 5 dos puntos
-                                        />
-                                    ) : campo === 'ubicacion_puerto' ? (
-                                        <Input
-                                            value={data[campo] ?? ''}
-                                            onChange={(e) => {
-                                                const valor = e.target.value;
-                                                const formatted = formatUbicacionPuerto(valor);
-                                                setData(campo, formatted);
-                                                }}
-                                            placeholder="Ej. 12-34-56-78"
-                                            maxLength={11} // 8 dígitos + 3 guiones
-                                        />
-                                    ) : config.textarea ? (
+                                    { config.textarea ? (
                                         <textarea
                                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                                             value={data[campo] ?? ''}
                                             onChange={(e) => setData(campo, e.target.value)}
+                                            placeholder={config.holdertext}
                                         />
                                     ) : config.type === 'password' ? (
                                         <>
@@ -412,7 +387,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     ) : (
                                         <Input
                                             value={data[campo] ?? ''}
-                                            onChange={(e) => setData(campo, e.target.value)}
+                                            onChange={(e) => {
+                                                const valor = e.target.value;
+                                                const formatted = formatInput(campo, valor);
+                                                setData(campo, formatted);
+                                            }}
                                             placeholder = {config.holdertext}
                                         />
                                     )}

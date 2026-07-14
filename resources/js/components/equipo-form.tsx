@@ -32,7 +32,7 @@ const CAMPO_CONFIG: Record<string, CampoConfig> = {
     numero_inventario: { label: 'Número de Inventario', holdertext: 'Ingrese el numero de inventario...' },
     dominio: { label: 'Dominio', holdertext: 'Ingrese el dominio...'},
     puerto: { label: 'Puerto', holdertext: 'Ingrese el puerto...' },
-    contraseña_bios: { label: 'Contraseña BIOS', type: 'password', holdertext: 'Ingrese la contraseña...' },
+    contraseña_bios: { label: 'Contraseña BIOS', type: 'password'},
     direccion_ip: { label: 'Dirección IP', holdertext: 'Ej. 192.168.100.256' },
     extension: { label: 'Extensión', holdertext: 'Ingrese la extension...' },
     ubicacion_puerto: { label: 'Ubicación del Puerto', holdertext: 'Ej. 03-04-05-06' },
@@ -150,6 +150,10 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
         var limited = '';
         var parts =  [];
         switch(type){
+            case 'serial':
+                const valueUpper = value.toUpperCase();
+                limited = valueUpper.slice(0,255);
+                return limited;
             case 'direccion_mac':
                 const hexDigits = value.toUpperCase().replace(/[^0-9A-F]/g, '');
                 limited = hexDigits.slice(0, 12);
@@ -160,6 +164,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                 limited = digits.slice(0, 8);
                 parts = limited.match(/.{1,2}/g) || [];
                 return parts.join('-');
+            case 'direccion_ip':
+                const ipDigits = value.replace(/\D/g, '');
+                limited = ipDigits.slice(0, 12);
+                parts = limited.match(/.{1,3}/g) || [];
+                return parts.join('.');
             default:
                 return value;
         }
@@ -229,7 +238,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     <Input
                                         value={data.asignado_cedula}
                                         onChange={(e) => setData('asignado_cedula', e.target.value)}
-                                        placeholder="Ej. V12345678"
+                                        placeholder="Ej. 12345678"
                                     />
                                      <InputError message={errors.asignado_cedula} />
                                 </div>
@@ -259,7 +268,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     <Input
                                         value={data.asignado_telefono}
                                         onChange={(e) => setData('asignado_telefono', e.target.value)}
-                                        placeholder="Ej. +584121234567"
+                                        placeholder="Ej. 04121234567"
                                     />
                                     <InputError message={errors.asignado_telefono} />
                                 </div>
@@ -324,7 +333,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         <Label className="cursor-text select-text w-fit"> Serial {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
                         <Input
                             value={data.serial}
-                            onChange={(e) => setData('serial', e.target.value)}
+                            onChange={(e) => {
+                                const valor = e.target.value;
+                                const formatted = formatInput('serial', valor);
+                                setData('serial', formatted)
+                            }}
                             placeholder="Ingrese el serial del equipo..."
                         />
                         <InputError message={errors.serial} />
@@ -353,13 +366,14 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         {camposActivos.map((campo) => {
                             const config = CAMPO_CONFIG[campo] ?? { label: campo };
                             const esPasswordEnEdicion = config.type === 'password' && mode === 'edit';
+                            const isRequired = ['puerto', 'contraseña_bios', 'ram', 'disco', 'sistema_operativo', 'numero_inventario', 'potencia', 'rango_frecuencia', 'unidad_usuario']
 
                             return (
                                 <div
                                     key={campo}
                                     className={`grid gap-2 ${config.textarea ? 'sm:col-span-2' : ''}`}
                                 >
-                                    <Label className="cursor-text select-text w-fit">{config.label}</Label>
+                                    <Label className="cursor-text select-text w-fit">{config.label} {isRequired.includes(campo) ? (<span className="text-destructive cursor-text select-text w-fit">*</span>): (<span className="text-muted-foreground text-xs">(opcional)</span>)}</Label>
                                     { config.textarea ? (
                                         <textarea
                                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"

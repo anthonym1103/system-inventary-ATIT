@@ -88,6 +88,24 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto [&>button]:cursor-pointer">
+                
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        {equipo? (tiposLabels[equipo.tipo] || equipo.tipo) : 'Detalle del equipo' }
+                        {equipo && !loading && (
+                            <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
+                                {condidicionesLabels[equipo.condicion]}
+                            </Badge>
+                        )}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {equipo 
+                            ? `Marca: ${equipo.marca} • Modelo: ${equipo.modelo} • Serial: ${equipo.serial}`
+                            : 'Cargando información del equipo...'
+                        }
+                    </DialogDescription>
+                </DialogHeader>
+
                 {loading && (
                     <div className="flex justify-center py-10">
                         <Spinner className="h-6 w-6" />
@@ -98,18 +116,7 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
 
                 {equipo && !loading && (
                     <>
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                {tiposLabels[equipo.tipo] || equipo.tipo}
-                                <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
-                                    {condidicionesLabels[equipo.condicion]}
-                                </Badge>
-                            </DialogTitle>
-                            <DialogDescription>
-                                Marca: {equipo.marca} • Modelo: {equipo.modelo} • Serial: {equipo.serial}
-                            </DialogDescription>
-                        </DialogHeader>
-
+                    
                         <Separator />
 
                         <div className="grid grid-cols-2 gap-4 text-sm">

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('id')->primary()->constrained('equipos')->onDelete('cascade');
             $table->string('puerto')->nullable();
             $table->string('puerto_fibra')->nullable();
-            $table->string('contraseña_bios')->nullable();
+            $table->text('contraseña_bios')->nullable();
             $table->string('direccion_ip')->nullable();
             $table->string('direccion_mac')->nullable();
             $table->string('extension')->nullable();

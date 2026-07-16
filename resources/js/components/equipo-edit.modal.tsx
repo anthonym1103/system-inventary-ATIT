@@ -58,8 +58,8 @@ export function EquipoEditModal({ equipoId, isOpen, onClose }: Props) {
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto [&>button]:cursor-pointer">
                 <DialogHeader>
-                    <DialogTitle>Editar Equipo</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="flex justify-center">Editar Equipo</DialogTitle>
+                    <DialogDescription className="flex justify-center">
                         Modifica los datos del equipo seleccionado.
                     </DialogDescription>
                 </DialogHeader>

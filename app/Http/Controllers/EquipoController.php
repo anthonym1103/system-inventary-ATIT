@@ -472,7 +472,7 @@ class EquipoController extends Controller
         $allowedAreas = $this->getUserAllowedAreas($user);
         abort_unless(in_array($equipo->area->value, $allowedAreas), 403);
 
-        $tipo = TipoEquipo::tryFrom((string) $request->input('tipo'));
+        $tipo = $equipo->tipo;
 
         if (! $tipo || $tipo->modulo() !== $equipo->area) {
             return back()->withErrors(['tipo' => 'Tipo de equipo inválido para esta área.'])->withInput();
@@ -483,13 +483,9 @@ class EquipoController extends Controller
         $requiereEncargado = $tipo->requiereEncargado();
 
         $rules = [
-            'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
             'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
             'locacions' => ['required', 'string', 'max:255'],
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
-            'marca' => ['nullable', 'string', 'max:255'],
-            'modelo' => ['required', 'string', 'max:255'],
-            'serial' => ['required', 'string', 'max:255', Rule::unique('equipos', 'serial')->ignore($equipo->id)],
             'detalle' => ['nullable', 'string'],
             'asignado_cedula'   => $requiereEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
             'asignado_nombre'   => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
@@ -528,10 +524,6 @@ class EquipoController extends Controller
             $changes = [];
 
             $generalLabels = [
-                'tipo' => 'Tipo de equipo',
-                'marca' => 'Marca',
-                'modelo' => 'Modelo',
-                'serial' => 'Serial',
                 'detalle' => 'Observaciones',
                 'condicion' => 'Condición',
             ];
@@ -565,11 +557,7 @@ class EquipoController extends Controller
             $equipo->update([
                 'ubicacion_id' => $ubicacion->id,
                 'asignado_id' => $asignadoId,
-                'tipo' => $tipo->value,
                 'condicion' => $validated['condicion'],
-                'marca' => $validated['marca'] ?: null,
-                'modelo' => $validated['modelo'],
-                'serial' => $validated['serial'],
                 'detalle' => $validated['detalle'] ?: null,
             ]);
 
@@ -586,10 +574,7 @@ class EquipoController extends Controller
                     continue;
                 }
 
-                if ($field === 'tipo') {
-                    $old = TipoEquipo::tryFrom($old)?->label() ?? $old;
-                    $new = TipoEquipo::tryFrom($new)?->label() ?? $new;
-                } elseif ($field === 'condicion') {
+                if ($field === 'condicion') {
                     $old = CondicionEquipo::tryFrom($old)?->label() ?? $old;
                     $new = CondicionEquipo::tryFrom($new)?->label() ?? $new;
                 }

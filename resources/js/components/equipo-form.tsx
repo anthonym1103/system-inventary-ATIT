@@ -82,7 +82,7 @@ interface EquipoFormProps {
 }
 
 export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, condiciones, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
-    const { data, setData, post, put, processing, errors, reset } = useForm<EquipoFormData>({
+    const { data, setData, post, put, processing, errors, reset, isDirty } = useForm<EquipoFormData>({
         tipo: '',
         estados: '',
         locacions: '',
@@ -177,26 +177,35 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
     return (
         <form onSubmit={handleSubmit}>
             <Card className = {cardForMode}>
-                <CardHeader className="flex items-center gap-2">
+                <CardHeader className="flex items-center gap-1">
                     <CardTitle className="text-base">Información General</CardTitle>
+                    {mode === 'edit' && (
+                        <div className="flex flex-row">
+                            <span className="ml-2 text-sm text-muted-foreground">
+                               • {tiposLabels[data.tipo] || data.tipo} •
+                            </span>
+                        </div>
+                    )}                    
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                        <Label className="cursor-text select-text w-fit">Tipo de Equipo {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
-                        <Select value={data.tipo} onValueChange={handleTipoChange}>
-                            <SelectTrigger className="w-full cursor-pointer">
-                                <SelectValue placeholder="Selecciona un tipo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.entries(tiposLabels).map(([value, label]) => (
-                                    <SelectItem key={value} value={value} className="cursor-pointer">
-                                        {label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.tipo} />
-                    </div>
+                    {mode === 'create' && (
+                        <div className="grid gap-2">
+                            <Label className="cursor-text select-text w-fit">Tipo de Equipo <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                            <Select value={data.tipo} onValueChange={handleTipoChange}>
+                                <SelectTrigger className="w-full cursor-pointer">
+                                    <SelectValue placeholder="Selecciona un tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.entries(tiposLabels).map(([value, label]) => (
+                                        <SelectItem key={value} value={value} className="cursor-pointer">
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.tipo} />
+                        </div>
+                    )}
 
                     <div className="grid gap-2">
                         <Label className="cursor-text select-text w-fit">Estado/Region {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
@@ -308,40 +317,45 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                            <Label className="cursor-text select-text w-fit">Marca {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
-                            <Input
-                                value={data.marca}
-                                onChange={(e) => setData('marca', e.target.value)}
-                                placeholder="Ingrese la marca del equipo..."
-                            />
-                            <InputError message={errors.marca} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label className="cursor-text select-text w-fit">Modelo {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
-                            <Input
-                                value={data.modelo}
-                                onChange={(e) => setData('modelo', e.target.value)}
-                                placeholder="Ingrese el modelo del equipo..."
-                            />
-                            <InputError message={errors.modelo} />
-                        </div>
-                    </div>
+                    {mode === 'create' && (
+                        <>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="cursor-text select-text w-fit">Marca <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span></Label>
+                                    <Input
+                                        value={data.marca}
+                                        onChange={(e) => setData('marca', e.target.value)}
+                                        placeholder="Ingrese la marca del equipo..."
+                                    />
+                                    <InputError message={errors.marca} />
+                                </div>
 
-                    <div className="grid gap-2">
-                        <Label className="cursor-text select-text w-fit"> Serial {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
-                        <Input
-                            value={data.serial}
-                            onChange={(e) => {
-                                const valor = e.target.value;
-                                const formatted = formatInput('serial', valor);
-                                setData('serial', formatted)
-                            }}
-                            placeholder="Ingrese el serial del equipo..."
-                        />
-                        <InputError message={errors.serial} />
-                    </div>
+                                <div className="grid gap-2">
+                                    <Label className="cursor-text select-text w-fit">Modelo <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                    <Input
+                                        value={data.modelo}
+                                        onChange={(e) => setData('modelo', e.target.value)}
+                                        placeholder="Ingrese el modelo del equipo..."
+                                    />
+                                    <InputError message={errors.modelo} />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label className="cursor-text select-text w-fit">Serial <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                <Input
+                                    value={data.serial}
+                                    onChange={(e) => {
+                                        const valor = e.target.value;
+                                        const formatted = formatInput('serial', valor);
+                                        setData('serial', formatted)
+                                    }}
+                                    placeholder="Ingrese el serial del equipo..."
+                                />
+                                <InputError message={errors.serial} />
+                            </div>
+                        </>
+                    )}
 
                     <div className="grid gap-2">
                         <Label className="cursor-text select-text w-fit">Observaciones {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
@@ -429,7 +443,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         </Link>
                     </Button>
                 )}
-                <Button className= "cursor-pointer"  type="submit" disabled={processing}>
+                <Button
+                    className="cursor-pointer"
+                    type="submit"
+                    disabled={processing || (mode === 'edit' && !isDirty)}
+                >
                     {processing && <Spinner />}
                     {mode === 'create' ? 'Guardar Equipo' : 'Actualizar Equipo'}
                 </Button>

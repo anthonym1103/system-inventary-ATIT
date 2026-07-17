@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\HistorialEquipo;
 use App\Models\User;
+use App\Models\Equipo;
 use App\Enums\TipoEquipo;
+use App\Enums\Cargo;
+use App\Enums\Area;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -16,16 +19,35 @@ class HistorialController extends Controller
         $user = Auth::user();
         abort_unless($user->can('ver_historial'), 403);
 
-        $query = HistorialEquipo::with(['usuario', 'equipo.ubicacion']);
+        $allowedAreas = $this->getUserAllowedAreas($user);
 
-        // Filtro por equipo (opcional)
-        if ($request->filled('equipo_id') && $request->input('equipo_id') !== 'all') {
-            $query->where('equipo_id', $request->input('equipo_id'));
+        $query = HistorialEquipo::with(['usuario', 'equipo.ubicacion'])
+            ->when(!empty($allowedAreas), function ($q) use ($allowedAreas) {
+                $q->whereHas('equipo', function ($eq) use ($allowedAreas) {
+                    $eq->whereIn('area', $allowedAreas);
+                });
+            });
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search){
+                $q->whereHas('equipo', function ($eq) use ($search) {
+                    $eq->where('serial', 'ILIKE', "%{$search}%");
+                })->orWhereHas('usuario',function ($eq) use ($search){
+                    $eq->where('name', 'ILIKE', "%{$search}%")
+                        ->orWhere('user_name', 'ILIKE', "%{$search}%");
+                });
+            });
+            
         }
 
-        // Filtro por usuario (opcional)
-        if ($request->filled('usuario_id') && $request->input('usuario_id') !== 'all') {
-            $query->where('usuario_id', $request->input('usuario_id'));
+        if ($request->filled('tipo') && $request->input('tipo') !== 'all') {
+            $search = $request->input('tipo');
+            $query->where(function ($q) use ($search){
+                $q->whereHas('equipo', function($eq) use($search){
+                    $eq->where('tipo', $search);
+                });
+            });
         }
 
         // Ordenar por fecha más reciente
@@ -33,19 +55,44 @@ class HistorialController extends Controller
 
         $tiposLabels = [];
         foreach (TipoEquipo::cases() as $tipo) {
-            $tiposLabels[$tipo->value] = $tipo->label();
+            if (empty($allowedAreas) || in_array($tipo->modulo()->value, $allowedAreas)) {
+                $tiposLabels[$tipo->value] = $tipo->label();
+            }
         }
+        
+        // Usuarios: solo los que han hecho cambios sobre equipos visibles para este usuario
+        /*$usuarios = User::whereHas('historialEquipos', function ($q) use ($allowedAreas) {
+            $q->whereHas('equipo', function ($eq) use ($allowedAreas) {
+                $eq->whereIn('area', $allowedAreas);
+            });
+        })->select('id', 'name')->get();*/
 
-        // Obtener lista de usuarios y equipos para los filtros (opcional)
-        $usuarios = User::select('id', 'name')->get();
-        $equipos = \App\Models\Equipo::select('id', 'marca', 'modelo', 'serial')->get();
+        // Equipos: solo los del área permitida
+        /*$equipos = Equipo::query()
+            ->when(!empty($allowedAreas), function ($q) use ($allowedAreas) {
+                $q->whereIn('area', $allowedAreas);
+            })
+            ->select('id','tipo','serial')
+            ->get();
+        */
 
         return Inertia::render('historial/index', [
             'historial' => $historial,
-            'filters'   => $request->only(['equipo_id', 'usuario_id']),
-            'usuarios'  => $usuarios,
-            'equipos'   => $equipos,
+            'filters'   => $request->only(['search','tipo']),
             'tiposLabels' => $tiposLabels
         ]);
+    }
+
+    private function getUserAllowedAreas($user): array
+    {
+        if ($user->hasRole(Cargo::ADMINISTRADOR->value)) {
+            return array_map(fn($area) => $area->value, Area::cases());
+        }
+
+        if ($user->area) {
+            return [$user->area->value];
+        }
+
+        return [];
     }
 } 

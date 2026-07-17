@@ -1,11 +1,13 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import { HistoryIcon, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useInitials } from '@/hooks/use-initials';
 import { equipoIconMap } from '@/lib/equipo-icons';
+import { Input } from '@/components/ui/input';
 
 interface HistorialEntry {
     id: number;
@@ -16,10 +18,14 @@ interface HistorialEntry {
 }
 
 interface Props {
-    historial: { data: HistorialEntry[]; links: any[]; current_page: number; last_page: number; total: number };
-    filters: { equipo_id?: string; usuario_id?: string };
-    usuarios: { id: number; name: string }[];
-    equipos: { id: number; marca: string; modelo: string; serial: string }[];
+    historial: { 
+        data: HistorialEntry[]; 
+        links: any[]; 
+        current_page: number; 
+        last_page: number; 
+        total: number 
+    };
+    filters: { search: string, tipo: string };
     tiposLabels: Record<string, string>;
 }
 
@@ -58,54 +64,62 @@ function useDebounce<T>(value: T, delay: number): T {
     return debouncedValue;
 }
 
-export default function HistorialIndex({ historial, filters, usuarios, tiposLabels }: Props) {
-    const [equipoId, setEquipoId] = useState<string>(filters.equipo_id || '');
-    const [usuarioId, setUsuarioId] = useState<string>(filters.usuario_id || '');
+export default function HistorialIndex({ historial, filters, tiposLabels }: Props) {
+    const [search, setSearch] = useState(filters.search || '');
+    const [tipoEquipo, setTipoEquipo] = useState<string>(filters.tipo || '');
+    const debouncedSearch = useDebounce(search, 300);
     const getInitials = useInitials();
+    const params: Record<string, string> = {};
 
     useEffect(() => {
-        const params: Record<string, string> = {};
-        if (equipoId && equipoId !== 'all') params.equipo_id = equipoId;
-        if (usuarioId && usuarioId !== 'all') params.usuario_id = usuarioId;
-        router.get('/historial', params, { preserveState: true, preserveScroll: true, replace: true });
-    }, [equipoId, usuarioId]);
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (tipoEquipo && tipoEquipo !== 'all') params.tipo = tipoEquipo;
+        
+        router.get('/historial', params, { 
+            preserveState: true, 
+            preserveScroll: true, 
+            replace: true });
+
+    }, [debouncedSearch, search, tipoEquipo]);
 
     const clearFilters = () => {
-        setEquipoId('');
-        setUsuarioId('');
+        setTipoEquipo('');
         router.get('/historial', {}, { preserveState: false });
     };
+
+    console.log(historial);
 
     return (
         <>
             <Head title="Historial de Cambios" />
             <div className="p-6 space-y-6">
                 <div className="flex flex-wrap gap-4 items-end">
+                    
+                    {/* Búsqueda */}
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Buscar por serial, usuario, username..."
+                            className="pl-8 w-72 sm:w-80"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    
                     <div>
                         <label className="text-sm font-medium">Tipo de equipo</label>
-                        <Select value={equipoId} onValueChange={setEquipoId}>
+                        <Select value={tipoEquipo} onValueChange={setTipoEquipo}>
                             <SelectTrigger className="w-60 cursor-pointer">
                                 <SelectValue placeholder="Todos los tipos" />
                             </SelectTrigger>
                             <SelectContent className="max-h-72 overflow-y-auto">
                                 <SelectItem value="all">Todos los tipos</SelectItem>
-                                {Object.entries(tiposLabels).map(([value, label]) => (
-                                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium">Usuario</label>
-                        <Select value={usuarioId} onValueChange={setUsuarioId}>
-                            <SelectTrigger className="w-48 cursor-pointer">
-                                <SelectValue placeholder="Todos los usuarios" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-72 overflow-y-auto">
-                                <SelectItem value="all">Todos los usuarios</SelectItem>
-                                {usuarios.map((u) => (
-                                    <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
-                                ))}
+                                {
+                                    Object.entries(tiposLabels).map(([value, label]) => (
+                                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                                    ))
+
+                                }
                             </SelectContent>
                         </Select>
                     </div>

@@ -185,6 +185,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                • {tiposLabels[data.tipo] || data.tipo} •
                             </span>
                         </div>
+                        
                     )}                    
                 </CardHeader>
                 <CardContent className="space-y-4">

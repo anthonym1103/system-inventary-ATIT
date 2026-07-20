@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Pencil, Trash2, User, MapPin, CalendarClock } from 'lucide-react';
+import { Pencil, Trash2, User, MapPin, CalendarClock, FileText, ClipboardList, Notebook } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ interface EquipoCardProps {
         serial: string;
         condicion: 'operativo' | 'no_operativo';
         area: string;
+        detalle: string;
         ubicacion: { id: number; estado: string; locacion: string };
         user_asignado?: { cedula: string; nombre: string; apellido: string } | null;
     };
@@ -38,6 +39,7 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, condicionesLabel
         if ((e.target as HTMLElement).closest('button')) return;
         onCardClick(equipo);
     };
+
 
     return (
         <Card
@@ -68,16 +70,25 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, condicionesLabel
                 <div className="flex items-center text-sm text-muted-foreground gap-2">
                     <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">Serial • {equipo.serial} •</span>
                 </div>
+              
                 <div className="flex items-center text-sm text-muted-foreground gap-1">
                     <MapPin className="h-3.5 w-3.5" />
                     <span>{equipo.ubicacion?.locacion}, {estadosLabls[equipo.ubicacion?.estado]}</span>
                 </div>
+
                 {equipo.user_asignado && (
                     <div className="flex items-center text-sm text-muted-foreground gap-1">
                         <User className="h-3.5 w-3.5" />
                         <span>{equipo.user_asignado.nombre} {equipo.user_asignado.apellido}</span>
                     </div>
                 )}
+
+                {equipo.detalle && (
+                    <div className="flex items-start text-sm text-muted-foreground gap-1 w-full">
+                        <ClipboardList className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                        <span>" {equipo.detalle} "</span>
+                    </div>
+                )}                          
             </CardContent>
 
             <CardFooter className="pt-2 flex justify-end gap-2 border-t">

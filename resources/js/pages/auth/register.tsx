@@ -138,7 +138,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                                     tabIndex={5}
                                     autoComplete="new-password"
                                     name="password"
-                                    placeholder="Contraseña"
+                                    placeholder="Contraseña..."
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -153,7 +153,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                                     tabIndex={6}
                                     autoComplete="new-password"
                                     name="password_confirmation"
-                                    placeholder="Confirmar Contraseña"
+                                    placeholder="Confirmar Contraseña..."
                                 />
                                 <InputError
                                     message={errors.password_confirmation}

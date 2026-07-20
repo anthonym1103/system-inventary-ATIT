@@ -51,7 +51,7 @@ class HistorialController extends Controller
         }
 
         // Ordenar por fecha más reciente
-        $historial = $query->latest('fecha_ajuste')->paginate(15)->withQueryString();
+        $historial = $query->latest('fecha_ajuste')->paginate(15)->onEachSide(1)->withQueryString();
 
         $tiposLabels = [];
         foreach (TipoEquipo::cases() as $tipo) {

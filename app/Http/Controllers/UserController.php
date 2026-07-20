@@ -41,7 +41,7 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->latest()->paginate(10)->withQueryString();
+        $users = $query->latest()->paginate(10)->onEachSide(1)->withQueryString();
 
         //dump($users);
 

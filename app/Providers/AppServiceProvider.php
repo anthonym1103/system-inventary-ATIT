@@ -28,8 +28,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
 
-        //dd(app()->make('translator')->getLoader()->paths());
-
+ 
         //BORRAR ESTO DESPUES
         if (str_contains(request()->getHost(), 'ngrok-free.dev')) {
             \URL::forceScheme('https');

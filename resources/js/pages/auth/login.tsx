@@ -78,7 +78,7 @@ export default function Login({
                                     required
                                     tabIndex={2}
                                     autoComplete="current-password"
-                                    placeholder="Contraseña"
+                                    placeholder="Contraseña..."
                                 />
                                 <InputError message={errors.password} />
                             </div>

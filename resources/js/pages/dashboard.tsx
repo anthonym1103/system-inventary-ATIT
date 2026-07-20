@@ -37,7 +37,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
         };
         return map[area] || area;
     };
-
+    const { auth } = usePage().props;
     const { tiposLabels } = usePage().props as any;
 
     return (
@@ -47,21 +47,23 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                 <h1 className="text-2xl font-bold">Resumen de Inventario</h1>
                 
                 {/* Tarjetas de totales por área */}
-                <div className="grid gap-4 md:grid-cols-3">
-                    {Object.entries(totalesPorArea).map(([area, total]) => (
-                        <Card key={area} className='gap-1'>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    {areaLabel(area)}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{total}</div>
-                                <p className="text-xs text-muted-foreground">Equipos registrados</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                {auth.role === 'administrador' &&
+                    (<div className="grid gap-4 md:grid-cols-3">
+                        {Object.entries(totalesPorArea).map(([area, total]) => (
+                            <Card key={area} className='gap-1'>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                        {areaLabel(area)}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{total}</div>
+                                    <p className="text-xs text-muted-foreground">Equipos registrados</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>)
+                }
 
                 {/* Tarjetas de condición */}
                 <div className="grid gap-4 md:grid-cols-2">

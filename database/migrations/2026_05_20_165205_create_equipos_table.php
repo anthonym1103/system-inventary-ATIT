@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('marca')->nullable();
             $table->string('modelo');
             $table->string('serial')->unique();
-            $table->string('detalle')->nullable();
+            $table->text('detalle')->nullable();
             $table->timestamps();
 
             $table->index(['area', 'tipo', 'condicion', 'ubicacion_id', 'serial', 'marca', 'modelo']);

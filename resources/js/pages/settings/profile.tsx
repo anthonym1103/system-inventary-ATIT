@@ -8,7 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
+import { useState } from 'react';
+import { Pencil, X, Check} from 'lucide-react';
 import { UpdateAvatarForm } from '@/components/update-avatar-form';
+
 const translate = (key:string, message:string)=>{
     if(key === 'name'){
         if(message === 'The name field must not be greater than 255 characters.'){
@@ -33,6 +36,7 @@ export default function Profile({
     status?: string;
 }) {
     const { auth } = usePage().props;
+    const [isEditing, setIsEditing] = useState(false);
 
     return (
         <>
@@ -47,20 +51,20 @@ export default function Profile({
                     description="Actualiza tu nombre y direccion de correo electronico"
                 />
 
+                <UpdateAvatarForm user={auth.user}/>
+
                 <Form
                     {...ProfileController.update.form()}
                     options={{
                         preserveScroll: true,
                     }}
+                    onSuccess={() => setIsEditing(false)}
                     className="space-y-6"
                 >
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
                                
-
-                                <UpdateAvatarForm user={auth.user}/>
-
                                 <Label htmlFor="name">Nombre</Label>
 
                                 <Input
@@ -71,6 +75,7 @@ export default function Profile({
                                     required
                                     autoComplete="name"
                                     placeholder="Full name"
+                                    disabled = {!isEditing}
                                 />
 
                                 <InputError
@@ -91,6 +96,7 @@ export default function Profile({
                                     required
                                     autoComplete="username"
                                     placeholder="Correo electronico"
+                                    disabled = {!isEditing}
                                 />
 
                                 <InputError
@@ -121,15 +127,42 @@ export default function Profile({
                                             </div>
                                         )}
                                     </div>
-                                )}
+                                )
+                            }
 
-                            <div className="flex items-center gap-4">
-                                <Button
-                                    disabled={processing}
-                                    data-test="update-profile-button"
-                                >
-                                    Guardar
-                                </Button>
+                            <div className="flex w-full h-fit justify-end">    
+                                {!isEditing ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="cursor-pointer"
+                                        onClick={() => setIsEditing(true)}
+                                    >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                        Actualizar Perfil
+                                    </Button>
+                                ) : (
+                                    <div className="flex items-center gap-4">
+                                        <Button
+                                            className="cursor-pointer"
+                                            disabled={processing}
+                                            data-test="update-profile-button"
+                                        >
+                                            <Check className="h-3.5 w-3.5" />
+                                            Guardar
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="cursor-pointer"
+                                            disabled={processing}
+                                            onClick={() => setIsEditing(false)}
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                            Cancelar
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}

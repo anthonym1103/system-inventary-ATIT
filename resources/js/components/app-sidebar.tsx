@@ -47,7 +47,7 @@ function getNavItems(data: any): NavItem[] {
             icon: LucideUsers,
         });
     }
-
+    
     if(data.role === 'administrador'){
         const itemsFildrado = items.filter((navItems) => navItems.title !== 'Inventario');
 

@@ -45,6 +45,7 @@ export default function DeleteUser() {
                     <DialogTrigger asChild>
                         <Button
                             variant="destructive"
+                            className="cursor-pointer"
                             data-test="delete-user-button"
                         >
                             Eliminar cuenta
@@ -94,6 +95,7 @@ export default function DeleteUser() {
                                         <DialogClose asChild>
                                             <Button
                                                 variant="secondary"
+                                                className="cursor-pointer"
                                                 onClick={() =>
                                                     resetAndClearErrors()
                                                 }
@@ -109,6 +111,7 @@ export default function DeleteUser() {
                                         >
                                             <button
                                                 type="submit"
+                                                className="cursor-pointer"
                                                 data-test="confirm-delete-user-button"
                                             >
                                                 Eliminar cuenta

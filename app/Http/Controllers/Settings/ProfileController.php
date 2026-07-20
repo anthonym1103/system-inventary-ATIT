@@ -40,7 +40,7 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Perfil actualizado.')]);
 
         return to_route('profile.edit');
     }
@@ -52,8 +52,13 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        Auth::logout();
+        // Eliminar el avatar si existe
+        $avatarPath = $user->getRawOriginal('avatar');
+        if ($avatarPath && Storage::disk('public')->exists($avatarPath)) {
+            Storage::disk('public')->delete($avatarPath);
+        }
 
+        Auth::logout();
         $user->delete();
 
         $request->session()->invalidate();
@@ -72,21 +77,23 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
-
+       
+       
         // 2. Eliminar el avatar anterior si existe en el disco público
-        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-            Storage::disk('public')->delete($user->avatar);
+        $oldAvatarPath = $user->getRawOriginal('avatar');
+        if ($oldAvatarPath && Storage::disk('public')->exists($oldAvatarPath)) {
+            Storage::disk('public')->delete($oldAvatarPath);
         }
 
         // 3. Guardar el nuevo archivo en la carpeta 'avatars' dentro del disco 'public'
         // Esto genera un nombre único aleatorio automáticamente
         
-        $path = $request->file('avatar')->store('avatars', 'public');
+        $newAvatarPath = $request->file('avatar')->store('avatars', 'public');
         
 
         // 4. Guardar la ruta en la base de datos
         $user->update([
-            'avatar' => $path,
+            'avatar' => $newAvatarPath,
         ]);
 
         return Redirect::back()->with('success', 'Avatar actualizado con éxito.');

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import { edit } from '@/routes/security';
+import { Pencil, X, Check} from 'lucide-react';
 import { disable, enable } from '@/routes/two-factor';
 
 type Props = {
@@ -49,6 +50,7 @@ export default function Security({
 }: Props) {
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     const {
         qrCodeSvg,
@@ -96,6 +98,7 @@ export default function Security({
                         'current_password',
                     ]}
                     resetOnSuccess
+                    onSuccess = {() => setIsChangingPassword(false)}
                     onError={(errors) => {
                         if (errors.password) {
                             passwordInput.current?.focus();
@@ -120,7 +123,8 @@ export default function Security({
                                     name="current_password"
                                     className="mt-1 block w-full"
                                     autoComplete="current-password"
-                                    placeholder="Contraseña..."
+                                    placeholder="Contraseña Actual..."
+                                    disabled = {!isChangingPassword}
                                 />
 
                                 <InputError message={translate('current_password',errors.current_password)} />
@@ -135,7 +139,8 @@ export default function Security({
                                     name="password"
                                     className="mt-1 block w-full"
                                     autoComplete="new-password"
-                                    placeholder="Contraseña..."
+                                    placeholder="Nueva Contraseña..."
+                                    disabled = {!isChangingPassword}
                                 />
 
                                 <InputError message={translate('password',errors.password)} />
@@ -151,7 +156,8 @@ export default function Security({
                                     name="password_confirmation"
                                     className="mt-1 block w-full"
                                     autoComplete="new-password"
-                                    placeholder="Contraseña..."
+                                    placeholder="Confirmar Contraseña..."
+                                    disabled = {!isChangingPassword}
                                 />
 
                                 <InputError
@@ -159,13 +165,39 @@ export default function Security({
                                 />
                             </div>
 
-                            <div className="flex items-center gap-4">
-                                <Button
-                                    disabled={processing}
-                                    data-test="update-password-button"
-                                >
-                                    Guardar contraseña
-                                </Button>
+                            <div className="flex w-full h-fit justify-end">    
+                                {!isChangingPassword ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="cursor-pointer"
+                                        onClick={() => setIsChangingPassword(true)}
+                                    >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                        Actualizar Contraseña
+                                    </Button>
+                                ) : (
+                                    <div className="flex items-center gap-4">
+                                        <Button
+                                            className="cursor-pointer"
+                                            disabled={processing}
+                                            data-test="update-password-button"
+                                        >
+                                            <Check className="h-3.5 w-3.5" />
+                                            Guardar Contraseña
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="cursor-pointer"
+                                            disabled={processing}
+                                            onClick={() => setIsChangingPassword(false)}
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                            Cancelar
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}

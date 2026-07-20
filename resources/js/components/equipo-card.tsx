@@ -20,6 +20,7 @@ interface EquipoCardProps {
     };
     tiposLabels: Record<string, string>;
     estadosLabls: Record<string, string>;
+    valueViewMode: string;
     condicionesLabels: Record<string, string>;
     permissions: {
         can_edit: boolean;
@@ -30,10 +31,11 @@ interface EquipoCardProps {
     onScheduleClick: (equipo: any) => void;
 }
 
-export function EquipoCard({ equipo, tiposLabels, estadosLabls, condicionesLabels,permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
+export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,condicionesLabels,permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
     const Icon = equipoIconMap[equipo.tipo] || equipoIconMap.micro_escritorio;
     const colorClass = equipoColorMap[equipo.tipo] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
-    
+    const classNameViewMode = valueViewMode === 'grid' ? 'line-clamp-5' : ''; 
+
     const handleCardClick = (e: React.MouseEvent) => {
         // Evitar que el click en los botones de acción dispare el modal
         if ((e.target as HTMLElement).closest('button')) return;
@@ -43,7 +45,7 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, condicionesLabel
 
     return (
         <Card
-            className="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50"
+            className="group cursor-pointer h-full flex flex-col transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50"
             onClick={handleCardClick}
         >
             <CardHeader className="pb-2">
@@ -66,7 +68,7 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, condicionesLabel
                 </div>
             </CardHeader>
 
-            <CardContent className="pb-2 space-y-2">
+            <CardContent className="pb-2 space-y-2 flex-1">
                 <div className="flex items-center text-sm text-muted-foreground gap-2">
                     <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">Serial • {equipo.serial} •</span>
                 </div>
@@ -86,12 +88,12 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, condicionesLabel
                 {equipo.detalle && (
                     <div className="flex items-start text-sm text-muted-foreground gap-1 w-full">
                         <ClipboardList className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                        <span>" {equipo.detalle} "</span>
+                        <span className={classNameViewMode}>" {equipo.detalle} "</span>
                     </div>
                 )}                          
             </CardContent>
 
-            <CardFooter className="pt-2 flex justify-end gap-2 border-t">
+            <CardFooter className="pt-2 flex justify-end gap-2 border-t max-h-[15%]">
                 <Button
                     className="cursor-pointer" 
                     variant="outline"

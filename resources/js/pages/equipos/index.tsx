@@ -93,6 +93,7 @@ interface Equipo {
     serial: string;
     condicion: 'operativo' | 'no_operativo';
     area: string;
+    detalle: string;
     ubicacion: { id: number; estado: string; locacion: string };
     userAsignado?: { cedula: string; nombre: string; apellido: string } | null;
     created_at: string;
@@ -375,6 +376,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                                     equipo={equipo}
                                     tiposLabels={tiposLabels}
                                     estadosLabls={estadosLabels}
+                                    valueViewMode={viewMode}
                                     condicionesLabels={condicionesLabels}
                                     permissions={permissions}
                                     onCardClick={handleCardClick}

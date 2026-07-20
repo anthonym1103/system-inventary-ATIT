@@ -28,7 +28,7 @@ class CreateNewUser implements CreatesNewUsers
         ], $this->messages())->validate();
 
         $user = User::create([
-            'name' => $input['name'],
+            'name' => $this->formatFullName($input['name']),
             'user_name' => $input['user_name'],
             'area' => $input['area'],
             'email' => $input['email'],
@@ -39,13 +39,26 @@ class CreateNewUser implements CreatesNewUsers
         return $user;
     }
 
+    private function formatFullName(string $value): string
+    {
+        $value = trim(preg_replace('/\s+/', ' ', $value));
+
+        $palabras = explode(' ', $value);
+
+        $palabras = array_map(function (string $palabra) {
+            return mb_strtoupper(mb_substr($palabra, 0, 1)) . mb_strtolower(mb_substr($palabra, 1));
+        }, $palabras);
+
+        return implode(' ', $palabras);
+    }
+
     protected function messages(): array
     {
         return [
             'name.required' => 'Porfavor, introduce tu nombre.',
             'name.max' => 'El campo del nombre no debe tener más de 255 caracteres.',
             'name.min' => 'El nombre debe tener al menos 2 caracteres.',
-            'name.regex' => 'El nombre solo puede contener letras, espacios y guiones.',
+            'name.regex' => 'El nombre solo puede contener letras y espacios.',
             'user_name.required' => 'Debe ingresar un nombre de usuario',
             'user_name.unique' => 'Este nombre de usuario ya esta en uso',
             'user_name.regex' => 'El nombre de usuario debe empezar con letra y solo puede contener letras, números y guión bajo y punto.',

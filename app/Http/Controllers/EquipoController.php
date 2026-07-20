@@ -227,8 +227,8 @@ class EquipoController extends Controller
             'serial' => ['required', 'string', 'max:255', 'unique:equipos,serial'],
             'detalle' => ['nullable', 'string'],
             'asignado_cedula'    => $requiereEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
-            'asignado_nombre'    => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
-            'asignado_apellido'  => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
+            'asignado_nombre'    => $requiereEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
+            'asignado_apellido'  => $requiereEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
             'asignado_telefono'  => ['nullable', 'string', 'max:20'],
             'asignado_gerencia'  => ['nullable', 'string', 'max:255'],
         ];
@@ -270,8 +270,8 @@ class EquipoController extends Controller
                 $asignado = UserAsignado::updateOrCreate(
                     ['cedula' => $validated['asignado_cedula']],
                     [
-                        'nombre'   => $validated['asignado_nombre'],
-                        'apellido' => $validated['asignado_apellido'],
+                        'nombre'   => $this->formatName($validated['asignado_nombre']),
+                        'apellido' => $this->formatName($validated['asignado_apellido']),
                         'telefono' => $validated['asignado_telefono'] ?: null,
                         'gerencia' => $validated['asignado_gerencia'] ?: null,
                     ]
@@ -488,8 +488,8 @@ class EquipoController extends Controller
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
             'detalle' => ['nullable', 'string'],
             'asignado_cedula'   => $requiereEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
-            'asignado_nombre'   => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
-            'asignado_apellido' => $requiereEncargado ? ['required', 'string', 'max:255'] : ['nullable'],
+            'asignado_nombre'   => $requiereEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
+            'asignado_apellido' => $requiereEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
             'asignado_telefono' => ['nullable', 'string', 'max:20'],
             'asignado_gerencia' => ['nullable', 'string', 'max:255'],
         ];
@@ -540,8 +540,8 @@ class EquipoController extends Controller
                 $asignado = UserAsignado::updateOrCreate(
                     ['cedula' => $validated['asignado_cedula']],
                     [
-                        'nombre'   => $validated['asignado_nombre'],
-                        'apellido' => $validated['asignado_apellido'],
+                        'nombre'   => $this->formatName($validated['asignado_nombre']),
+                        'apellido' => $this->formatName($validated['asignado_apellido']),
                         'telefono' => $validated['asignado_telefono'] ?: null,
                         'gerencia' => $validated['asignado_gerencia'] ?: null,
                     ]
@@ -579,7 +579,7 @@ class EquipoController extends Controller
                     $new = CondicionEquipo::tryFrom($new)?->label() ?? $new;
                 }
 
-                $changes[] = "{$label}: '" . ($old ?? '—') . "' → '" . ($new ?? '—') . "'";
+                $changes[] = "{$label} ha sido cambiado de (" . ($old ?? ' ') . ") → (" . ($new ?? '—') . ")";
             }
 
             if ($before['ubicacion_id'] != $after['ubicacion_id']) {
@@ -689,6 +689,13 @@ class EquipoController extends Controller
     public function destroy(Equipo $equipo)
     {
 
+    }
+
+    private function formatName(string $value): string
+    {
+        $value = trim($value);
+
+        return mb_strtoupper(mb_substr($value, 0, 1)) . mb_strtolower(mb_substr($value, 1));
     }
 
     private function getEstadosRegion(): Collection

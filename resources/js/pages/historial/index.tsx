@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { HistoryIcon, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,11 +29,33 @@ interface Props {
     tiposLabels: Record<string, string>;
 }
 
+function DetalleItem({ text }: { text: string }) {
+    const [expanded, setExpanded] = useState(false);
+    const LIMIT = 140;
+    const isLong = text.length > LIMIT;
+    const display = expanded || !isLong ? text : text.slice(0, LIMIT) + '…';
+
+    return (
+        <li className="break-words">
+            {display}
+            {isLong && (
+                <button
+                    type="button"
+                    onClick={() => setExpanded((prev) => !prev)}
+                    className="ml-1 cursor-pointer text-xs font-medium text-primary hover:underline"
+                >
+                    {expanded ? 'Ver menos' : 'Ver más'}
+                </button>
+            )}
+        </li>
+    );
+}
+
 function DetalleDisplay({ detalle }: { detalle: string }) {
     const colonIndex = detalle.indexOf(':');
 
     if (colonIndex === -1) {
-        return <p className="text-sm">{detalle}</p>;
+        return <p className="text-sm break-words">{detalle}</p>;
     }
 
     const header = detalle.slice(0, colonIndex);
@@ -48,7 +70,7 @@ function DetalleDisplay({ detalle }: { detalle: string }) {
             <p className="text-sm font-medium">{header}</p>
             <ul className="ml-4 list-disc space-y-0.5 text-xs text-muted-foreground">
                 {items.map((item, i) => (
-                    <li key={i}>{item}</li>
+                    <DetalleItem key={i} text={item} />
                 ))}
             </ul>
         </div>
@@ -87,8 +109,6 @@ export default function HistorialIndex({ historial, filters, tiposLabels }: Prop
         router.get('/historial', {}, { preserveState: false });
     };
 
-    console.log(historial);
-
     return (
         <>
             <Head title="Historial de Cambios" />
@@ -123,7 +143,7 @@ export default function HistorialIndex({ historial, filters, tiposLabels }: Prop
                             </SelectContent>
                         </Select>
                     </div>
-                    <Button variant="ghost" onClick={clearFilters}>Limpiar filtros</Button>
+                    <Button variant="ghost" className="cursor-pointer" onClick={clearFilters}>Limpiar filtros</Button>
                 </div>
 
                 <div className="border rounded-lg overflow-hidden">
@@ -168,7 +188,7 @@ export default function HistorialIndex({ historial, filters, tiposLabels }: Prop
                                                     <span className="font-mono text-xs">{entry.equipo?.serial ?? 'N/A'}</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="align-top">
+                                            <TableCell className="align-top whitespace-normal break-words max-w-md">
                                                 <DetalleDisplay detalle={entry.detalle} />
                                             </TableCell>
                                         </TableRow>
@@ -189,6 +209,7 @@ export default function HistorialIndex({ historial, filters, tiposLabels }: Prop
                                 key={idx}
                                 variant={link.active ? 'default' : 'outline'}
                                 size="sm"
+                                className="cursor-pointer"
                                 disabled={!link.url}
                                 onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
                                 dangerouslySetInnerHTML={{ __html: link.label }}

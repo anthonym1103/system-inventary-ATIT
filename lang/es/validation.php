@@ -178,5 +178,8 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'asignado_nombre' => 'nombre',
+        'asignado_apellido' => 'apellido',
+    ],
 ];

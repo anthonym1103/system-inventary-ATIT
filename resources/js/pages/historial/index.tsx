@@ -167,7 +167,7 @@ export default function HistorialIndex({ historial, filters, tiposLabels, areasL
                                 <TableBody>
                                     {historial.data.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                                            <TableCell colSpan={isAdmin ? 5 : 4} className="text-center py-10 text-muted-foreground">
                                                 No hay registros de historial.
                                             </TableCell>
                                         </TableRow>

@@ -59,6 +59,11 @@ class HistorialController extends Controller
                 $tiposLabels[$tipo->value] = $tipo->label();
             }
         }
+
+        $areaLabels = [];
+        foreach (Area::cases() as $area) {
+            $areaLabels[$area->value] = $area->label();
+        }
         
         // Usuarios: solo los que han hecho cambios sobre equipos visibles para este usuario
         /*$usuarios = User::whereHas('historialEquipos', function ($q) use ($allowedAreas) {
@@ -79,9 +84,12 @@ class HistorialController extends Controller
         return Inertia::render('historial/index', [
             'historial' => $historial,
             'filters'   => $request->only(['search','tipo']),
-            'tiposLabels' => $tiposLabels
+            'tiposLabels' => $tiposLabels,
+            'areasLabels' => $areaLabels,
         ]);
     }
+
+    
 
     private function getUserAllowedAreas($user): array
     {

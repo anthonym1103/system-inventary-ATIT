@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,12 +8,13 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useInitials } from '@/hooks/use-initials';
 import { equipoIconMap } from '@/lib/equipo-icons';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface HistorialEntry {
     id: number;
     detalle: string;
     fecha_ajuste: string;
-    usuario: { id: number; name: string } | null;
+    usuario: { id: number; name: string; area?: string } | null;
     equipo: { id: number; tipo: string; serial: string } | null;
 }
 
@@ -27,6 +28,7 @@ interface Props {
     };
     filters: { search: string, tipo: string };
     tiposLabels: Record<string, string>;
+    areasLabels: Record<string, string>;
 }
 
 function DetalleItem({ text }: { text: string }) {
@@ -55,6 +57,7 @@ function DetalleDisplay({ detalle }: { detalle: string }) {
     const colonIndex = detalle.indexOf(':');
 
     if (colonIndex === -1) {
+        console.log("por aqui??");
         return <p className="text-sm break-words">{detalle}</p>;
     }
 
@@ -67,7 +70,7 @@ function DetalleDisplay({ detalle }: { detalle: string }) {
 
     return (
         <div className="space-y-1 py-1">
-            <p className="text-sm font-medium">{header}</p>
+            <p className="text-sm font-medium text-muted-foreground">{header}</p>
             <ul className="ml-4 list-disc space-y-0.5 text-xs text-muted-foreground">
                 {items.map((item, i) => (
                     <DetalleItem key={i} text={item} />
@@ -86,7 +89,9 @@ function useDebounce<T>(value: T, delay: number): T {
     return debouncedValue;
 }
 
-export default function HistorialIndex({ historial, filters, tiposLabels }: Props) {
+export default function HistorialIndex({ historial, filters, tiposLabels, areasLabels }: Props) {
+    const { auth } = usePage().props;
+    const isAdmin = auth.role === 'administrador';
     const [search, setSearch] = useState(filters.search || '');
     const [tipoEquipo, setTipoEquipo] = useState<string>(filters.tipo || '');
     const debouncedSearch = useDebounce(search, 300);
@@ -146,58 +151,74 @@ export default function HistorialIndex({ historial, filters, tiposLabels }: Prop
                     <Button variant="ghost" className="cursor-pointer" onClick={clearFilters}>Limpiar filtros</Button>
                 </div>
 
-                <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-40">Fecha</TableHead>
-                                <TableHead className="w-48">Usuario</TableHead>
-                                <TableHead className="w-36">Equipo</TableHead>
-                                <TableHead>Detalle</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {historial.data.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
-                                        No hay registros de historial.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                historial.data.map((entry) => {
-                                    const Icon = equipoIconMap[entry.equipo?.tipo ?? ''] || equipoIconMap.micro_escritorio;
-
-                                    return (
-                                        <TableRow key={entry.id}>
-                                            <TableCell className="align-top whitespace-nowrap text-sm text-muted-foreground">
-                                                {new Date(entry.fecha_ajuste).toLocaleString()}
-                                            </TableCell>
-                                            <TableCell className="align-top">
-                                                <div className="flex items-center gap-2">
-                                                    <Avatar className="h-6 w-6">
-                                                        <AvatarFallback className="text-[10px]">
-                                                            {getInitials(entry.usuario?.name ?? 'S')}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <span className="text-sm">{entry.usuario?.name ?? 'Sistema'}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="align-top">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                                    <span className="font-mono text-xs">{entry.equipo?.serial ?? 'N/A'}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="align-top whitespace-normal break-words max-w-md">
-                                                <DetalleDisplay detalle={entry.detalle} />
+                <Card>
+                    <CardContent className="pt-2">
+                        <div className="overflow-x-auto">
+                            <Table className="w-full table-fixed min-w-[720px]">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[17%] text-center">Fecha</TableHead>
+                                        <TableHead className="w-[18%] text-center">Usuario</TableHead>
+                                        {isAdmin && <TableHead className="w-[15%] text-center">Área</TableHead>}
+                                        <TableHead className="w-[20%] text-center">Equipo</TableHead>
+                                        <TableHead className="w-[30%] text-center">Detalle</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {historial.data.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                                                No hay registros de historial.
                                             </TableCell>
                                         </TableRow>
-                                    );
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                                    ) : (
+                                        historial.data.map((entry) => {
+                                            const Icon = equipoIconMap[entry.equipo?.tipo ?? ''] || equipoIconMap.micro_escritorio;
+
+                                            return (
+                                                <TableRow key={entry.id}>
+                                                    <TableCell className="align-center whitespace-nowrap text-sm text-muted-foreground">
+                                                        <div className="flex justify-center">
+                                                            {new Date(entry.fecha_ajuste).toLocaleString()}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="align-center">
+                                                        <div className="flex justify-center gap-2">
+                                                            <Avatar className="h-6 w-6">
+                                                                <AvatarFallback className="text-[10px]">
+                                                                    {getInitials(entry.usuario?.name ?? 'S')}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="text-sm text-muted-foreground">{entry.usuario?.name ?? 'Sistema'}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    {isAdmin && (
+                                                        <TableCell className="align-center text-sm text-muted-foreground">
+                                                            <div className="flex justify-center">
+                                                                {entry.usuario?.area
+                                                                    ? (areasLabels[entry.usuario.area] ?? entry.usuario.area)
+                                                                    : '—'}
+                                                            </div>
+                                                        </TableCell>
+                                                    )}
+                                                    <TableCell className="align-center whitespace-normal break-words max-w-md">
+                                                        <div className="flex justify-center items-center gap-2">
+                                                            <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                            <span className="font-mono text-xs text-muted-foreground break-words">{entry.equipo?.serial ?? 'N/A'}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="align-center whitespace-normal break-words max-w-md">
+                                                        <DetalleDisplay detalle={entry.detalle} />
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">

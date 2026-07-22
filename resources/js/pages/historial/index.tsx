@@ -57,7 +57,6 @@ function DetalleDisplay({ detalle }: { detalle: string }) {
     const colonIndex = detalle.indexOf(':');
 
     if (colonIndex === -1) {
-        console.log("por aqui??");
         return <p className="text-sm break-words">{detalle}</p>;
     }
 

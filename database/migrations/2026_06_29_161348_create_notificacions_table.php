@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('equipo_id')->constrained('equipos')->onDelete('cascade');
             $table->foreignId('usuario_id')->constrained('users')->onDelete('cascade');
             $table->date('fecha_mantenimiento');
-            $table->string('detalle')->nullable();
+            $table->text('detalle')->nullable();
             $table->boolean('leido')->default(false);
             $table->timestamps();
 

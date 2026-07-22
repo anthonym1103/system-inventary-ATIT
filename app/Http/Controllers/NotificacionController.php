@@ -20,7 +20,7 @@ class NotificacionController extends Controller
         $validated = $request->validate([
             'equipo_id' => ['required', 'integer', 'exists:equipos,id'],
             'fecha_mantenimiento' => ['required', 'date', 'after_or_equal:today'],
-            'detalle' => ['nullable', 'string', 'max:255'],
+            'detalle' => ['nullable', 'string'],
         ]);
 
         $equipo = Equipo::findOrFail($validated['equipo_id']);

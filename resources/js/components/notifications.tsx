@@ -1,6 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { Bell, Check, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect} from 'react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,13 +18,49 @@ import { Button } from '@/components/ui/button';
 import { equipoIconMap } from '@/lib/equipo-icons';
 import type { Mantenimiento } from '@/types/ui';
 
+function DetalleItem({ text }: { text: string }) {
+    const [expanded, setExpanded] = useState(false);
+    const LIMIT = 140;
+    const isLong = text.length > LIMIT;
+    const display = expanded || !isLong ? text : text.slice(0, LIMIT) + '…';
+
+    return (
+        <span className="break-words">
+            {display}
+            {isLong && (
+                <button
+                    type="button"
+                    onClick={() => setExpanded((prev) => !prev)}
+                    className="ml-1 cursor-pointer text-xs font-medium text-primary hover:underline"
+                >
+                    {expanded ? 'Ver menos' : 'Ver más'}
+                </button>
+            )}
+        </span>
+    );
+}
+
 export function Notifications() {
     const { notificaciones, notificacionesPendientes } = usePage().props;
     const [list, setList] = useState<Mantenimiento[]>(notificaciones ?? []);
     const [open, setOpen] = useState(false);
+    const [seenCount, setSeenCount] = useState(0);
+    const prevOpenRef = useRef(open);
 
-    // Cuando se abre el dropdown, no hacemos nada especial, el badge ya muestra el conteo.
-    // El contador se actualiza cuando cambian las props.
+    useEffect(() => {
+        setList(notificaciones ?? []);
+    }, [notificaciones]);
+
+    useEffect(() => {
+        if (open && !prevOpenRef.current) {
+            setSeenCount(notificacionesPendientes ?? 0);
+        }
+        prevOpenRef.current = open;
+    }, [open, notificacionesPendientes]);
+
+    const count = notificacionesPendientes ?? 0;
+    // Solo mostrar el badge si hay pendientes y si la cantidad actual es mayor que la vista
+    const showBadge = count > 0 && count > seenCount;
 
     const markAsRead = (id: number) => {
         router.patch(
@@ -58,7 +94,6 @@ export function Notifications() {
         );
     };
 
-    const count = notificacionesPendientes ?? 0;
 
     return (
         <SidebarMenu>
@@ -71,8 +106,8 @@ export function Notifications() {
                         >
                             <Bell className="ml-2 size-4" />
                             <span>Notificaciones</span>
-                            {count > 0 && (
-                                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-white">
+                            {showBadge && (
+                                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-white transition-colors">
                                     {count}
                                 </span>
                             )}
@@ -80,7 +115,7 @@ export function Notifications() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                         className={`ml-4 rounded-lg max-h-72 overflow-y-auto ${
-                            list.length === 0 ? 'w-[95%]' : 'w-[78%]'
+                            list.length === 0 ? 'w-[95%]' : 'w-72'
                         }`}
                         align="end"
                         side="top"
@@ -104,21 +139,19 @@ export function Notifications() {
                             return (
                                 <DropdownMenuItem
                                     key={m.id}
-                                    className={`flex flex-col items-start gap-1 py-2 select-text ${
-                                        m.leido ? 'opacity-60' : ''
-                                    }`}
+                                    className={`flex flex-col items-start gap-1 py-2 select-text `}
                                     onSelect={(e) => e.preventDefault()}
                                 >
-                                    <div className="flex w-full items-start gap-2">
-                                        <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <div className= {`flex w-full items-start gap-2$ ${ m.leido ? 'opacity-60' : ''}`}>
+                                        <Icon className="mt-0.5 mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                                         <div className="flex-1 space-y-0.5">
-                                            <p className="text-sm font-medium leading-tight cursor-text w-fit">
+                                            <p className={`text-sm font-medium leading-tight cursor-text w-fit ${m.leido ? 'text-muted-foreground' : ''}`}>
                                                 {m.equipo
                                                     ? `Equipo: ${m.equipo.modelo}`.trim()
                                                     : 'Equipo'}
                                             </p>
                                             {m.equipo?.serial && (
-                                                <p className="text-xs text-muted-foreground cursor-text w-fit">
+                                                <p className="text-xs text-muted-foreground mt-2 cursor-text w-fit">
                                                     Serial: {m.equipo.serial}
                                                 </p>
                                             )}
@@ -129,8 +162,8 @@ export function Notifications() {
                                                 ).toLocaleDateString()}
                                             </p>
                                             {m.detalle && (
-                                                <p className="text-xs mt-2 cursor-text w-fit">
-                                                    Descripción: {m.detalle}
+                                                <p className={`text-xs mt-2 cursor-text w-fit ${m.leido ? 'text-muted-foreground' : ''}`}>
+                                                    <DetalleItem text={`Descripción: ${m.detalle}`} />
                                                 </p>
                                             )}
                                         </div>
@@ -139,7 +172,7 @@ export function Notifications() {
                                         {!m.leido && (
                                             <Button
                                                 size="sm"
-                                                variant="ghost"
+                                                variant="outlineNotification"
                                                 className="h-7 px-2 text-xs cursor-pointer"
                                                 onClick={() =>
                                                     markAsRead(m.id)
@@ -151,13 +184,13 @@ export function Notifications() {
                                         )}
                                         <Button
                                             size="sm"
-                                            variant="ghost"
-                                            className="h-7 px-2 text-xs cursor-pointer text-destructive hover:text-destructive"
+                                            variant="destructiveNotification"
+                                            className="h-7 px-2 text-xs cursor-pointer"
                                             onClick={() =>
                                                 deleteNotification(m.id)
                                             }
                                         >
-                                            <Trash2 className="h-3 w-3 mr-1" />
+                                            <Trash2 className="h-3 w-3 hover:text-primary-foreground"/>
                                             Borrar
                                         </Button>
                                     </div>

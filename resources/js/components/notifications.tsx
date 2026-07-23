@@ -139,7 +139,7 @@ export function Notifications() {
                             return (
                                 <DropdownMenuItem
                                     key={m.id}
-                                    className={`flex flex-col items-start gap-1 py-2 select-text `}
+                                    className={"flex flex-col items-start gap-1 py-2 select-text group"}
                                     onSelect={(e) => e.preventDefault()}
                                 >
                                     <div className= {`flex w-full items-start gap-2$ ${ m.leido ? 'opacity-60' : ''}`}>

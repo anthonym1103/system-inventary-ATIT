@@ -31,7 +31,6 @@ interface UserRow {
     area: string | null;
     avatar?: string;
     role: string | null;
-    email_verified_at: string | null;
 }
 
 interface RoleOption {
@@ -211,14 +210,6 @@ export default function UsuariosIndex({
                                                 <TableCell >
                                                     <div className="flex flex-col items-center justify-center space-y-0.5 truncate">
                                                         <p className="text-sm truncate">{user.email}</p>
-                                                        {!user.email_verified_at && (
-                                                            <Badge
-                                                                variant="outline"
-                                                                className="text-xs text-muted-foreground w-fit"
-                                                            >
-                                                                Sin verificar
-                                                            </Badge>
-                                                        )}
                                                     </div>
                                                 </TableCell>
 

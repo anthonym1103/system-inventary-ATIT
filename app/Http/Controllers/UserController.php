@@ -53,7 +53,6 @@ class UserController extends Controller
             'area' => $user->area?->value,
             'avatar' => $user?->avatar,
             'role' => $user->roles->first()?->name,
-            'email_verified_at' => $user->email_verified_at,
         ]);
 
         return Inertia::render('usuarios/index', [

@@ -51,8 +51,8 @@ export function EquipoMantenimientoDialog({ equipo, isOpen, onClose }: Props) {
 
     if (!equipo) return null;
 
-    const today = new Date().toISOString().split('T')[0];
-
+    const today = new Date().toLocaleDateString('en-CA');
+    
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-md">

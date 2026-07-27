@@ -15,6 +15,9 @@ class HistorialEquipo extends Model
     protected $fillable = [
         'usuario_id',
         'equipo_id',
+        'equipo_area',
+        'equipo_serial',
+        'equipo_tipo',
         'detalle',
         'fecha_ajuste',
     ];

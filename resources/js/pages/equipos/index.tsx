@@ -14,6 +14,7 @@ import { EquipoEditModal } from '@/components/equipo-edit.modal';
 import { SelectItemText, Value } from '@radix-ui/react-select';
 import { Separator } from '@/components/ui/separator';
 import { EquipoMantenimientoDialog } from '@/components/equipo-mantenimiento-dialog';
+import { toast } from 'sonner';
 
 
 function SkeletonCard() {
@@ -143,6 +144,8 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
     const [classNameViewMode, setClassNameViewMode] = useState<string>('flex flex-col gap-4');
     const [scheduleEquipo, setScheduleEquipo] = useState<any>(null);
     const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+    const [selectMode, setSelectMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const debouncedSearch = useDebounce(search, 300);
     const [isLoading, setIsLoading] = useState(false);
     const params: Record<string, string> = {};
@@ -176,6 +179,46 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
             replace: true,
         });
     }, [debouncedSearch, tipo, condicion, region, area]);
+
+    const toggleSelected = (id: number) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleDesincorporar = async () => {
+        if (selectedIds.length === 0) return;
+        if (!confirm(`¿Desincorporar ${selectedIds.length} equipo(s)? Esta acción no se puede deshacer.`)) return;
+
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+
+        const response = await fetch('/equipos/desincorporar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ equipo_ids: selectedIds }),
+        });
+
+        if (!response.ok) {
+            toast.error('No se pudieron desincorporar los equipos.');
+            return;
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `desincorporacion_${Date.now()}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+
+        setSelectedIds([]);
+        setSelectMode(false);
+        router.reload({ only: ['equipos'] });
+    };
 
     const clearFilters = () => {
         setSearch('');
@@ -242,7 +285,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                         />
                     </div>
                     <div className="flex justify-end items-center gap-2">
-                        {permissions.can_create && (
+                        {(permissions.can_create && !selectMode) && (
                             <div className='flex gap-2'>
                                 <Button variant="outline" asChild>
                                     <Link href="/equipos/create">
@@ -250,14 +293,45 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                                         Agregar nuevo equipo
                                     </Link>
                                 </Button>
-                                <Button variant="outline" asChild>
-                                    <Link href="">
-                                        <FileX className="h-3.5 w-3.5" />
-                                        Desincorporar equipos
-                                    </Link>
+                                <Button 
+                                    variant="destructiveNotification" 
+                                    onClick={() => setSelectMode(true)}
+                                    className="cursor-pointer" 
+                                    disabled = {selectMode} 
+                                >
+                                    <FileX className="h-3.5 w-3.5" />
+                                    Desincorporar equipos
                                 </Button>
                             </div>
                         )}
+                        {selectMode && (
+                            <div className="flex items-center justify-between p-3">
+                                <span className="text-sm mr-4">
+                                    {selectedIds.length} equipo(s) seleccionado(s)
+                                </span>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="destructiveNotification"
+                                        onClick={handleDesincorporar}
+                                        className="cursor-pointer"
+                                        disabled={selectedIds.length === 0}
+                                    >
+                                        Confirmar desincorporación
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setSelectMode(false);
+                                            setSelectedIds([]);
+                                        }}
+                                        className="cursor-pointer"
+                                    >
+                                        Cancelar
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
                         {/*<h3 className="font-medium text-xs uppercase text-muted-foreground">Vistas:</h3>*/}
                         <div className="flex border rounded-md overflow-hidden">
                             <Button
@@ -379,6 +453,9 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                                     valueViewMode={viewMode}
                                     condicionesLabels={condicionesLabels}
                                     permissions={permissions}
+                                    selectMode = {selectMode}
+                                    selectedIds={selectedIds}
+                                    onToggleSelect={toggleSelected}
                                     onCardClick={handleCardClick}
                                     onCardEditClick={handleEditClick}
                                     onScheduleClick={handleScheduleClick}

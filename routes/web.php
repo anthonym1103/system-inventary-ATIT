@@ -18,6 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/profile/avatar',[ProfileController::class, 'updateAvatar']);
+    Route::post('equipos/desincorporar', [EquipoController::class, 'desincorporar'])->name('equipos.desincorporar');
     Route::resource('equipos', EquipoController::class);
     Route::get('equipos/{equipo}/edit-data', [EquipoController::class, 'editData'])->name('equipos.edit-data');
     Route::post('mantenimientos', [NotificacionController::class, 'store'])->name('notificacion.store');

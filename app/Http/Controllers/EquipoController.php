@@ -21,6 +21,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
+use setasign\Fpdi\Fpdi;
 
 class EquipoController extends Controller
 {
@@ -350,6 +351,9 @@ class EquipoController extends Controller
             HistorialEquipo::create([
                 'usuario_id' => auth()->id(),
                 'equipo_id'  => $equipo->id,
+                'equipo_area' => $equipo->area->value,
+                'equipo_tipo' => $equipo->tipo->value,
+                'equipo_serial' => $equipo->serial,
                 'detalle'    => 'Equipo registrado: ' . implode('; ', $detalleCreacion),
                 'fecha_ajuste' => now(),
             ]);
@@ -675,6 +679,9 @@ class EquipoController extends Controller
                 HistorialEquipo::create([
                     'usuario_id' => auth()->id(),
                     'equipo_id'  => $equipo->id,
+                    'equipo_area' => $equipo->area->value,
+                    'equipo_tipo' => $tipo->value,
+                    'equipo_serial' => $equipo->serial,
                     'detalle'    => 'Equipo actualizado: ' . implode('; ', $changes),
                     'fecha_ajuste' => now(),
                 ]);
@@ -689,6 +696,80 @@ class EquipoController extends Controller
     public function destroy(Equipo $equipo)
     {
 
+    }
+
+    public function desincorporar(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user->can('eliminar_equipos'), 403);
+
+        $validated = $request->validate([
+            'equipo_ids' => ['required', 'array', 'min:1'],
+            'equipo_ids.*' => ['integer', 'exists:equipos,id'],
+        ]);
+
+        $allowedAreas = $this->getUserAllowedAreas($user);
+
+        $equipos = Equipo::with(['ubicacion', 'userAsignado'])
+            ->whereIn('id', $validated['equipo_ids'])
+            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value), function ($q) use ($allowedAreas) {
+                $q->whereIn('area', $allowedAreas);
+            })
+            ->get();
+
+        abort_if($equipos->isEmpty(), 404);
+
+        $pdfPath = $this->generarPdfDesincorporacion($equipos, $user);
+
+        DB::transaction(function () use ($equipos) {
+            foreach ($equipos as $equipo) {
+                HistorialEquipo::create([
+                    'usuario_id' => auth()->id(),
+                    'equipo_id' => $equipo->id,
+                    'equipo_area' => $equipo->area->value,
+                    'equipo_tipo' => $equipo->tipo->value,
+                    'equipo_serial' => $equipo->serial,
+                    'detalle' => 'Equipo desincorporado. Serial: ' . $equipo->serial
+                        . ', Modelo: ' . $equipo->modelo
+                        . ', Ubicación: ' . ($equipo->ubicacion?->locacion ?? '—')
+                        . ($equipo->userAsignado
+                            ? ', Encargado: ' . $equipo->userAsignado->nombre . ' ' . $equipo->userAsignado->apellido
+                            : ''),
+                    'fecha_ajuste' => now(),
+                ]);
+            }
+
+            Equipo::whereIn('id', $equipos->pluck('id'))->delete();
+        });
+
+            return response()->download($pdfPath)->deleteFileAfterSend(true);
+    }
+
+    private function generarPdfDesincorporacion($equipos, $user): string
+    {
+        $pdf = new Fpdi();
+        $templatePath = storage_path('app/pdf-templates/desincorporacion.pdf');
+        $pdf->setSourceFile($templatePath);
+
+        dd($templatePath);
+
+        foreach ($equipos as $equipo) {
+            $templateId = $pdf->importPage(1);
+            $pdf->AddPage();
+            $pdf->useTemplate($templateId, 0, 0, 210);
+
+            $pdf->SetFont('Helvetica', '', 10);
+            $pdf->SetXY(50, 60);  $pdf->Write(0, $equipo->serial);
+            $pdf->SetXY(50, 70);  $pdf->Write(0, "{$equipo->marca} {$equipo->modelo}");
+            $pdf->SetXY(50, 80);  $pdf->Write(0, "{$equipo->ubicacion?->locacion}, {$equipo->ubicacion?->estado}");
+            $pdf->SetXY(50, 90);  $pdf->Write(0, now()->format('d/m/Y'));
+            $pdf->SetXY(50, 100); $pdf->Write(0, $user->name);
+        }
+
+        $outputPath = storage_path('app/temp/desincorporacion_' . now()->timestamp . '.pdf');
+        $pdf->Output($outputPath, 'F');
+
+        return $outputPath;
     }
 
     private function formatName(string $value): string

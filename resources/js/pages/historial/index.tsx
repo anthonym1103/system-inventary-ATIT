@@ -16,6 +16,8 @@ interface HistorialEntry {
     fecha_ajuste: string;
     usuario: { id: number; name: string; area?: string } | null;
     equipo: { id: number; tipo: string; serial: string } | null;
+    equipo_tipo: string | null;
+    equipo_serial: string | null;
 }
 
 interface Props {
@@ -172,7 +174,9 @@ export default function HistorialIndex({ historial, filters, tiposLabels, areasL
                                         </TableRow>
                                     ) : (
                                         historial.data.map((entry) => {
-                                            const Icon = equipoIconMap[entry.equipo?.tipo ?? ''] || equipoIconMap.micro_escritorio;
+                                            const tipo = entry.equipo?.tipo ?? entry.equipo_tipo;
+                                            const serial = entry.equipo?.serial ?? entry.equipo_serial;
+                                            const Icon = equipoIconMap[tipo ?? ''] || equipoIconMap.micro_escritorio;
 
                                             return (
                                                 <TableRow key={entry.id}>
@@ -203,9 +207,10 @@ export default function HistorialIndex({ historial, filters, tiposLabels, areasL
                                                     <TableCell className="align-center whitespace-normal break-words max-w-md">
                                                         <div className="flex justify-center items-center gap-2">
                                                             <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                                            <span className="font-mono text-xs text-muted-foreground break-words">{entry.equipo?.serial ?? 'N/A'}</span>
+                                                            <span className="font-mono text-xs text-muted-foreground break-words">{serial ?? 'N/A'}</span>
                                                         </div>
                                                     </TableCell>
+
                                                     <TableCell className="align-center whitespace-normal break-words max-w-md">
                                                         <DetalleDisplay detalle={entry.detalle} />
                                                     </TableCell>

@@ -26,12 +26,15 @@ interface EquipoCardProps {
         can_edit: boolean;
         can_delete: boolean;
     };
+    selectMode: boolean;
+    selectedIds: number[];
+    onToggleSelect: (id: number) => void;
     onCardClick: (equipo: any) => void;
     onCardEditClick?: (equipo: any) => void;
     onScheduleClick: (equipo: any) => void;
 }
 
-export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,condicionesLabels,permissions, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
+export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,condicionesLabels,permissions, selectMode, selectedIds, onToggleSelect, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
     const Icon = equipoIconMap[equipo.tipo] || equipoIconMap.micro_escritorio;
     const colorClass = equipoColorMap[equipo.tipo] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
     const classNameViewMode = valueViewMode === 'grid' ? 'line-clamp-5' : ''; 
@@ -39,7 +42,11 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,co
     const handleCardClick = (e: React.MouseEvent) => {
         // Evitar que el click en los botones de acción dispare el modal
         if ((e.target as HTMLElement).closest('button')) return;
-        onCardClick(equipo);
+        if (selectMode) {
+            onToggleSelect(equipo.id);
+        } else {
+            onCardClick(equipo);
+        }
     };
 
 
@@ -48,65 +55,80 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,co
             className="group cursor-pointer h-full flex flex-col transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50"
             onClick={handleCardClick}
         >
-            <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className={`rounded-lg p-3 ${colorClass}`}>
-                            <Icon className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-sm leading-tight">
-                                {tiposLabels[equipo.tipo] || equipo.tipo}
-                            </h3>
-                            <p className="text-xs text-muted-foreground"> Marca: {equipo.marca}</p>
-                            <p className="text-xs text-muted-foreground"> Modelo: {equipo.modelo}</p>
-                        </div>
-                    </div>
-                    <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
-                        {condicionesLabels[equipo.condicion]}
-                    </Badge>
-                </div>
-            </CardHeader>
-
-            <CardContent className="pb-2 space-y-2 flex-1">
-                <div className="flex items-center text-sm text-muted-foreground gap-2">
-                    <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">Serial • {equipo.serial} •</span>
-                </div>
-              
-                <div className="flex items-center text-sm text-muted-foreground gap-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    <span>{equipo.ubicacion?.locacion}, {estadosLabls[equipo.ubicacion?.estado]}</span>
-                </div>
-
-                {equipo.user_asignado && (
-                    <div className="flex items-center text-sm text-muted-foreground gap-1">
-                        <User className="h-3.5 w-3.5" />
-                        <span>{equipo.user_asignado.nombre} {equipo.user_asignado.apellido}</span>
-                    </div>
+            <div className="relative">
+                {selectMode && (
+                    <input
+                        type="checkbox"
+                        checked={selectedIds.includes(equipo.id)}
+                        onChange={() => onToggleSelect(equipo.id)}
+                        className="absolute top-2 left-2 h-4 w-4 cursor-pointer"
+                    />
                 )}
+                <div>
+                    <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={`rounded-lg p-3 ${colorClass}`}>
+                                    <Icon className="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-sm leading-tight">
+                                        {tiposLabels[equipo.tipo] || equipo.tipo}
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground"> Marca: {equipo.marca}</p>
+                                    <p className="text-xs text-muted-foreground"> Modelo: {equipo.modelo}</p>
+                                </div>
+                            </div>
+                            <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
+                                {condicionesLabels[equipo.condicion]}
+                            </Badge>
+                        </div>
+                    </CardHeader>
 
-                {equipo.detalle && (
-                    <div className="flex items-start text-sm text-muted-foreground gap-1 w-full">
-                        <ClipboardList className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                        <span className={classNameViewMode}>" {equipo.detalle} "</span>
-                    </div>
-                )}                          
-            </CardContent>
+                    <CardContent className="pb-2 space-y-2 flex-1">
+                        <div className="flex items-center text-sm text-muted-foreground gap-2">
+                            <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">Serial • {equipo.serial} •</span>
+                        </div>
+              
+                        <div className="flex items-center text-sm text-muted-foreground gap-1">
+                            <MapPin className="h-3.5 w-3.5" />
+                            <span>{equipo.ubicacion?.locacion}, {estadosLabls[equipo.ubicacion?.estado]}</span>
+                        </div>
+
+                        {equipo.user_asignado && (
+                            <div className="flex items-center text-sm text-muted-foreground gap-1">
+                                <User className="h-3.5 w-3.5" />
+                                <span>{equipo.user_asignado.nombre} {equipo.user_asignado.apellido}</span>
+                            </div>
+                        )}
+
+                        {equipo.detalle && (
+                            <div className="flex items-start text-sm text-muted-foreground gap-1 w-full">
+                                <ClipboardList className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                                <span className={classNameViewMode}>" {equipo.detalle} "</span>
+                            </div>
+                        )}                          
+                    </CardContent>
+                </div>
+            </div>
 
             <CardFooter className="pt-2 flex justify-end gap-2 border-t max-h-[15%]">
-                <Button
-                    className="cursor-pointer" 
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onScheduleClick(equipo);
-                    }}
-                >
-                    <CalendarClock className="h-3.5 w-3.5" />
-                    Mantenimiento
-                </Button>
-                {permissions.can_edit && (
+                {!selectMode && (
+                    <Button
+                        className="cursor-pointer" 
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onScheduleClick(equipo);
+                        }}
+                    >
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        Mantenimiento
+                    </Button>
+                )}
+                
+                {(permissions.can_edit && !selectMode) && (
                     <Button 
                         className="cursor-pointer" 
                         variant="outline"

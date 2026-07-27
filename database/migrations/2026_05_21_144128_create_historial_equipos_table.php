@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::create('historial_equipos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('usuario_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('equipo_id')->constrained('equipos')->onDelete('cascade');
+            $table->foreignId('equipo_id')->nullable()->constrained('equipos')->nullOnDelete();
+            $table->string('equipo_area')->nullable();
+            $table->string('equipo_serial')->nullable();
+            $table->string('equipo_tipo')->nullable();
             $table->text('detalle');
             $table->dateTime('fecha_ajuste');
             $table->timestamps();

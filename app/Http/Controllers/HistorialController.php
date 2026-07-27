@@ -22,32 +22,23 @@ class HistorialController extends Controller
         $allowedAreas = $this->getUserAllowedAreas($user);
 
         $query = HistorialEquipo::with(['usuario', 'equipo.ubicacion'])
-            ->when(!empty($allowedAreas), function ($q) use ($allowedAreas) {
-                $q->whereHas('equipo', function ($eq) use ($allowedAreas) {
-                    $eq->whereIn('area', $allowedAreas);
-                });
+            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), function ($eq) use ($allowedAreas) {
+                $eq->whereIn('equipo_area', $allowedAreas);
             });
 
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search){
-                $q->whereHas('equipo', function ($eq) use ($search) {
-                    $eq->where('serial', 'ILIKE', "%{$search}%");
-                })->orWhereHas('usuario',function ($eq) use ($search){
-                    $eq->where('name', 'ILIKE', "%{$search}%")
-                        ->orWhere('user_name', 'ILIKE', "%{$search}%");
-                });
+                $eq->where('equipo_serial', 'ILIKE', "%{$search}%")
+                    ->orWhereHas('usuario',function ($eq) use ($search){
+                        $eq->where('name', 'ILIKE', "%{$search}%")
+                            ->orWhere('user_name', 'ILIKE', "%{$search}%");
+                    });
             });
-            
         }
 
         if ($request->filled('tipo') && $request->input('tipo') !== 'all') {
-            $search = $request->input('tipo');
-            $query->where(function ($q) use ($search){
-                $q->whereHas('equipo', function($eq) use($search){
-                    $eq->where('tipo', $search);
-                });
-            });
+            $query->where('equipo_tipo', $request->input('tipo'));
         }
 
         // Ordenar por fecha más reciente

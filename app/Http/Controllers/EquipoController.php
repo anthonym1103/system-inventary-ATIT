@@ -21,7 +21,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
-use setasign\Fpdi\Fpdi;
+use Illuminate\Support\Facades\Storage;
+use setasign\Fpdi\Tcpdf\FpdiTcpdf;
 
 class EquipoController extends Controller
 {
@@ -719,7 +720,16 @@ class EquipoController extends Controller
 
         abort_if($equipos->isEmpty(), 404);
 
-        $pdfPath = $this->generarPdfDesincorporacion($equipos, $user);
+        try {
+            $pdfPath = $this->generarPdfDesincorporacion($equipos, $user);
+        } catch (\Throwable $e) {
+            report($e); // se guarda en storage/logs/laravel.log
+
+            return response()->json([
+                'message' => 'No se pudo generar el PDF de desincorporación.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
 
         DB::transaction(function () use ($equipos) {
             foreach ($equipos as $equipo) {
@@ -742,31 +752,60 @@ class EquipoController extends Controller
             Equipo::whereIn('id', $equipos->pluck('id'))->delete();
         });
 
-            return response()->download($pdfPath)->deleteFileAfterSend(true);
+        return response()->download($pdfPath)->deleteFileAfterSend(true);
     }
 
     private function generarPdfDesincorporacion($equipos, $user): string
     {
-        $pdf = new Fpdi();
+        
         $templatePath = storage_path('app/pdf-templates/desincorporacion.pdf');
-        $pdf->setSourceFile($templatePath);
-
-        dd($templatePath);
-
-        foreach ($equipos as $equipo) {
-            $templateId = $pdf->importPage(1);
-            $pdf->AddPage();
-            $pdf->useTemplate($templateId, 0, 0, 210);
-
-            $pdf->SetFont('Helvetica', '', 10);
-            $pdf->SetXY(50, 60);  $pdf->Write(0, $equipo->serial);
-            $pdf->SetXY(50, 70);  $pdf->Write(0, "{$equipo->marca} {$equipo->modelo}");
-            $pdf->SetXY(50, 80);  $pdf->Write(0, "{$equipo->ubicacion?->locacion}, {$equipo->ubicacion?->estado}");
-            $pdf->SetXY(50, 90);  $pdf->Write(0, now()->format('d/m/Y'));
-            $pdf->SetXY(50, 100); $pdf->Write(0, $user->name);
+        if (! file_exists($templatePath)) {
+            throw new \RuntimeException(
+                "No se encontró la plantilla PDF en: {$templatePath}. " .
+                "Sube tu PDF modelo a storage/app/pdf-templates/desincorporacion.pdf"
+            );
         }
 
-        $outputPath = storage_path('app/temp/desincorporacion_' . now()->timestamp . '.pdf');
+        $tempDir = 'storage/temp'; 
+        if (!Storage::disk('local')->exists($tempDir)) {
+            Storage::disk('local')->makeDirectory($tempDir, 0755, true);
+        }
+
+        $fileName = 'desincorporacion_' . now()->timestamp . '.pdf';
+        $outputPath = Storage::disk('local')->path($tempDir . '/' . $fileName);
+
+        $pdf = new FpdiTcpdf('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetFont('helvetica', '', 10);
+
+
+        foreach ($equipos as $equipo) {
+            $pageCount = $pdf->setSourceFile($templatePath);
+            $tplIdx = $pdf->importPage(1);
+            $pdf->AddPage();
+            $pdf->useTemplate($tplIdx, 0, 0, 210, null, true);
+
+            //Escribir en pdf
+            $pdf->SetXY(50, 60);
+            $pdf->Write(0, $equipo->serial ?? '');
+
+            $pdf->SetXY(50, 70);
+            $pdf->Write(0, trim(($equipo->marca ?? '') . ' ' . ($equipo->modelo ?? '')));
+
+            $pdf->SetXY(50, 80);
+            $locacion = $equipo->ubicacion?->locacion ?? '';
+            $estado = $equipo->ubicacion?->estado?->value ?? '';
+            $ubicacionTexto = trim("{$locacion}, {$estado}", ', ');
+            $pdf->Write(0, $ubicacionTexto);
+
+            $pdf->SetXY(50, 90);
+            $pdf->Write(0, now()->format('d/m/Y'));
+
+            $pdf->SetXY(50, 100);
+            $pdf->Write(0, $user->name ?? '');
+        }
+
         $pdf->Output($outputPath, 'F');
 
         return $outputPath;

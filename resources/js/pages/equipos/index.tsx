@@ -203,7 +203,17 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
         });
 
         if (!response.ok) {
-            toast.error('No se pudieron desincorporar los equipos.');
+            // Intenta leer el mensaje real del servidor
+            const contentType = response.headers.get('content-type') ?? '';
+            let errorMessage = 'No se pudieron desincorporar los equipos.';
+
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                errorMessage = data.error || data.message || errorMessage;
+            }
+
+            console.error('Error al desincorporar:', errorMessage);
+            toast.error(errorMessage);
             return;
         }
 

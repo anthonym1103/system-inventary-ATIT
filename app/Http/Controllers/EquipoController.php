@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
-use setasign\Fpdi\Tcpdf\FpdiTcpdf;
+use setasign\Fpdi\Tcpdf\Fpdi as FpdiTcpdf;
 
 class EquipoController extends Controller
 {

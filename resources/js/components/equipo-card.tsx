@@ -57,14 +57,16 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,co
         >
             <div className="relative">
                 {selectMode && (
-                    <input
-                        type="checkbox"
-                        checked={selectedIds.includes(equipo.id)}
-                        onChange={() => onToggleSelect(equipo.id)}
-                        className="absolute top-2 left-2 h-4 w-4 cursor-pointer"
-                    />
+                    <div className="absolute top-2 left-2 z-10">
+                        <input
+                            type="checkbox"
+                            checked={selectedIds.includes(equipo.id)}
+                            onChange={() => onToggleSelect(equipo.id)}
+                            className="h-4 w-4 cursor-pointer accent-primary"
+                        />
+                    </div>
                 )}
-                <div>
+                <div className = {selectMode ? "ml-4" : "" }>
                     <CardHeader className="pb-2">
                         <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">

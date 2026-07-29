@@ -707,6 +707,7 @@ class EquipoController extends Controller
         $validated = $request->validate([
             'equipo_ids' => ['required', 'array', 'min:1'],
             'equipo_ids.*' => ['integer', 'exists:equipos,id'],
+            'motivo' => ['required', 'string', 'max:1000'],
         ]);
 
         $allowedAreas = $this->getUserAllowedAreas($user);
@@ -721,9 +722,9 @@ class EquipoController extends Controller
         abort_if($equipos->isEmpty(), 404);
 
         try {
-            $pdfPath = $this->generarPdfDesincorporacion($equipos, $user);
+            $pdfPath = $this->generarPdfDesincorporacion($equipos, $user, $validated['motivo']);
         } catch (\Throwable $e) {
-            report($e); // se guarda en storage/logs/laravel.log
+            report($e);
 
             return response()->json([
                 'message' => 'No se pudo generar el PDF de desincorporación.',
@@ -731,7 +732,7 @@ class EquipoController extends Controller
             ], 500);
         }
 
-        DB::transaction(function () use ($equipos) {
+        DB::transaction(function () use ($equipos, $validated) {
             foreach ($equipos as $equipo) {
                 HistorialEquipo::create([
                     'usuario_id' => auth()->id(),
@@ -739,7 +740,8 @@ class EquipoController extends Controller
                     'equipo_area' => $equipo->area->value,
                     'equipo_tipo' => $equipo->tipo->value,
                     'equipo_serial' => $equipo->serial,
-                    'detalle' => 'Equipo desincorporado. Serial: ' . $equipo->serial
+                    'detalle' => 'Equipo desincorporado. Motivo: ' . $validated['motivo']
+                        . '. Serial: ' . $equipo->serial
                         . ', Modelo: ' . $equipo->modelo
                         . ', Ubicación: ' . ($equipo->ubicacion?->locacion ?? '—')
                         . ($equipo->userAsignado
@@ -755,9 +757,8 @@ class EquipoController extends Controller
         return response()->download($pdfPath)->deleteFileAfterSend(true);
     }
 
-    private function generarPdfDesincorporacion($equipos, $user): string
+    private function generarPdfDesincorporacion($equipos, $user, string $motivo): string
     {
-        
         $templatePath = storage_path('app/pdf-templates/desincorporacion.pdf');
         if (! file_exists($templatePath)) {
             throw new \RuntimeException(
@@ -766,7 +767,7 @@ class EquipoController extends Controller
             );
         }
 
-        $tempDir = 'storage/temp'; 
+        $tempDir = 'storage/temp';
         if (!Storage::disk('local')->exists($tempDir)) {
             Storage::disk('local')->makeDirectory($tempDir, 0755, true);
         }
@@ -777,16 +778,18 @@ class EquipoController extends Controller
         $pdf = new FpdiTcpdf('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-        $pdf->SetFont('helvetica', '', 10);
-
+        // Fuente unicode embebida (viene con TCPDF), en vez de 'helvetica',
+        // para que tildes y "ñ" se vean siempre correctas.
+        $pdf->SetFont('dejavusans', '', 10);
 
         foreach ($equipos as $equipo) {
-            $pageCount = $pdf->setSourceFile($templatePath);
+            $pdf->setSourceFile($templatePath);
             $tplIdx = $pdf->importPage(1);
             $pdf->AddPage();
             $pdf->useTemplate($tplIdx, 0, 0, 210, null, true);
 
-            //Escribir en pdf
+            $pdf->SetFont('dejavusans', '', 10);
+
             $pdf->SetXY(50, 60);
             $pdf->Write(0, $equipo->serial ?? '');
 
@@ -796,14 +799,19 @@ class EquipoController extends Controller
             $pdf->SetXY(50, 80);
             $locacion = $equipo->ubicacion?->locacion ?? '';
             $estado = $equipo->ubicacion?->estado?->value ?? '';
-            $ubicacionTexto = trim("{$locacion}, {$estado}", ', ');
-            $pdf->Write(0, $ubicacionTexto);
+            $pdf->Write(0, trim("{$locacion}, {$estado}", ', '));
 
             $pdf->SetXY(50, 90);
             $pdf->Write(0, now()->format('d/m/Y'));
 
             $pdf->SetXY(50, 100);
             $pdf->Write(0, $user->name ?? '');
+
+            // Motivo de la desincorporación.
+            // ⚠️ Ajusta X/Y/ancho según dónde esté realmente el recuadro
+            // "EXPLICACIÓN BREVE DEL MOTIVO..." en tu plantilla.
+            $pdf->SetXY(15, 200);
+            $pdf->MultiCell(180, 5, $motivo, 0, 'L');
         }
 
         $pdf->Output($outputPath, 'F');

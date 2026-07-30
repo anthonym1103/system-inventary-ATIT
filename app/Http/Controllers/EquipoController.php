@@ -712,7 +712,7 @@ class EquipoController extends Controller
 
         $allowedAreas = $this->getUserAllowedAreas($user);
 
-        $equipos = Equipo::with(['ubicacion', 'userAsignado'])
+        $equipos = Equipo::with(['ubicacion', 'userAsignado', 'infraestructura', 'transmision'])
             ->whereIn('id', $validated['equipo_ids'])
             ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value), function ($q) use ($allowedAreas) {
                 $q->whereIn('area', $allowedAreas);
@@ -740,8 +740,9 @@ class EquipoController extends Controller
                     'equipo_area' => $equipo->area->value,
                     'equipo_tipo' => $equipo->tipo->value,
                     'equipo_serial' => $equipo->serial,
-                    'detalle' => 'Equipo desincorporado. Motivo: ' . $validated['motivo']
-                        . '. Serial: ' . $equipo->serial
+                    'detalle' => 'Equipo desincorporado. ' 
+                        . '. Motivo: ' . $validated['motivo']
+                        . ', Serial: ' . $equipo->serial
                         . ', Modelo: ' . $equipo->modelo
                         . ', Ubicación: ' . ($equipo->ubicacion?->locacion ?? '—')
                         . ($equipo->userAsignado
@@ -778,39 +779,73 @@ class EquipoController extends Controller
         $pdf = new FpdiTcpdf('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-        // Fuente unicode embebida (viene con TCPDF), en vez de 'helvetica',
-        // para que tildes y "ñ" se vean siempre correctas.
-        $pdf->SetFont('dejavusans', '', 10);
+        $pdf->SetFont('dejavusans', '', 9);
 
-        foreach ($equipos as $equipo) {
+        $porPagina = 12;
+        $paginas = $equipos->chunk($porPagina);
+
+        // --- Coordenadas de la tabla (AJUSTAR según tu plantilla real) ---
+        $tablaX = 15;
+        $tablaYInicio = 68;
+        $filaAltura = 13.2;
+        $colInventarioAncho = 30;
+        $colDescripcionAncho = 165;
+
+        foreach ($paginas as $chunk) {
             $pdf->setSourceFile($templatePath);
             $tplIdx = $pdf->importPage(1);
             $pdf->AddPage();
             $pdf->useTemplate($tplIdx, 0, 0, 210, null, true);
+            $pdf->SetFont('dejavusans', '', 9);
 
-            $pdf->SetFont('dejavusans', '', 10);
+            // --- Modo calibración: activa temporalmente para ver la grilla ---
+            if (config('app.debug') && request()->boolean('calibrar')) {
+                $pdf->SetLineWidth(0.1);
+                $pdf->SetDrawColor(255, 0, 0);
+                for ($gx = 0; $gx <= 210; $gx += 10) {
+                    $pdf->Line($gx, 0, $gx, 297);
+                    $pdf->SetXY($gx, 0);
+                    $pdf->SetFont('dejavusans', '', 5);
+                    $pdf->Cell(5, 3, (string) $gx);
+                }
+                for ($gy = 0; $gy <= 297; $gy += 10) {
+                    $pdf->Line(0, $gy, 210, $gy);
+                    $pdf->SetXY(0, $gy);
+                    $pdf->Cell(5, 3, (string) $gy);
+                }
+                $pdf->SetFont('dejavusans', '', 9);
+            }
 
-            $pdf->SetXY(50, 60);
-            $pdf->Write(0, $equipo->serial ?? '');
+            // Fecha (junto a "N° de Control")
+            $pdf->SetXY(178, 20);
+            $pdf->Cell(20, 5, now()->format('d/m/Y'), 0, 0, 'L');
 
-            $pdf->SetXY(50, 70);
-            $pdf->Write(0, trim(($equipo->marca ?? '') . ' ' . ($equipo->modelo ?? '')));
+            $y = $tablaYInicio;
 
-            $pdf->SetXY(50, 80);
-            $locacion = $equipo->ubicacion?->locacion ?? '';
-            $estado = $equipo->ubicacion?->estado?->value ?? '';
-            $pdf->Write(0, trim("{$locacion}, {$estado}", ', '));
+            foreach ($chunk as $equipo) {
+                $numeroInventario = $equipo->infraestructura?->numero_inventario
+                    ?? $equipo->transmision?->numero_inventario
+                    ?? '—';
 
-            $pdf->SetXY(50, 90);
-            $pdf->Write(0, now()->format('d/m/Y'));
+                $descripcion = trim(sprintf(
+                    '%s — %s %s — Serial: %s',
+                    $equipo->tipo->label(),
+                    $equipo->marca ?? '',
+                    $equipo->modelo,
+                    $equipo->serial,
+                )); 
 
-            $pdf->SetXY(50, 100);
-            $pdf->Write(0, $user->name ?? '');
+                $pdf->SetXY($tablaX, $y);
+                $pdf->Cell($colInventarioAncho, $filaAltura, $numeroInventario, 0, 0, 'C');
 
-            // Motivo de la desincorporación.
-            // ⚠️ Ajusta X/Y/ancho según dónde esté realmente el recuadro
-            // "EXPLICACIÓN BREVE DEL MOTIVO..." en tu plantilla.
-            $pdf->SetXY(15, 200);
+                $pdf->SetXY($tablaX + $colInventarioAncho, $y);
+                $pdf->MultiCell($colDescripcionAncho, $filaAltura, $descripcion, 0, 'L');
+
+                $y += $filaAltura;
+            }
+
+            // Explicación breve del motivo
+            $pdf->SetXY(15, 235);
             $pdf->MultiCell(180, 5, $motivo, 0, 'L');
         }
 

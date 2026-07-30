@@ -169,6 +169,9 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                 limited = ipDigits.slice(0, 12);
                 parts = limited.match(/.{1,3}/g) || [];
                 return parts.join('.');
+            case 'ram':
+                const ramDigits = value.replace(/\D/g, '').slice(0, 4);
+                return ramDigits ? `${ramDigits} GB` : '';
             default:
                 return value;
         }

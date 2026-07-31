@@ -302,14 +302,17 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                         />
                     </div>
                     <div className="flex justify-end items-center gap-2">
-                        {(permissions.can_create && !selectMode) && (
-                            <div className='flex gap-2'>
+                        <div className='flex gap-2'>
+                            {(permissions.can_create && !selectMode) && (
                                 <Button variant="outline" asChild>
                                     <Link href="/equipos/create">
                                         <Plus className="h-4 w-4" />
                                         Agregar nuevo equipo
                                     </Link>
                                 </Button>
+                            )}
+
+                            {(permissions.can_delete && !selectMode) && (
                                 <Button 
                                     variant="destructiveNotification" 
                                     onClick={() => setSelectMode(true)}
@@ -319,12 +322,12 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                                     <FileX className="h-3.5 w-3.5" />
                                     Desincorporar equipos
                                 </Button>
-                            </div>
-                        )}
+                            )}                        
+                        </div>
 
                         {selectMode && (
                             <div className="flex items-center justify-between p-3">
-                                <span className="text-sm mr-4">
+                                <span className="text-sm mr-2">
                                     {selectedIds.length} equipo(s) seleccionado(s)
                                 </span>
                                 <div className="flex gap-2">

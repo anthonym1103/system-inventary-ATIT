@@ -51,6 +51,7 @@ class RoleSeeder extends Seeder
         $adminRole->syncPermissions([
                 'ver_historial',
                 'asignar_roles',
+                'eliminar_equipos',
                 ],);
 
         //Creamos roles a usuarios de prueba
@@ -68,7 +69,6 @@ class RoleSeeder extends Seeder
             Cargo::TECNICO->value => [
                 'crear_equipos', 
                 'editar_equipos', 
-                'eliminar_equipos', 
                 'ver_historial',
                 ],
             default => [],

@@ -741,7 +741,7 @@ class EquipoController extends Controller
                     'equipo_tipo' => $equipo->tipo->value,
                     'equipo_serial' => $equipo->serial,
                     'detalle' => 'Equipo desincorporado. ' 
-                        . '. Motivo: ' . $validated['motivo']
+                        . ', Motivo: ' . $validated['motivo']
                         . ', Serial: ' . $equipo->serial
                         . ', Modelo: ' . $equipo->modelo
                         . ', Ubicación: ' . ($equipo->ubicacion?->locacion ?? '—')
@@ -760,7 +760,7 @@ class EquipoController extends Controller
 
     private function generarPdfDesincorporacion($equipos, $user, string $motivo): string
     {
-        $templatePath = storage_path('app/pdf-templates/desincorporacion.pdf');
+        $templatePath = storage_path('app/pdf-templates/desincorporacionTecnica.pdf');
         if (! file_exists($templatePath)) {
             throw new \RuntimeException(
                 "No se encontró la plantilla PDF en: {$templatePath}. " .
@@ -776,78 +776,176 @@ class EquipoController extends Controller
         $fileName = 'desincorporacion_' . now()->timestamp . '.pdf';
         $outputPath = Storage::disk('local')->path($tempDir . '/' . $fileName);
 
-        $pdf = new FpdiTcpdf('P', 'mm', 'A4', true, 'UTF-8', false);
+       // Conversión pts → mm (1pt = 0.3527778mm)
+        $ptToMm = fn (float $pt): float => $pt * 0.3527778;
+
+        $pdf = new FpdiTcpdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
+        $pdf->SetMargins(0, 0, 0);
+        $pdf->SetAutoPageBreak(false);
+        $pdf->SetFont('dejavusans', '', 9);
+        
+        $pdf->setSourceFile($templatePath);
+
+        // ================== PÁGINA 1 ==================
+        $tpl1 = $pdf->importPage(1);
+        $size1 = $pdf->getTemplateSize($tpl1);
+        $pdf->AddPage('P', [$size1['width'], $size1['height']]);
+        $pdf->useTemplate($tpl1, 0, 0, $size1['width'], $size1['height']);
+
+        // --- Cabecera: PARA / DE / NÚMERO / FECHA ---
+        // Valores de ejemplo por los momentos (ajusta cuando definas el flujo real)
+        $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(127.50));
+        $pdf->Cell(0, 4.5, 'Gerencia General de ATIT');
+
+        $pdf->SetXY($ptToMm(78.62 + 18.91) + 20, $ptToMm(164.22));
+        $pdf->Cell(0, 4.5, 'Infraestructura Tecnológica Ciudad Bolívar');
+
+        $pdf->SetXY($ptToMm(78.62 + 52.61) + 8, $ptToMm(191.10));
+        $pdf->Cell(0, 4.5, 'S/N');
+
+        $pdf->SetXY($ptToMm(78.62 + 41.47) + 12, $ptToMm(214.02));
+        $pdf->Cell(0, 4.5, now()->format('d/m/Y'));
+
+       // --- Config de tabla ---
+        $tablaX = $ptToMm(78.62);
+        $yInicioPagina1 = $ptToMm(283.49 + 12.00) + 6;
+        $limiteY = $size1['height'] - 60; // deja espacio para el pie de página
+        $alturaFilaVacia = 6; // altura mínima, la misma que una fila de una sola línea
+
+        $columnas = [
+            ['header' => '#',      'width' => 8,  'align' => 'C', 'get' => fn ($e, $n) => (string) $n],
+            ['header' => 'Tipo',   'width' => 32, 'align' => 'L', 'get' => fn ($e) => $e->tipo->label()],
+            ['header' => 'Marca',  'width' => 30, 'align' => 'L', 'get' => fn ($e) => $e->marca ?? '—'],
+            ['header' => 'Modelo', 'width' => 30, 'align' => 'L', 'get' => fn ($e) => $e->modelo],
+            ['header' => 'Serial', 'width' => 62, 'align' => 'L', 'get' => fn ($e) => $e->serial],
+        ];
+
+        $dibujarTitulo = function (float $x, float $y, string $texto) use ($pdf) {
+            $pdf->SetFont('dejavusans', 'B', 10);
+            $pdf->SetXY($x, $y);
+            $pdf->Cell(0, 6, $texto, 0, 1, 'L');
+            $pdf->SetFont('dejavusans', '', 8);
+        };
+
+        $dibujarEncabezadoTabla = function (float $x, float $y) use ($pdf, $columnas) {
+            $pdf->SetFont('dejavusans', 'B', 8);
+            $cx = $x;
+            foreach ($columnas as $col) {
+                $pdf->SetXY($cx, $y);
+                $pdf->Cell($col['width'], 6, $col['header'], 1, 0, 'C');
+                $cx += $col['width'];
+            }
+            $pdf->SetFont('dejavusans', '', 8);
+        };
+
+        // Altura real que necesita la fila según el texto más largo entre sus columnas.
+        // Con celdas vacías ('') esto siempre devuelve el mínimo (6mm).
+        $calcularAlturaFila = function (array $valores) use ($pdf, $columnas) {
+            $lineHeight = 4;
+            $maxLineas = 1;
+
+            foreach ($columnas as $i => $col) {
+                $lineas = $pdf->getNumLines($valores[$i], $col['width'] - 2);
+                $maxLineas = max($maxLineas, $lineas);
+            }
+
+            return max(6, $maxLineas * $lineHeight);
+        };
+
+        $dibujarFila = function (float $x, float $y, array $valores, float $altura) use ($pdf, $columnas) {
+            $cx = $x;
+            foreach ($columnas as $i => $col) {
+                $pdf->MultiCell(
+                    $col['width'], $altura, $valores[$i], 1, $col['align'],
+                    false, 0, $cx, $y, true, 0, false, true, $altura, 'M'
+                );
+                $cx += $col['width'];
+            }
+        };
+
+        $dibujarTitulo($tablaX, $yInicioPagina1, 'Equipos a desincorporar');
+        $y = $yInicioPagina1 + 8;
+        $dibujarEncabezadoTabla($tablaX, $y);
+        $y += 6;
+
+        $equiposArray = $equipos->values();
+        $numero = 1;
+        $enPagina2 = false;
+        $size2 = null;
+
+        // --- Filas con datos reales (altura variable, sin truncar) ---
+        foreach ($equiposArray as $equipo) {
+            $valores = [];
+            foreach ($columnas as $col) {
+                $valores[] = $col['get']($equipo, $numero);
+            }
+
+            $altura = $calcularAlturaFila($valores);
+            $limiteActual = $enPagina2 ? ($size2['height'] - 60) : $limiteY;
+
+            if ($y + $altura > $limiteActual) {
+                if ($enPagina2) {
+                    throw new \RuntimeException(
+                        "El informe no tiene espacio suficiente para todos los equipos seleccionados. " .
+                        "Reduce la cantidad de equipos por desincorporación."
+                    );
+                }
+
+                $tpl2 = $pdf->importPage(2);
+                $size2 = $pdf->getTemplateSize($tpl2);
+                $pdf->AddPage('P', [$size2['width'], $size2['height']]);
+                $pdf->useTemplate($tpl2, 0, 0, $size2['width'], $size2['height']);
+
+                $enPagina2 = true;
+                $y = 30;
+                $dibujarTitulo($tablaX, $y, 'Equipos a desincorporar (continuación)');
+                $y += 8;
+                $dibujarEncabezadoTabla($tablaX, $y);
+                $y += 6;
+            }
+
+            $dibujarFila($tablaX, $y, $valores, $altura);
+            $y += $altura;
+            $numero++;
+        }
+
+        // --- Relleno con filas vacías hasta el límite de la página actual ---
+        // Se calcula DESPUÉS de saber cuánto ocupó la tabla real, así que no
+        // hay ningún "cupo" adivinado de antemano: solo se completa lo que sobra.
+        $limiteActual = $enPagina2 ? ($size2['height'] - 60) : $limiteY;
+        $valoresVacios = array_fill(0, count($columnas), '');
+
+        while ($y + $alturaFilaVacia <= $limiteActual) {
+            $dibujarFila($tablaX, $y, $valoresVacios, $alturaFilaVacia);
+            $y += $alturaFilaVacia;
+        }
+
+        // ================== PÁGINA 3 (conclusión y firmas) ==================
+        //$firmaPath = storage_path('app/firmas/ramon_hernandez.png');
+        $tpl3 = $pdf->importPage(3);
+        $size3 = $pdf->getTemplateSize($tpl3);
+        $pdf->AddPage('P', [$size3['width'], $size3['height']]);
+        $pdf->useTemplate($tpl3, 0, 0, $size3['width'], $size3['height']);
+
         $pdf->SetFont('dejavusans', '', 9);
 
-        $porPagina = 12;
-        $paginas = $equipos->chunk($porPagina);
+        $fechaLabelWidth = 36.67;
+        $fechaY = 604.66;
+        $fecha1X = 136.94 + $fechaLabelWidth;
+        $fecha2X = 374.83 + $fechaLabelWidth;
+        
+        /*if (file_exists($firmaPath)) {
+            // x, y, ancho, alto — se coloca justo encima de la línea "___" y antes de "Fecha:"
+            $pdf->Image($firmaPath, 25, 220, 40, 15, 'PNG', '', '', true, 300);
+        }*/
 
-        // --- Coordenadas de la tabla (AJUSTAR según tu plantilla real) ---
-        $tablaX = 15;
-        $tablaYInicio = 68;
-        $filaAltura = 13.2;
-        $colInventarioAncho = 30;
-        $colDescripcionAncho = 165;
+        $pdf->SetXY($ptToMm($fecha1X) + 2, $ptToMm($fechaY));
+        $pdf->Cell(30, 4.5, now()->format('d/m/Y'));
 
-        foreach ($paginas as $chunk) {
-            $pdf->setSourceFile($templatePath);
-            $tplIdx = $pdf->importPage(1);
-            $pdf->AddPage();
-            $pdf->useTemplate($tplIdx, 0, 0, 210, null, true);
-            $pdf->SetFont('dejavusans', '', 9);
-
-            // --- Modo calibración: activa temporalmente para ver la grilla ---
-            if (config('app.debug') && request()->boolean('calibrar')) {
-                $pdf->SetLineWidth(0.1);
-                $pdf->SetDrawColor(255, 0, 0);
-                for ($gx = 0; $gx <= 210; $gx += 10) {
-                    $pdf->Line($gx, 0, $gx, 297);
-                    $pdf->SetXY($gx, 0);
-                    $pdf->SetFont('dejavusans', '', 5);
-                    $pdf->Cell(5, 3, (string) $gx);
-                }
-                for ($gy = 0; $gy <= 297; $gy += 10) {
-                    $pdf->Line(0, $gy, 210, $gy);
-                    $pdf->SetXY(0, $gy);
-                    $pdf->Cell(5, 3, (string) $gy);
-                }
-                $pdf->SetFont('dejavusans', '', 9);
-            }
-
-            // Fecha (junto a "N° de Control")
-            $pdf->SetXY(178, 20);
-            $pdf->Cell(20, 5, now()->format('d/m/Y'), 0, 0, 'L');
-
-            $y = $tablaYInicio;
-
-            foreach ($chunk as $equipo) {
-                $numeroInventario = $equipo->infraestructura?->numero_inventario
-                    ?? $equipo->transmision?->numero_inventario
-                    ?? '—';
-
-                $descripcion = trim(sprintf(
-                    '%s — %s %s — Serial: %s',
-                    $equipo->tipo->label(),
-                    $equipo->marca ?? '',
-                    $equipo->modelo,
-                    $equipo->serial,
-                )); 
-
-                $pdf->SetXY($tablaX, $y);
-                $pdf->Cell($colInventarioAncho, $filaAltura, $numeroInventario, 0, 0, 'C');
-
-                $pdf->SetXY($tablaX + $colInventarioAncho, $y);
-                $pdf->MultiCell($colDescripcionAncho, $filaAltura, $descripcion, 0, 'L');
-
-                $y += $filaAltura;
-            }
-
-            // Explicación breve del motivo
-            $pdf->SetXY(15, 235);
-            $pdf->MultiCell(180, 5, $motivo, 0, 'L');
-        }
+        $pdf->SetXY($ptToMm($fecha2X) + 2, $ptToMm($fechaY));
+        $pdf->Cell(30, 4.5, now()->format('d/m/Y'));
 
         $pdf->Output($outputPath, 'F');
 

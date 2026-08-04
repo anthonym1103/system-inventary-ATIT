@@ -14,7 +14,11 @@ import { EquipoEditModal } from '@/components/equipo-edit.modal';
 import { SelectItemText, Value } from '@radix-ui/react-select';
 import { Separator } from '@/components/ui/separator';
 import { EquipoMantenimientoDialog } from '@/components/equipo-mantenimiento-dialog';
-import { EquipoDesincorporarDialog } from '@/components/equipo-desincorporar-dialog';
+import {
+    EquipoDesincorporarDialog,
+    type EquipoExtraInput,
+    type PerifericoInput,
+} from '@/components/equipo-desincorporar-dialog';
 import { toast } from 'sonner';
 
 
@@ -189,8 +193,12 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
         );
     };
 
-    const handleDesincorporar = async (motivo: string) => {
-        if (selectedIds.length === 0) return;
+    const handleDesincorporar = async (
+        motivo: string,
+        equiposExtra: EquipoExtraInput[],
+        perifericos: PerifericoInput[],
+    ) => {
+        if (selectedIds.length === 0 && equiposExtra.length === 0 && perifericos.length === 0) return;
 
         setDesincorporando(true);
 
@@ -204,7 +212,12 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                     'X-CSRF-TOKEN': csrf,
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ equipo_ids: selectedIds, motivo }),
+                body: JSON.stringify({
+                    equipo_ids: selectedIds,
+                    motivo,
+                    equipos_extra: equiposExtra,
+                    perifericos,
+                }),
             });
 
             if (!response.ok) {

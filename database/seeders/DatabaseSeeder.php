@@ -36,7 +36,8 @@ class DatabaseSeeder extends Seeder
             'name' => 'Anthony Medina',
             'user_name' => 'anthonyml03',
             'email' => 'testfirst@gmail.com',
-            'password' => '123456ml'
+            'password' => '123456ml',
+            'area' => null,
         ]);
 
         $this->call([

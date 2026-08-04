@@ -20,10 +20,16 @@ class HistorialController extends Controller
         abort_unless($user->can('ver_historial'), 403);
 
         $allowedAreas = $this->getUserAllowedAreas($user);
+        $isAdmin = $user->hasRole(Cargo::ADMINISTRADOR->value);
 
         $query = HistorialEquipo::with(['usuario', 'equipo.ubicacion'])
-            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), function ($eq) use ($allowedAreas) {
-                $eq->whereIn('equipo_area', $allowedAreas);
+            ->when(!$isAdmin, function ($eq) use ($allowedAreas) {
+                $eq->when(!empty($allowedAreas), fn ($q) => $q->whereIn('equipo_area', $allowedAreas))
+                    ->whereHas('usuario', function ($u) {
+                        $u->whereDoesntHave('roles', function ($r) {
+                            $r->where('name', Cargo::ADMINISTRADOR->value);
+                        });
+                    });
             });
 
         if ($request->filled('search')) {

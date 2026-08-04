@@ -705,24 +705,46 @@ class EquipoController extends Controller
         abort_unless($user->can('eliminar_equipos'), 403);
 
         $validated = $request->validate([
-            'equipo_ids' => ['required', 'array', 'min:1'],
+            'equipo_ids' => ['nullable', 'array'],
             'equipo_ids.*' => ['integer', 'exists:equipos,id'],
             'motivo' => ['required', 'string', 'max:1000'],
+            'equipos_extra' => ['nullable', 'array'],
+            'equipos_extra.*.tipo' => ['required', 'string', 'max:255'],
+            'equipos_extra.*.marca' => ['nullable', 'string', 'max:255'],
+            'equipos_extra.*.modelo' => ['required', 'string', 'max:255'],
+            'equipos_extra.*.serial' => ['nullable', 'string', 'max:255'],
+            'perifericos' => ['nullable', 'array'],
+            'perifericos.*.tipo' => ['required', 'string', 'max:255'],
+            'perifericos.*.marca' => ['nullable', 'string', 'max:255'],
+            'perifericos.*.modelo' => ['nullable', 'string', 'max:255'],
+            'perifericos.*.serial' => ['nullable', 'string', 'max:255'],
+            'perifericos.*.caracteristicas' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $equipoIds = $validated['equipo_ids'] ?? [];
+        $equiposExtra = $validated['equipos_extra'] ?? [];
+        $perifericos = $validated['perifericos'] ?? [];
+
+        if (empty($equipoIds) && empty($equiposExtra) && empty($perifericos)) {
+            return response()->json([
+                'message' => 'Debes seleccionar o agregar al menos un equipo o periférico a desincorporar.',
+            ], 422);
+        }
 
         $allowedAreas = $this->getUserAllowedAreas($user);
 
-        $equipos = Equipo::with(['ubicacion', 'userAsignado', 'infraestructura', 'transmision'])
-            ->whereIn('id', $validated['equipo_ids'])
-            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value), function ($q) use ($allowedAreas) {
-                $q->whereIn('area', $allowedAreas);
-            })
-            ->get();
-
-        abort_if($equipos->isEmpty(), 404);
+        $equipos = collect();
+        if (!empty($equipoIds)) {
+            $equipos = Equipo::with(['ubicacion', 'userAsignado', 'infraestructura', 'transmision'])
+                ->whereIn('id', $equipoIds)
+                ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value), function ($q) use ($allowedAreas) {
+                    $q->whereIn('area', $allowedAreas);
+                })
+                ->get();
+        }
 
         try {
-            $pdfPath = $this->generarPdfDesincorporacion($equipos, $user, $validated['motivo']);
+            $pdfPath = $this->generarPdfDesincorporacion($equipos, $equiposExtra, $perifericos, $user, $validated['motivo']);
         } catch (\Throwable $e) {
             report($e);
 
@@ -732,7 +754,7 @@ class EquipoController extends Controller
             ], 500);
         }
 
-        DB::transaction(function () use ($equipos, $validated) {
+        DB::transaction(function () use ($equipos, $equiposExtra, $perifericos, $validated) {
             foreach ($equipos as $equipo) {
                 HistorialEquipo::create([
                     'usuario_id' => auth()->id(),
@@ -740,25 +762,71 @@ class EquipoController extends Controller
                     'equipo_area' => $equipo->area->value,
                     'equipo_tipo' => $equipo->tipo->value,
                     'equipo_serial' => $equipo->serial,
-                    'detalle' => 'Equipo desincorporado. ' 
-                        . ', Motivo: ' . $validated['motivo']
-                        . ', Serial: ' . $equipo->serial
-                        . ', Modelo: ' . $equipo->modelo
-                        . ', Ubicación: ' . ($equipo->ubicacion?->locacion ?? '—')
+                    'detalle' => 'Equipo desincorporado: '
+                        . '; Motivo: ' . $validated['motivo']
+                        . '; Serial: ' . $equipo->serial
+                        . '; Modelo: ' . $equipo->modelo
+                        . '; Ubicación: ' . ($equipo->ubicacion?->locacion ?? '—')
                         . ($equipo->userAsignado
-                            ? ', Encargado: ' . $equipo->userAsignado->nombre . ' ' . $equipo->userAsignado->apellido
+                            ? '; Encargado: ' . $equipo->userAsignado->nombre . ' ' . $equipo->userAsignado->apellido
                             : ''),
                     'fecha_ajuste' => now(),
                 ]);
             }
 
-            Equipo::whereIn('id', $equipos->pluck('id'))->delete();
+            if ($equipos->isNotEmpty()) {
+                Equipo::whereIn('id', $equipos->pluck('id'))->delete();
+            }
+
+            // Los equipos y periféricos "extra" no existen como registros, así
+            // que solo dejamos constancia en el historial (equipo_id nulo).
+            foreach ($equiposExtra as $extra) {
+                HistorialEquipo::create([
+                    'usuario_id' => auth()->id(),
+                    'equipo_id' => null,
+                    'equipo_area' => null,
+                    'equipo_tipo' => null,
+                    'equipo_serial' => $extra['serial'] ?? null,
+                    'detalle' => 'Equipo no registrado desincorporado: '
+                        . '; Motivo: ' . $validated['motivo']
+                        . '; Tipo: ' . $extra['tipo']
+                        . '; Marca: ' . ($extra['marca'] ?: '—')
+                        . '; Modelo: ' . $extra['modelo']
+                        . '; Serial: ' . ($extra['serial'] ?: '—'),
+                    'fecha_ajuste' => now(),
+                ]);
+            }
+
+            $perifericosLabels = [
+                'teclado' => 'Teclado',
+                'mouse' => 'Mouse',
+                'monitor' => 'Monitor',
+                'otro' => 'Periférico',
+            ];
+
+            foreach ($perifericos as $periferico) {
+                HistorialEquipo::create([
+                    'usuario_id' => auth()->id(),
+                    'equipo_id' => null,
+                    'equipo_area' => null,
+                    'equipo_tipo' => null,
+                    'equipo_serial' => $periferico['serial'] ?? null,
+                    'detalle' => 'Periférico desincorporado: ' 
+                        . '; Motivo: ' . $validated['motivo']
+                        . '; Tipo: ' . ($perifericosLabels[$periferico['tipo']] ?? $periferico['tipo'])
+                        . '; Marca: ' . ($periferico['marca'] ?: '—')
+                        . '; Modelo: ' . ($periferico['modelo'] ?: '—')
+                        . '; Serial: ' . ($periferico['serial'] ?: '—')
+                        . '; Características: ' . ($periferico['caracteristicas'] ?: '—'),
+                    'fecha_ajuste' => now(),
+                ]);
+            }
         });
 
         return response()->download($pdfPath)->deleteFileAfterSend(true);
     }
 
-    private function generarPdfDesincorporacion($equipos, $user, string $motivo): string
+    private function generarPdfDesincorporacion($equipos, array $equiposExtra, array $perifericos, $user, string $motivo): string
     {
         $templatePath = storage_path('app/pdf-templates/desincorporacionTecnica.pdf');
         if (! file_exists($templatePath)) {
@@ -776,7 +844,6 @@ class EquipoController extends Controller
         $fileName = 'desincorporacion_' . now()->timestamp . '.pdf';
         $outputPath = Storage::disk('local')->path($tempDir . '/' . $fileName);
 
-       // Conversión pts → mm (1pt = 0.3527778mm)
         $ptToMm = fn (float $pt): float => $pt * 0.3527778;
 
         $pdf = new FpdiTcpdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
@@ -785,7 +852,7 @@ class EquipoController extends Controller
         $pdf->SetMargins(0, 0, 0);
         $pdf->SetAutoPageBreak(false);
         $pdf->SetFont('dejavusans', '', 9);
-        
+
         $pdf->setSourceFile($templatePath);
 
         // ================== PÁGINA 1 ==================
@@ -794,8 +861,6 @@ class EquipoController extends Controller
         $pdf->AddPage('P', [$size1['width'], $size1['height']]);
         $pdf->useTemplate($tpl1, 0, 0, $size1['width'], $size1['height']);
 
-        // --- Cabecera: PARA / DE / NÚMERO / FECHA ---
-        // Valores de ejemplo por los momentos (ajusta cuando definas el flujo real)
         $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(127.50));
         $pdf->Cell(0, 4.5, 'Gerencia General de ATIT');
 
@@ -808,20 +873,7 @@ class EquipoController extends Controller
         $pdf->SetXY($ptToMm(78.62 + 41.47) + 12, $ptToMm(214.02));
         $pdf->Cell(0, 4.5, now()->format('d/m/Y'));
 
-       // --- Config de tabla ---
-        $tablaX = $ptToMm(78.62);
-        $yInicioPagina1 = $ptToMm(283.49 + 12.00) + 6;
-        $limiteY = $size1['height'] - 60; // deja espacio para el pie de página
-        $alturaFilaVacia = 6; // altura mínima, la misma que una fila de una sola línea
-
-        $columnas = [
-            ['header' => '#',      'width' => 8,  'align' => 'C', 'get' => fn ($e, $n) => (string) $n],
-            ['header' => 'Tipo',   'width' => 32, 'align' => 'L', 'get' => fn ($e) => $e->tipo->label()],
-            ['header' => 'Marca',  'width' => 30, 'align' => 'L', 'get' => fn ($e) => $e->marca ?? '—'],
-            ['header' => 'Modelo', 'width' => 30, 'align' => 'L', 'get' => fn ($e) => $e->modelo],
-            ['header' => 'Serial', 'width' => 62, 'align' => 'L', 'get' => fn ($e) => $e->serial],
-        ];
-
+        // --- Helpers reutilizables para todas las tablas del documento ---
         $dibujarTitulo = function (float $x, float $y, string $texto) use ($pdf) {
             $pdf->SetFont('dejavusans', 'B', 10);
             $pdf->SetXY($x, $y);
@@ -829,7 +881,7 @@ class EquipoController extends Controller
             $pdf->SetFont('dejavusans', '', 8);
         };
 
-        $dibujarEncabezadoTabla = function (float $x, float $y) use ($pdf, $columnas) {
+        $dibujarEncabezadoTabla = function (float $x, float $y, array $columnas) use ($pdf) {
             $pdf->SetFont('dejavusans', 'B', 8);
             $cx = $x;
             foreach ($columnas as $col) {
@@ -840,9 +892,7 @@ class EquipoController extends Controller
             $pdf->SetFont('dejavusans', '', 8);
         };
 
-        // Altura real que necesita la fila según el texto más largo entre sus columnas.
-        // Con celdas vacías ('') esto siempre devuelve el mínimo (6mm).
-        $calcularAlturaFila = function (array $valores) use ($pdf, $columnas) {
+        $calcularAlturaFila = function (array $valores, array $columnas) use ($pdf) {
             $lineHeight = 4;
             $maxLineas = 1;
 
@@ -854,7 +904,7 @@ class EquipoController extends Controller
             return max(6, $maxLineas * $lineHeight);
         };
 
-        $dibujarFila = function (float $x, float $y, array $valores, float $altura) use ($pdf, $columnas) {
+        $dibujarFila = function (float $x, float $y, array $valores, float $altura, array $columnas) use ($pdf) {
             $cx = $x;
             foreach ($columnas as $i => $col) {
                 $pdf->MultiCell(
@@ -865,24 +915,53 @@ class EquipoController extends Controller
             }
         };
 
+        // ---------- TABLA PRINCIPAL: equipos del sistema + equipos no registrados ----------
+        $tablaX = $ptToMm(78.62);
+        $yInicioPagina1 = $ptToMm(283.49 + 12.00) + 6;
+        $limiteY = $size1['height'] - 60;
+        $alturaFilaVacia = 6;
+
+        $columnasPrincipal = [
+            ['header' => '#',      'width' => 8,  'align' => 'C'],
+            ['header' => 'Tipo',   'width' => 32, 'align' => 'L'],
+            ['header' => 'Marca',  'width' => 30, 'align' => 'L'],
+            ['header' => 'Modelo', 'width' => 30, 'align' => 'L'],
+            ['header' => 'Serial', 'width' => 62, 'align' => 'L'],
+        ];
+
+        $filasPrincipales = [];
+
+        foreach ($equipos as $equipo) {
+            $filasPrincipales[] = [
+                'tipo' => $equipo->tipo->label(),
+                'marca' => $equipo->marca ?? '—',
+                'modelo' => $equipo->modelo,
+                'serial' => $equipo->serial,
+            ];
+        }
+
+        foreach ($equiposExtra as $extra) {
+            $filasPrincipales[] = [
+                'tipo' => $extra['tipo'] . ' (no registrado)',
+                'marca' => $extra['marca'] ?: '—',
+                'modelo' => $extra['modelo'],
+                'serial' => $extra['serial'] ?: '—',
+            ];
+        }
+
         $dibujarTitulo($tablaX, $yInicioPagina1, 'Equipos a desincorporar');
         $y = $yInicioPagina1 + 8;
-        $dibujarEncabezadoTabla($tablaX, $y);
+        $dibujarEncabezadoTabla($tablaX, $y, $columnasPrincipal);
         $y += 6;
 
-        $equiposArray = $equipos->values();
         $numero = 1;
         $enPagina2 = false;
         $size2 = null;
 
-        // --- Filas con datos reales (altura variable, sin truncar) ---
-        foreach ($equiposArray as $equipo) {
-            $valores = [];
-            foreach ($columnas as $col) {
-                $valores[] = $col['get']($equipo, $numero);
-            }
+        foreach ($filasPrincipales as $fila) {
+            $valores = [(string) $numero, $fila['tipo'], $fila['marca'], $fila['modelo'], $fila['serial']];
 
-            $altura = $calcularAlturaFila($valores);
+            $altura = $calcularAlturaFila($valores, $columnasPrincipal);
             $limiteActual = $enPagina2 ? ($size2['height'] - 60) : $limiteY;
 
             if ($y + $altura > $limiteActual) {
@@ -902,27 +981,134 @@ class EquipoController extends Controller
                 $y = 30;
                 $dibujarTitulo($tablaX, $y, 'Equipos a desincorporar (continuación)');
                 $y += 8;
-                $dibujarEncabezadoTabla($tablaX, $y);
+                $dibujarEncabezadoTabla($tablaX, $y, $columnasPrincipal);
                 $y += 6;
             }
 
-            $dibujarFila($tablaX, $y, $valores, $altura);
+            $dibujarFila($tablaX, $y, $valores, $altura, $columnasPrincipal);
             $y += $altura;
             $numero++;
         }
 
-        // --- Relleno con filas vacías hasta el límite de la página actual ---
-        // Se calcula DESPUÉS de saber cuánto ocupó la tabla real, así que no
-        // hay ningún "cupo" adivinado de antemano: solo se completa lo que sobra.
         $limiteActual = $enPagina2 ? ($size2['height'] - 60) : $limiteY;
-        $valoresVacios = array_fill(0, count($columnas), '');
+        $valoresVacios = array_fill(0, count($columnasPrincipal), '');
 
         while ($y + $alturaFilaVacia <= $limiteActual) {
-            $dibujarFila($tablaX, $y, $valoresVacios, $alturaFilaVacia);
+            $dibujarFila($tablaX, $y, $valoresVacios, $alturaFilaVacia, $columnasPrincipal);
             $y += $alturaFilaVacia;
         }
 
-        // ================== PÁGINA 3 (conclusión y firmas) ==================
+        // ---------- TABLAS DE EQUIPOS ADICIONALES / PERIFÉRICOS ----------
+        // Se agrupan por el nombre que escribió el usuario (sin distinguir
+        // mayúsculas/espacios) y se van dibujando de forma continua: varias
+        // tablas pueden compartir una misma página si el espacio alcanza, y
+        // solo se crea una página nueva (plantilla 2) cuando ya no cabe el
+        // título + encabezado + al menos una fila de la siguiente tabla.
+        if (!empty($perifericos)) {
+            $columnasPeriferico = [
+                ['header' => '#',              'width' => 8,  'align' => 'C'],
+                ['header' => 'Marca',          'width' => 35, 'align' => 'L'],
+                ['header' => 'Modelo',         'width' => 35, 'align' => 'L'],
+                ['header' => 'Serial',         'width' => 35, 'align' => 'L'],
+                ['header' => 'Características', 'width' => 49, 'align' => 'L'],
+            ];
+
+            // Agrupar preservando el orden de aparición y el nombre "bonito"
+            // (tal como lo escribió el usuario la primera vez).
+            $grupos = [];
+            foreach ($perifericos as $periferico) {
+                $clave = mb_strtolower(trim($periferico['tipo']));
+
+                if (! isset($grupos[$clave])) {
+                    $grupos[$clave] = [
+                        'titulo' => trim($periferico['tipo']),
+                        'items' => [],
+                    ];
+                }
+
+                $grupos[$clave]['items'][] = $periferico;
+            }
+
+            $iniciarPaginaPeriferico = function () use ($pdf) {
+                $tpl = $pdf->importPage(2);
+                $size = $pdf->getTemplateSize($tpl);
+                $pdf->AddPage('P', [$size['width'], $size['height']]);
+                $pdf->useTemplate($tpl, 0, 0, $size['width'], $size['height']);
+
+                return $size;
+            };
+
+            $sizeP = $iniciarPaginaPeriferico();
+            $yP = 30;
+            $limiteP = $sizeP['height'] - 60;
+            $primerGrupo = true;
+
+            foreach ($grupos as $grupo) {
+                $tituloGrupo = $grupo['titulo'] . ' a desincorporar';
+
+                // Un pequeño respiro entre una tabla y la siguiente en la misma página.
+                if (! $primerGrupo) {
+                    $yP += 4;
+                }
+
+                // Verificamos que quepa el título + encabezado + al menos la
+                // primera fila del grupo; si no, saltamos a una página nueva.
+                $primerItem = $grupo['items'][0];
+                $valoresPrimera = [
+                    '1',
+                    $primerItem['marca'] ?: '—',
+                    $primerItem['modelo'] ?: '—',
+                    $primerItem['serial'] ?: '—',
+                    $primerItem['caracteristicas'] ?: '—',
+                ];
+                $alturaPrimera = $calcularAlturaFila($valoresPrimera, $columnasPeriferico);
+                $alturaTituloYEncabezado = 8 + 6;
+
+                if ($yP + $alturaTituloYEncabezado + $alturaPrimera > $limiteP) {
+                    $sizeP = $iniciarPaginaPeriferico();
+                    $yP = 30;
+                    $limiteP = $sizeP['height'] - 60;
+                }
+
+                $dibujarTitulo($tablaX, $yP, $tituloGrupo);
+                $yP += 8;
+                $dibujarEncabezadoTabla($tablaX, $yP, $columnasPeriferico);
+                $yP += 6;
+
+                $numeroGrupo = 1;
+
+                foreach ($grupo['items'] as $item) {
+                    $valores = [
+                        (string) $numeroGrupo,
+                        $item['marca'] ?: '—',
+                        $item['modelo'] ?: '—',
+                        $item['serial'] ?: '—',
+                        $item['caracteristicas'] ?: '—',
+                    ];
+
+                    $altura = $calcularAlturaFila($valores, $columnasPeriferico);
+
+                    if ($yP + $altura > $limiteP) {
+                        $sizeP = $iniciarPaginaPeriferico();
+                        $yP = 30;
+                        $limiteP = $sizeP['height'] - 60;
+
+                        $dibujarTitulo($tablaX, $yP, $tituloGrupo . ' (continuación)');
+                        $yP += 8;
+                        $dibujarEncabezadoTabla($tablaX, $yP, $columnasPeriferico);
+                        $yP += 6;
+                    }
+
+                    $dibujarFila($tablaX, $yP, $valores, $altura, $columnasPeriferico);
+                    $yP += $altura;
+                    $numeroGrupo++;
+                }
+
+                $primerGrupo = false;
+            }
+        }
+
+        // ================== PÁGINA FINAL (conclusión y firmas) ==================
         //$firmaPath = storage_path('app/firmas/ramon_hernandez.png');
         $tpl3 = $pdf->importPage(3);
         $size3 = $pdf->getTemplateSize($tpl3);
@@ -935,7 +1121,7 @@ class EquipoController extends Controller
         $fechaY = 604.66;
         $fecha1X = 136.94 + $fechaLabelWidth;
         $fecha2X = 374.83 + $fechaLabelWidth;
-        
+
         /*if (file_exists($firmaPath)) {
             // x, y, ancho, alto — se coloca justo encima de la línea "___" y antes de "Fecha:"
             $pdf->Image($firmaPath, 25, 220, 40, 15, 'PNG', '', '', true, 300);

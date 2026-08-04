@@ -1109,7 +1109,8 @@ class EquipoController extends Controller
         }
 
         // ================== PÁGINA FINAL (conclusión y firmas) ==================
-        //$firmaPath = storage_path('app/firmas/ramon_hernandez.png');
+        $firmaPath1 = storage_path('app/firmas/roman2.png');
+        $firmaPath2 = storage_path('app/firmas/roman.png');
         $tpl3 = $pdf->importPage(3);
         $size3 = $pdf->getTemplateSize($tpl3);
         $pdf->AddPage('P', [$size3['width'], $size3['height']]);
@@ -1122,10 +1123,11 @@ class EquipoController extends Controller
         $fecha1X = 136.94 + $fechaLabelWidth;
         $fecha2X = 374.83 + $fechaLabelWidth;
 
-        /*if (file_exists($firmaPath)) {
+        if (file_exists($firmaPath1) && file_exists($firmaPath2)) {
             // x, y, ancho, alto — se coloca justo encima de la línea "___" y antes de "Fecha:"
-            $pdf->Image($firmaPath, 25, 220, 40, 15, 'PNG', '', '', true, 300);
-        }*/
+            $pdf->Image($firmaPath1, 45, 192, 40, 15, 'PNG', '', '', true, 300);
+            $pdf->Image($firmaPath2, 130, 192, 40, 15, 'PNG', '', '', true, 300);
+        }
 
         $pdf->SetXY($ptToMm($fecha1X) + 2, $ptToMm($fechaY));
         $pdf->Cell(30, 4.5, now()->format('d/m/Y'));

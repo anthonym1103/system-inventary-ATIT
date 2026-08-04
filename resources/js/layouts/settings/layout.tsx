@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -9,33 +9,33 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
-import { usePage } from '@inertiajs/react';
 
-const { auth } = usePage().props;
-
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Perfil',
-        href: edit(),
-        icon: null,
-    },
-    {
-        title: 'Seguridad',
-        href: editSecurity(),
-        icon: null,
-    },
-    {
-        title: 'Apariencia',
-        href: editAppearance(),
-        icon: null,
-    },
-    ...(auth.role === 'administrador' 
-        ?[{title: 'Firmas', href:'/settings/firmas'}]
-        :[]), 
-];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
+    const { auth } = usePage().props;
+
+    const sidebarNavItems: NavItem[] = [
+        {
+            title: 'Perfil',
+            href: edit(),
+            icon: null,
+        },
+        {
+            title: 'Seguridad',
+            href: editSecurity(),
+            icon: null,
+        },
+        {
+            title: 'Apariencia',
+            href: editAppearance(),
+            icon: null,
+        },
+        ...(auth.role === 'administrador' 
+            ?[{title: 'Firmas', href:'/settings/firmas', icon: null}]
+            :[]), 
+    ];
+
 
     return (
         <div className="px-4 py-6" >

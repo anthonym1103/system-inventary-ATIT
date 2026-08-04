@@ -67,92 +67,91 @@ export default function Firmas({
     const hasChanges = data.firma1 !== null || data.firma2 !== null;
 
     return (
-        <AppLayout>
+        <>
             <Head title="Firmas" />
-            <SettingsLayout>
+            
+            <div className="space-y-6">
+                <Heading
+                    variant="small"
+                    title="Firmas del documento de desincorporación"
+                    description="Estas firmas se usan en el PDF de desincorporación de equipos."
+                />
+
+                <Alert>
+                    <InfoIcon className="h-4 w-4" />
+                    <AlertTitle>Formato requerido</AlertTitle>
+                    <AlertDescription>
+                        Solo se aceptan imágenes en formato <strong>PNG</strong>,
+                        con un peso máximo de 1&nbsp;MB. Otros formatos serán
+                        rechazados automáticamente.
+                    </AlertDescription>
+                </Alert>
+
                 <div className="space-y-6">
-                    <Heading
-                        variant="small"
-                        title="Firmas del documento de desincorporación"
-                        description="Estas firmas se usan en el PDF de desincorporación de equipos."
+                    <FirmaField
+                        inputRef={input1}
+                        label="Firma 1 (izquierda)"
+                        info={firmas.firma1}
+                        preview={preview1}
+                        error={errors.firma1}
+                        onChange={handleFileChange('firma1', setPreview1)}
                     />
-
-                    <Alert>
-                        <InfoIcon className="h-4 w-4" />
-                        <AlertTitle>Formato requerido</AlertTitle>
-                        <AlertDescription>
-                            Solo se aceptan imágenes en formato <strong>PNG</strong>,
-                            con un peso máximo de 1&nbsp;MB. Otros formatos serán
-                            rechazados automáticamente.
-                        </AlertDescription>
-                    </Alert>
-
-                    <div className="space-y-6">
-                        <FirmaField
-                            inputRef={input1}
-                            label="Firma 1 (izquierda)"
-                            info={firmas.firma1}
-                            preview={preview1}
-                            error={errors.firma1}
-                            onChange={handleFileChange('firma1', setPreview1)}
-                        />
-                        <FirmaField
-                            inputRef={input2}
-                            label="Firma 2 (derecha)"
-                            info={firmas.firma2}
-                            preview={preview2}
-                            error={errors.firma2}
-                            onChange={handleFileChange('firma2', setPreview2)}
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button disabled={!hasChanges || processing}>
-                                    Guardar firmas
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogTitle>¿Reemplazar firma(s)?</DialogTitle>
-                                <DialogDescription>
-                                    Esta acción reemplazará permanentemente{' '}
-                                    {data.firma1 && data.firma2
-                                        ? 'ambas firmas actuales'
-                                        : 'la firma actual seleccionada'}{' '}
-                                    en el sistema. Todos los PDFs de desincorporación
-                                    generados a partir de ahora usarán la(s) nueva(s)
-                                    firma(s). Esta acción no se puede deshacer.
-                                </DialogDescription>
-                                <DialogFooter className="gap-2">
-                                    <DialogClose asChild>
-                                        <Button variant="secondary">
-                                            Cancelar
-                                        </Button>
-                                    </DialogClose>
-                                    <DialogClose asChild>
-                                        <Button
-                                            onClick={submit}
-                                            disabled={processing}
-                                        >
-                                            {processing
-                                                ? 'Guardando...'
-                                                : 'Sí, reemplazar'}
-                                        </Button>
-                                    </DialogClose>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        {recentlySuccessful && (
-                            <p className="text-sm text-neutral-600">
-                                Firma(s) actualizada(s) correctamente.
-                            </p>
-                        )}
-                    </div>
+                    <FirmaField
+                        inputRef={input2}
+                        label="Firma 2 (derecha)"
+                        info={firmas.firma2}
+                        preview={preview2}
+                        error={errors.firma2}
+                        onChange={handleFileChange('firma2', setPreview2)}
+                    />
                 </div>
-            </SettingsLayout>
-        </AppLayout>
+
+                <div className="flex items-center gap-4">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button disabled={!hasChanges || processing}>
+                                Guardar firmas
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogTitle>¿Reemplazar firma(s)?</DialogTitle>
+                            <DialogDescription>
+                                Esta acción reemplazará permanentemente{' '}
+                                {data.firma1 && data.firma2
+                                    ? 'ambas firmas actuales'
+                                    : 'la firma actual seleccionada'}{' '}
+                                en el sistema. Todos los PDFs de desincorporación
+                                generados a partir de ahora usarán la(s) nueva(s)
+                                firma(s). Esta acción no se puede deshacer.
+                            </DialogDescription>
+                            <DialogFooter className="gap-2">
+                                <DialogClose asChild>
+                                    <Button variant="secondary">
+                                        Cancelar
+                                    </Button>
+                                </DialogClose>
+                                <DialogClose asChild>
+                                    <Button
+                                        onClick={submit}
+                                        disabled={processing}
+                                    >
+                                        {processing
+                                            ? 'Guardando...'
+                                            : 'Sí, reemplazar'}
+                                    </Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    {recentlySuccessful && (
+                        <p className="text-sm text-neutral-600">
+                            Firma(s) actualizada(s) correctamente.
+                        </p>
+                    )}
+                </div>
+            </div>
+        </>
     );
 }
 

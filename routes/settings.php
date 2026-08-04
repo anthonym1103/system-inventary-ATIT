@@ -3,12 +3,18 @@
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Settings\FirmaController;
 
 Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('settings/firmas', [FirmaController::class, 'edit'])->name('firmas.edit');
+    Route::post('settings/firmas', [FirmaController::class, 'update'])->name('firmas.update');
+    Route::get('settings/firmas/{tipo}/preview', [FirmaController::class, 'show'])
+        ->whereIn('tipo', ['firma1', 'firma2'])
+        ->name('firmas.show');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

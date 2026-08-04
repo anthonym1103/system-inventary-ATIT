@@ -9,6 +9,9 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
+import { usePage } from '@inertiajs/react';
+
+const { auth } = usePage().props;
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -26,6 +29,9 @@ const sidebarNavItems: NavItem[] = [
         href: editAppearance(),
         icon: null,
     },
+    ...(auth.role === 'administrador' 
+        ?[{title: 'Firmas', href:'/settings/firmas'}]
+        :[]), 
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {

@@ -5,23 +5,26 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Enums\Cargo;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class FirmaController extends Controller
 {
-    // clave usada en el formulario => nombre físico fijo que ya usa el PDF
     private const FIRMAS = [
-        'firma1' => 'roman2.png', // firma izquierda
-        'firma2' => 'roman.png',  // firma derecha
+        'firma1' => 'roman2.png',
+        'firma2' => 'roman.png',
     ];
+
+    private const NOMBRES_FILE = 'firmas_nombres.json';
 
     public function edit(): InertiaResponse
     {
         abort_unless(Auth::user()->hasRole(Cargo::ADMINISTRADOR->value), 403);
+
+        $nombres = $this->getNombres();
 
         $firmas = [];
         foreach (self::FIRMAS as $key => $filename) {
@@ -29,6 +32,7 @@ class FirmaController extends Controller
             $firmas[$key] = [
                 'exists'     => file_exists($path),
                 'updated_at' => file_exists($path) ? filemtime($path) : null,
+                'nombre'     => $nombres[$key] ?? '',
             ];
         }
 
@@ -44,11 +48,16 @@ class FirmaController extends Controller
         $validated = $request->validate([
             'firma1' => ['nullable', 'image', 'mimes:png', 'max:1024'],
             'firma2' => ['nullable', 'image', 'mimes:png', 'max:1024'],
+            'nombre1' => ['nullable', 'string', 'max:255'],
+            'nombre2' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if (empty($validated['firma1'] ?? null) && empty($validated['firma2'] ?? null)) {
+        $hayArchivo = !empty($validated['firma1'] ?? null) || !empty($validated['firma2'] ?? null);
+        $hayNombre = array_key_exists('nombre1', $validated) || array_key_exists('nombre2', $validated);
+
+        if (! $hayArchivo && ! $hayNombre) {
             return back()->withErrors([
-                'firma1' => 'Debes seleccionar al menos una firma para actualizar.',
+                'firma1' => 'Debes seleccionar al menos una firma o modificar un nombre.',
             ]);
         }
 
@@ -59,18 +68,25 @@ class FirmaController extends Controller
 
         foreach (self::FIRMAS as $key => $filename) {
             if ($request->hasFile($key)) {
-                // move() sobrescribe el archivo existente, sin tocar la BD
                 $request->file($key)->move($dir, $filename);
             }
         }
+
+        // Guardar nombres (solo si vinieron en el request)
+        $nombres = $this->getNombres();
+        if ($request->filled('nombre1') || $request->has('nombre1')) {
+            $nombres['firma1'] = $request->input('nombre1', '');
+        }
+        if ($request->filled('nombre2') || $request->has('nombre2')) {
+            $nombres['firma2'] = $request->input('nombre2', '');
+        }
+        $this->saveNombres($nombres);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Firma(s) actualizada(s) correctamente.']);
 
         return back();
     }
 
-    // Sirve la imagen para poder previsualizarla en el frontend
-    // (storage/app no es público, así que no hay URL directa)
     public function show(string $tipo): SymfonyResponse
     {
         abort_unless(array_key_exists($tipo, self::FIRMAS), 404);
@@ -79,5 +95,47 @@ class FirmaController extends Controller
         abort_unless(file_exists($path), 404);
 
         return response()->file($path, ['Cache-Control' => 'no-store']);
+    }
+
+    // --- Helpers para los nombres asociados a cada firma ---
+
+    private function getNombres(): array
+    {
+        $path = storage_path('app/firmas/' . self::NOMBRES_FILE);
+
+        if (! file_exists($path)) {
+            return ['firma1' => '', 'firma2' => ''];
+        }
+
+        $data = json_decode(File::get($path), true);
+
+        return is_array($data) ? $data : ['firma1' => '', 'firma2' => ''];
+    }
+
+    private function saveNombres(array $nombres): void
+    {
+        $dir = storage_path('app/firmas');
+        if (! File::isDirectory($dir)) {
+            File::makeDirectory($dir, 0755, true);
+        }
+
+        File::put(
+            $dir . '/' . self::NOMBRES_FILE,
+            json_encode($nombres, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
+    }
+
+    // Expuesto para que EquipoController pueda leer los nombres al generar el PDF
+    public static function nombreDe(string $key): string
+    {
+        $path = storage_path('app/firmas/' . self::NOMBRES_FILE);
+
+        if (! file_exists($path)) {
+            return '';
+        }
+
+        $data = json_decode(File::get($path), true);
+
+        return $data[$key] ?? '';
     }
 }

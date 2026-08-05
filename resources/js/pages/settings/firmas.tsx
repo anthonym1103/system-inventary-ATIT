@@ -3,6 +3,7 @@ import { InfoIcon, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,11 +17,13 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-type FirmaInfo = { exists: boolean; updated_at: number | null };
+type FirmaInfo = { exists: boolean; updated_at: number | null; nombre: string };
 
 type FirmaFormData = {
     firma1: File | null;
     firma2: File | null;
+    nombre1: string;
+    nombre2: string;
 };
 
 type FirmaKey = 'firma1' | 'firma2';
@@ -30,6 +33,7 @@ export default function Firmas({
 }: {
     firmas: Record<FirmaKey, FirmaInfo>;
 }) {
+    const [editing, setEditing] = useState(false);
     const [preview1, setPreview1] = useState<string | null>(null);
     const [preview2, setPreview2] = useState<string | null>(null);
     const input1 = useRef<HTMLInputElement>(null);
@@ -39,6 +43,8 @@ export default function Firmas({
         useForm<FirmaFormData>({
             firma1: null,
             firma2: null,
+            nombre1: firmas.firma1.nombre ?? '',
+            nombre2: firmas.firma2.nombre ?? '',
         });
 
     const handleFileChange = (
@@ -48,6 +54,23 @@ export default function Firmas({
         const file = e.target.files?.[0] ?? null;
         setData(key, file);
         setPreview(file ? URL.createObjectURL(file) : null);
+    };
+
+    const startEditing = () => {
+        // Al entrar en modo edición, recargamos los valores actuales
+        // del JSON por si el usuario había cancelado antes.
+        setData('nombre1', firmas.firma1.nombre ?? '');
+        setData('nombre2', firmas.firma2.nombre ?? '');
+        setEditing(true);
+    };
+
+    const cancelEditing = () => {
+        reset();
+        setPreview1(null);
+        setPreview2(null);
+        if (input1.current) input1.current.value = '';
+        if (input2.current) input2.current.value = '';
+        setEditing(false);
     };
 
     const submit = () => {
@@ -60,22 +83,29 @@ export default function Firmas({
                 setPreview2(null);
                 if (input1.current) input1.current.value = '';
                 if (input2.current) input2.current.value = '';
+                setEditing(false);
             },
         });
     };
 
-    const hasChanges = data.firma1 !== null || data.firma2 !== null;
+    const hasChanges =
+        data.firma1 !== null ||
+        data.firma2 !== null ||
+        data.nombre1 !== (firmas.firma1.nombre ?? '') ||
+        data.nombre2 !== (firmas.firma2.nombre ?? '');
 
     return (
         <>
-            <Head title="Configuracion" />
+            <Head title="Firmas" />
 
             <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Firmas del documento de desincorporación"
-                    description="Estas firmas se usan en el PDF de desincorporación de equipos."
-                />
+                <div className="flex items-center justify-between">
+                    <Heading
+                        variant="small"
+                        title="Firmas del documento de desincorporación"
+                        description="Estas firmas se usan en el PDF de desincorporación de equipos."
+                    />
+                </div>
 
                 <Alert>
                     <InfoIcon className="h-4 w-4" />
@@ -86,7 +116,7 @@ export default function Firmas({
                     </AlertDescription>
                 </Alert>
 
-                <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
                     <FirmaField
                         firmaKey="firma1"
                         inputRef={input1}
@@ -94,7 +124,11 @@ export default function Firmas({
                         info={firmas.firma1}
                         preview={preview1}
                         error={errors.firma1}
+                        nombre={data.nombre1}
+                        nombreError={errors.nombre1}
+                        editing={editing}
                         onChange={handleFileChange('firma1', setPreview1)}
+                        onNombreChange={(e) => setData('nombre1', e.target.value)}
                     />
                     <FirmaField
                         firmaKey="firma2"
@@ -103,55 +137,86 @@ export default function Firmas({
                         info={firmas.firma2}
                         preview={preview2}
                         error={errors.firma2}
+                        nombre={data.nombre2}
+                        nombreError={errors.nombre2}
+                        editing={editing}
                         onChange={handleFileChange('firma2', setPreview2)}
+                        onNombreChange={(e) => setData('nombre2', e.target.value)}
                     />
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button disabled={!hasChanges || processing} className="cursor-pointer">
-                                Guardar firmas
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogTitle>¿Reemplazar firma(s)?</DialogTitle>
-                            <DialogDescription>
-                                Esta acción reemplazará permanentemente{' '}
-                                {data.firma1 && data.firma2
-                                    ? 'ambas firmas actuales'
-                                    : 'la firma actual seleccionada'}{' '}
-                                en el sistema. Todos los PDFs de desincorporación
-                                generados a partir de ahora usarán la(s) nueva(s)
-                                firma(s). Esta acción no se puede deshacer.
-                            </DialogDescription>
-                            <DialogFooter className="gap-2">
-                                <DialogClose asChild>
-                                    <Button variant="secondary" className="cursor-pointer">
-                                        Cancelar
-                                    </Button>
-                                </DialogClose>
-                                <DialogClose asChild>
-                                    <Button
-                                        onClick={submit}
-                                        disabled={processing}
-                                        className="cursor-pointer"
-                                    >
-                                        {processing
-                                            ? 'Guardando...'
-                                            : 'Sí, reemplazar'}
-                                    </Button>
-                                </DialogClose>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                {editing ? (
+                    <div className="flex items-center gap-4">
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button
+                                    disabled={!hasChanges || processing}
+                                    className="cursor-pointer"
+                                >
+                                    Guardar firmas
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle>¿Reemplazar firma(s)?</DialogTitle>
+                                <DialogDescription>
+                                    Esta acción reemplazará permanentemente{' '}
+                                    {data.firma1 && data.firma2
+                                        ? 'ambas firmas actuales'
+                                        : 'la información seleccionada'}{' '}
+                                    en el sistema. Todos los PDFs de
+                                    desincorporación generados a partir de ahora
+                                    usarán la(s) nueva(s) firma(s) y/o nombre(s).
+                                    Esta acción no se puede deshacer.
+                                </DialogDescription>
+                                <DialogFooter className="gap-2">
+                                    <DialogClose asChild>
+                                        <Button variant="outline" className="cursor-pointer">
+                                            Cancelar
+                                        </Button>
+                                    </DialogClose>
+                                    <DialogClose asChild>
+                                        <Button
+                                            onClick={submit}
+                                            disabled={processing}
+                                            className="cursor-pointer"
+                                        >
+                                            {processing
+                                                ? 'Guardando...'
+                                                : 'Sí, reemplazar'}
+                                        </Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
 
-                    {recentlySuccessful && (
-                        <p className="text-sm text-neutral-600">
-                            Firma(s) actualizada(s) correctamente.
-                        </p>
-                    )}
-                </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={cancelEditing}
+                            disabled={processing}
+                            className="cursor-pointer"
+                        >
+                            Cancelar
+                        </Button>
+
+                        {recentlySuccessful && (
+                            <p className="text-sm text-neutral-600">
+                                Firma(s) actualizada(s) correctamente.
+                            </p>
+                        )}
+                    </div>
+                ):(
+                    <div className="flex items-center gap-4">  
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={startEditing}
+                            className="cursor-pointer"
+                        >
+                            Editar
+                        </Button>
+                    </div>
+                )}
             </div>
         </>
     );
@@ -164,7 +229,11 @@ function FirmaField({
     info,
     preview,
     error,
+    nombre,
+    nombreError,
+    editing,
     onChange,
+    onNombreChange,
 }: {
     firmaKey: FirmaKey;
     inputRef: React.RefObject<HTMLInputElement | null>;
@@ -172,11 +241,12 @@ function FirmaField({
     info: FirmaInfo;
     preview: string | null;
     error?: string;
+    nombre: string;
+    nombreError?: string;
+    editing: boolean;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onNombreChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
-    // La ruta real es /settings/firmas/{tipo}/preview (segmento de ruta,
-    // no query string), y {tipo} debe ser exactamente 'firma1' o 'firma2'
-    // tal como lo espera FirmaController::show().
     const currentUrl = info.exists
         ? `/settings/firmas/${firmaKey}/preview?v=${info.updated_at}`
         : null;
@@ -186,47 +256,85 @@ function FirmaField({
     };
 
     return (
-        <div className="grid gap-2">
-            <Label>{label}</Label>
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <Label className="mb-3 block text-sm font-semibold">{label}</Label>
 
-            <div className="flex items-center gap-4">
-                <div className="flex h-16 w-32 shrink-0 items-center justify-center rounded-md border bg-white overflow-hidden">
-                    {preview ? (
-                        <img
-                            src={preview}
-                            alt={label}
-                            className="max-h-full max-w-full object-contain"
-                        />
-                    ) : currentUrl ? (
-                        <img
-                            src={currentUrl}
-                            alt={label}
-                            className="max-h-full max-w-full object-contain"
+            <div className="grid gap-4">
+                {/* Nombre: va primero, arriba de la firma */}
+                <div className="grid gap-1.5">
+                    <Label htmlFor={`${firmaKey}-nombre`} className="text-xs text-neutral-500">
+                        Nombre a mostrar en el PDF
+                    </Label>
+
+                    {editing ? (
+                        <input
+                            id={`${firmaKey}-nombre`}
+                            type="text"
+                            value={nombre}
+                            onChange={onNombreChange}
+                            placeholder="Ej. Juan Pérez"
+                            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />
                     ) : (
-                        <span className="text-xs text-neutral-400">Sin firma</span>
+                        <span
+                            className={
+                                nombre
+                                    ? 'text-sm font-medium'
+                                    : 'text-sm text-neutral-400 italic'
+                            }
+                        >
+                            {nombre || 'Sin nombre asignado'}
+                        </span>
                     )}
+
+                    <InputError message={nombreError} />
                 </div>
 
-                <button
-                    type="button"
-                    onClick={triggerFileSelect}
-                    className="px-3 py-1.5 text-sm font-medium bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition cursor-pointer inline-flex items-center gap-2"
-                >
-                    <Upload className="h-3.5 w-3.5" />
-                    Seleccionar imagen
-                </button>
+                {/* Separador visual entre nombre y firma */}
+                <div className="h-px w-full bg-border" />
 
-                <input
-                    ref={inputRef}
-                    type="file"
-                    accept="image/png,.png"
-                    className="hidden"
-                    onChange={onChange}
-                />
+                {/* Firma: va debajo, simulando cómo se ve en el PDF */}
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex h-16 w-32 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white">
+                        {preview ? (
+                            <img
+                                src={preview}
+                                alt={label}
+                                className="max-h-full max-w-full object-contain"
+                            />
+                        ) : currentUrl ? (
+                            <img
+                                src={currentUrl}
+                                alt={label}
+                                className="max-h-full max-w-full object-contain"
+                            />
+                        ) : (
+                            <span className="text-xs text-neutral-400">Sin firma</span>
+                        )}
+                    </div>
+
+                    {editing && (
+                        <button
+                            type="button"
+                            onClick={triggerFileSelect}
+                            className="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium transition hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                        >
+                            <Upload className="h-3.5 w-3.5 shrink-0" />
+                            Seleccionar imagen
+                        </button>
+                    )}
+
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        accept="image/png,.png"
+                        className="hidden"
+                        onChange={onChange}
+                    />
+                </div>
+
+                <InputError message={error} />
             </div>
-
-            <InputError message={error} />
         </div>
     );
 }

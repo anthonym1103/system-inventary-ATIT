@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Enums\Cargo;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
@@ -71,7 +71,7 @@ class FirmaController extends Controller
 
     // Sirve la imagen para poder previsualizarla en el frontend
     // (storage/app no es público, así que no hay URL directa)
-    public function show(string $tipo): Response
+    public function show(string $tipo): SymfonyResponse
     {
         abort_unless(array_key_exists($tipo, self::FIRMAS), 404);
 

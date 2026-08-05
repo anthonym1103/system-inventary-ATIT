@@ -68,7 +68,7 @@ export default function Firmas({
 
     return (
         <>
-            <Head title="Firmas" />
+            <Head title="Configuracion" />
 
             <div className="space-y-6">
                 <Heading
@@ -81,9 +81,8 @@ export default function Firmas({
                     <InfoIcon className="h-4 w-4" />
                     <AlertTitle>Formato requerido</AlertTitle>
                     <AlertDescription>
-                        Solo se aceptan imágenes en formato <strong>PNG</strong>,
-                        con un peso máximo de 1&nbsp;MB. Otros formatos serán
-                        rechazados automáticamente.
+                        Solo se aceptan imágenes en formato <strong>PNG</strong>
+                        Otros formatos serán rechazados automáticamente.
                     </AlertDescription>
                 </Alert>
 

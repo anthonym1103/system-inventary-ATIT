@@ -1,5 +1,5 @@
-import { Form, Head, useForm } from '@inertiajs/react';
-import { InfoIcon } from 'lucide-react';
+import { Head, useForm } from '@inertiajs/react';
+import { InfoIcon, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -15,8 +15,6 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
 
 type FirmaInfo = { exists: boolean; updated_at: number | null };
 
@@ -25,10 +23,12 @@ type FirmaFormData = {
     firma2: File | null;
 };
 
+type FirmaKey = 'firma1' | 'firma2';
+
 export default function Firmas({
     firmas,
 }: {
-    firmas: { firma1: FirmaInfo; firma2: FirmaInfo };
+    firmas: Record<FirmaKey, FirmaInfo>;
 }) {
     const [preview1, setPreview1] = useState<string | null>(null);
     const [preview2, setPreview2] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export default function Firmas({
         });
 
     const handleFileChange = (
-        key: 'firma1' | 'firma2',
+        key: FirmaKey,
         setPreview: (url: string | null) => void,
     ) => (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] ?? null;
@@ -69,7 +69,7 @@ export default function Firmas({
     return (
         <>
             <Head title="Firmas" />
-            
+
             <div className="space-y-6">
                 <Heading
                     variant="small"
@@ -89,6 +89,7 @@ export default function Firmas({
 
                 <div className="space-y-6">
                     <FirmaField
+                        firmaKey="firma1"
                         inputRef={input1}
                         label="Firma 1 (izquierda)"
                         info={firmas.firma1}
@@ -97,6 +98,7 @@ export default function Firmas({
                         onChange={handleFileChange('firma1', setPreview1)}
                     />
                     <FirmaField
+                        firmaKey="firma2"
                         inputRef={input2}
                         label="Firma 2 (derecha)"
                         info={firmas.firma2}
@@ -109,7 +111,7 @@ export default function Firmas({
                 <div className="flex items-center gap-4">
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button disabled={!hasChanges || processing}>
+                            <Button disabled={!hasChanges || processing} className="cursor-pointer">
                                 Guardar firmas
                             </Button>
                         </DialogTrigger>
@@ -126,7 +128,7 @@ export default function Firmas({
                             </DialogDescription>
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
-                                    <Button variant="secondary">
+                                    <Button variant="secondary" className="cursor-pointer">
                                         Cancelar
                                     </Button>
                                 </DialogClose>
@@ -134,6 +136,7 @@ export default function Firmas({
                                     <Button
                                         onClick={submit}
                                         disabled={processing}
+                                        className="cursor-pointer"
                                     >
                                         {processing
                                             ? 'Guardando...'
@@ -156,6 +159,7 @@ export default function Firmas({
 }
 
 function FirmaField({
+    firmaKey,
     inputRef,
     label,
     info,
@@ -163,6 +167,7 @@ function FirmaField({
     error,
     onChange,
 }: {
+    firmaKey: FirmaKey;
     inputRef: React.RefObject<HTMLInputElement | null>;
     label: string;
     info: FirmaInfo;
@@ -170,38 +175,54 @@ function FirmaField({
     error?: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
+    // La ruta real es /settings/firmas/{tipo}/preview (segmento de ruta,
+    // no query string), y {tipo} debe ser exactamente 'firma1' o 'firma2'
+    // tal como lo espera FirmaController::show().
     const currentUrl = info.exists
-        ? `/settings/firmas/preview?v=${info.updated_at}&which=${label}`
+        ? `/settings/firmas/${firmaKey}/preview?v=${info.updated_at}`
         : null;
+
+    const triggerFileSelect = () => {
+        inputRef.current?.click();
+    };
 
     return (
         <div className="grid gap-2">
             <Label>{label}</Label>
 
             <div className="flex items-center gap-4">
-                <div className="flex h-16 w-32 shrink-0 items-center justify-center rounded-md border bg-white">
+                <div className="flex h-16 w-32 shrink-0 items-center justify-center rounded-md border bg-white overflow-hidden">
                     {preview ? (
                         <img
                             src={preview}
                             alt={label}
-                            className="max-h-full max-w-full"
+                            className="max-h-full max-w-full object-contain"
                         />
                     ) : currentUrl ? (
                         <img
                             src={currentUrl}
                             alt={label}
-                            className="max-h-full max-w-full"
+                            className="max-h-full max-w-full object-contain"
                         />
                     ) : (
                         <span className="text-xs text-neutral-400">Sin firma</span>
                     )}
                 </div>
 
+                <button
+                    type="button"
+                    onClick={triggerFileSelect}
+                    className="px-3 py-1.5 text-sm font-medium bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition cursor-pointer inline-flex items-center gap-2"
+                >
+                    <Upload className="h-3.5 w-3.5" />
+                    Seleccionar imagen
+                </button>
+
                 <input
                     ref={inputRef}
                     type="file"
                     accept="image/png,.png"
-                    className="text-sm"
+                    className="hidden"
                     onChange={onChange}
                 />
             </div>

@@ -44,6 +44,9 @@ interface Props {
     onClose: () => void;
     onConfirm: (
         motivo: string,
+        para: string,
+        de: string,
+        numero: string,
         equiposExtra: EquipoExtraInput[],
         perifericos: PerifericoInput[],
     ) => void;
@@ -59,12 +62,18 @@ export function EquipoDesincorporarDialog({
     processing = false,
 }: Props) {
     const [motivo, setMotivo] = useState('');
+    const [para, setPara] = useState('');
+    const [de, setDe] = useState('');
+    const [numero, setNumero] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [equiposExtra, setEquiposExtra] = useState<EquipoExtraRow[]>([]);
     const [perifericos, setPerifericos] = useState<PerifericoRow[]>([]);
 
     const resetAll = () => {
         setMotivo('');
+        setPara('');
+        setDe('');
+        setNumero('');
         setError(null);
         setEquiposExtra([]);
         setPerifericos([]);
@@ -117,6 +126,11 @@ export function EquipoDesincorporarDialog({
             return;
         }
 
+        if (!para.trim() || !de.trim() || !numero.trim()) {
+            setError('Complete los campos Para, De y Número.');
+            return;
+        }
+
         const equiposIncompletos = equiposExtra.some(
             (e) => !e.tipo.trim() || !e.modelo.trim(),
         );
@@ -138,6 +152,9 @@ export function EquipoDesincorporarDialog({
 
         onConfirm(
             motivo.trim(),
+            para.trim(),
+            de.trim(),
+            numero.trim(),
             equiposExtra.map(({ id, ...rest }) => rest),
             perifericos.map(({ id, ...rest }) => rest),
         );
@@ -154,6 +171,52 @@ export function EquipoDesincorporarDialog({
                         Vas a desincorporar {totalItems} elemento(s) en total.
                     </DialogDescription>
                 </DialogHeader>
+
+                {/* Datos del oficio */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid gap-2">
+                        <Label htmlFor="para" className="w-full select-text cursor-text">
+                            Para
+                        </Label>
+                        <Input
+                            id="para"
+                            value={para}
+                            onChange={(e) => {
+                                setPara(e.target.value);
+                                if (error) setError(null);
+                            }}
+                            placeholder="Ej. CN. Carlos Suarez..."
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="de" className="w-full select-text cursor-text">
+                            De
+                        </Label>
+                        <Input
+                            id="de"
+                            value={de}
+                            onChange={(e) => {
+                                setDe(e.target.value);
+                                if (error) setError(null);
+                            }}
+                            placeholder="Ej. Ing. Juan Perez..."
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="numero" className="w-full select-text cursor-text">
+                            Número
+                        </Label>
+                        <Input
+                            id="numero"
+                            value={numero}
+                            onChange={(e) => {
+                                setNumero(e.target.value);
+                                if (error) setError(null);
+                            }}
+                            placeholder="Ej. ATIT-RGY 103/2026"
+                        />
+                    </div>
+                </div>
 
                 <div className="grid gap-2">
                     <Label htmlFor="motivo" className="w-full select-text cursor-text">

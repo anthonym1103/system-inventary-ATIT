@@ -256,7 +256,7 @@ function FirmaField({
     };
 
     return (
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4">
             <Label className="mb-3 block text-sm font-semibold">{label}</Label>
 
             <div className="grid gap-4">

@@ -709,6 +709,9 @@ class EquipoController extends Controller
             'equipo_ids.*' => ['integer', 'exists:equipos,id'],
             'motivo' => ['required', 'string', 'max:1000'],
             'equipos_extra' => ['nullable', 'array'],
+            'para' => ['required', 'string', 'max:255'],
+            'de' => ['required', 'string', 'max:255'],
+            'numero' => ['required', 'string', 'max:100'],
             'equipos_extra.*.tipo' => ['required', 'string', 'max:255'],
             'equipos_extra.*.marca' => ['nullable', 'string', 'max:255'],
             'equipos_extra.*.modelo' => ['required', 'string', 'max:255'],
@@ -744,7 +747,7 @@ class EquipoController extends Controller
         }
 
         try {
-            $pdfPath = $this->generarPdfDesincorporacion($equipos, $equiposExtra, $perifericos, $user, $validated['motivo']);
+            $pdfPath = $this->generarPdfDesincorporacion($equipos, $equiposExtra, $perifericos, $user, $validated['motivo'], $validated['para'], $validated['de'], $validated['numero'],);
         } catch (\Throwable $e) {
             report($e);
 
@@ -826,7 +829,7 @@ class EquipoController extends Controller
         return response()->download($pdfPath)->deleteFileAfterSend(true);
     }
 
-    private function generarPdfDesincorporacion($equipos, array $equiposExtra, array $perifericos, $user, string $motivo): string
+    private function generarPdfDesincorporacion($equipos, array $equiposExtra, array $perifericos, $user, string $motivo, string $para, string $de, string $numero ): string
     {
         $templatePath = storage_path('app/pdf-templates/desincorporacionTecnica.pdf');
         if (! file_exists($templatePath)) {
@@ -851,7 +854,7 @@ class EquipoController extends Controller
         $pdf->setPrintFooter(false);
         $pdf->SetMargins(0, 0, 0);
         $pdf->SetAutoPageBreak(false);
-        $pdf->SetFont('dejavusans', '', 9);
+        $pdf->SetFont('helvetica', '', 10);
 
         $pdf->setSourceFile($templatePath);
 
@@ -862,38 +865,37 @@ class EquipoController extends Controller
         $pdf->useTemplate($tpl1, 0, 0, $size1['width'], $size1['height']);
 
         $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(127.50));
-        $pdf->Cell(0, 4.5, 'Gerencia General de ATIT');
+        $pdf->Cell(0, 4.5, $para);
 
         $pdf->SetXY($ptToMm(78.62 + 18.91) + 20, $ptToMm(164.22));
-        $pdf->Cell(0, 4.5, 'Infraestructura Tecnológica Ciudad Bolívar');
+        $pdf->Cell(0, 4.5, $de);
 
         $pdf->SetXY($ptToMm(78.62 + 52.61) + 8, $ptToMm(191.10));
-        $pdf->Cell(0, 4.5, 'S/N');
+        $pdf->Cell(0, 4.5, $numero);
 
         $pdf->SetXY($ptToMm(78.62 + 41.47) + 12, $ptToMm(214.02));
-        $pdf->Cell(0, 4.5, now()->format('d/m/Y'));
+        $pdf->Cell(0, 4.5, now()->translatedFormat('j \d\e F \d\e\l Y'));
 
         // --- Helpers reutilizables para todas las tablas del documento ---
         $dibujarTitulo = function (float $x, float $y, string $texto) use ($pdf) {
-            $pdf->SetFont('dejavusans', 'B', 10);
+            $pdf->SetFont('helvetica', 'BU', 12);
             $pdf->SetXY($x, $y);
             $pdf->Cell(0, 6, $texto, 0, 1, 'L');
-            $pdf->SetFont('dejavusans', '', 8);
+            $pdf->SetFont('helvetica', '', 10);
         };
 
         $dibujarEncabezadoTabla = function (float $x, float $y, array $columnas) use ($pdf) {
-            $pdf->SetFont('dejavusans', 'B', 8);
+            $pdf->SetFont('helvetica', 'B', 10);
             $cx = $x;
             foreach ($columnas as $col) {
                 $pdf->SetXY($cx, $y);
                 $pdf->Cell($col['width'], 6, $col['header'], 1, 0, 'C');
                 $cx += $col['width'];
             }
-            $pdf->SetFont('dejavusans', '', 8);
         };
 
         $calcularAlturaFila = function (array $valores, array $columnas) use ($pdf) {
-            $lineHeight = 4;
+            $lineHeight = 7;
             $maxLineas = 1;
 
             foreach ($columnas as $i => $col) {
@@ -906,6 +908,7 @@ class EquipoController extends Controller
 
         $dibujarFila = function (float $x, float $y, array $valores, float $altura, array $columnas) use ($pdf) {
             $cx = $x;
+            $pdf->SetFont('helvetica', '', 9);
             foreach ($columnas as $i => $col) {
                 $pdf->MultiCell(
                     $col['width'], $altura, $valores[$i], 1, $col['align'],
@@ -913,16 +916,17 @@ class EquipoController extends Controller
                 );
                 $cx += $col['width'];
             }
+            $pdf->SetFont('helvetica', '', 10);
         };
 
         // ---------- TABLA PRINCIPAL: equipos del sistema + equipos no registrados ----------
-        $tablaX = $ptToMm(78.62);
+        $tablaX = $ptToMm(79.62);
         $yInicioPagina1 = $ptToMm(283.49 + 12.00) + 6;
         $limiteY = $size1['height'] - 60;
         $alturaFilaVacia = 6;
 
         $columnasPrincipal = [
-            ['header' => '#',      'width' => 8,  'align' => 'C'],
+            ['header' => 'Nº',      'width' => 8,  'align' => 'C'],
             ['header' => 'Tipo',   'width' => 32, 'align' => 'L'],
             ['header' => 'Marca',  'width' => 30, 'align' => 'L'],
             ['header' => 'Modelo', 'width' => 30, 'align' => 'L'],
@@ -949,7 +953,7 @@ class EquipoController extends Controller
             ];
         }
 
-        $dibujarTitulo($tablaX, $yInicioPagina1, 'Equipos a desincorporar');
+        $dibujarTitulo($tablaX, $yInicioPagina1, 'Equipos');
         $y = $yInicioPagina1 + 8;
         $dibujarEncabezadoTabla($tablaX, $y, $columnasPrincipal);
         $y += 6;
@@ -979,7 +983,7 @@ class EquipoController extends Controller
 
                 $enPagina2 = true;
                 $y = 30;
-                $dibujarTitulo($tablaX, $y, 'Equipos a desincorporar (continuación)');
+                $dibujarTitulo($tablaX, $y, 'Equipos (continuación)');
                 $y += 8;
                 $dibujarEncabezadoTabla($tablaX, $y, $columnasPrincipal);
                 $y += 6;
@@ -993,9 +997,11 @@ class EquipoController extends Controller
         $limiteActual = $enPagina2 ? ($size2['height'] - 60) : $limiteY;
         $valoresVacios = array_fill(0, count($columnasPrincipal), '');
 
-        while ($y + $alturaFilaVacia <= $limiteActual) {
-            $dibujarFila($tablaX, $y, $valoresVacios, $alturaFilaVacia, $columnasPrincipal);
-            $y += $alturaFilaVacia;
+        if(!$enPagina2){
+            while ($y + $alturaFilaVacia <= $limiteActual) {
+                $dibujarFila($tablaX, $y, $valoresVacios, $alturaFilaVacia, $columnasPrincipal);
+                $y += $alturaFilaVacia;
+            }
         }
 
         // ---------- TABLAS DE EQUIPOS ADICIONALES / PERIFÉRICOS ----------
@@ -1006,7 +1012,7 @@ class EquipoController extends Controller
         // título + encabezado + al menos una fila de la siguiente tabla.
         if (!empty($perifericos)) {
             $columnasPeriferico = [
-                ['header' => '#',              'width' => 8,  'align' => 'C'],
+                ['header' => 'Nº',              'width' => 8,  'align' => 'C'],
                 ['header' => 'Marca',          'width' => 35, 'align' => 'L'],
                 ['header' => 'Modelo',         'width' => 35, 'align' => 'L'],
                 ['header' => 'Serial',         'width' => 35, 'align' => 'L'],
@@ -1038,18 +1044,20 @@ class EquipoController extends Controller
                 return $size;
             };
 
-            $sizeP = $iniciarPaginaPeriferico();
-            $yP = 30;
-            $limiteP = $sizeP['height'] - 60;
-            $primerGrupo = true;
+            if($enPagina2 && ($y + $alturaFilaVacia <= $limiteActual)){
+                $sizeP = $size2;
+                $yP = $y;
+                $limiteP = $limiteActual;
+            }else{
+                $sizeP = $iniciarPaginaPeriferico();
+                $yP = 30;
+                $limiteP = $sizeP['height'] - 60;
+            }
 
             foreach ($grupos as $grupo) {
-                $tituloGrupo = $grupo['titulo'] . ' a desincorporar';
 
-                // Un pequeño respiro entre una tabla y la siguiente en la misma página.
-                if (! $primerGrupo) {
-                    $yP += 4;
-                }
+                $tituloGrupo = $grupo['titulo'];
+                $yP += 4;
 
                 // Verificamos que quepa el título + encabezado + al menos la
                 // primera fila del grupo; si no, saltamos a una página nueva.
@@ -1103,8 +1111,6 @@ class EquipoController extends Controller
                     $yP += $altura;
                     $numeroGrupo++;
                 }
-
-                $primerGrupo = false;
             }
         }
 
@@ -1116,7 +1122,7 @@ class EquipoController extends Controller
         $pdf->AddPage('P', [$size3['width'], $size3['height']]);
         $pdf->useTemplate($tpl3, 0, 0, $size3['width'], $size3['height']);
 
-        $pdf->SetFont('dejavusans', '', 9);
+        $pdf->SetFont('helvetica', '', 10);
 
         $fechaLabelWidth = 36.67;
         $fechaY = 604.66;

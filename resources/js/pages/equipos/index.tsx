@@ -195,6 +195,9 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
 
     const handleDesincorporar = async (
         motivo: string,
+        para: string,
+        de: string,
+        numero: string,
         equiposExtra: EquipoExtraInput[],
         perifericos: PerifericoInput[],
     ) => {
@@ -215,6 +218,9 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                 body: JSON.stringify({
                     equipo_ids: selectedIds,
                     motivo,
+                    para,
+                    de,
+                    numero,
                     equipos_extra: equiposExtra,
                     perifericos,
                 }),

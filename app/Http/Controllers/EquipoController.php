@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Settings\FirmaController;
 use setasign\Fpdi\Tcpdf\Fpdi as FpdiTcpdf;
 
 class EquipoController extends Controller
@@ -318,35 +319,14 @@ class EquipoController extends Controller
             $registro->id = $equipo->id;
             $registro->save();
 
-            // --- Registro de historial de creación ---
-            $camposLabels = [
-                'anio' => 'Año', 'ram' => 'RAM', 'disco' => 'Disco',
-                'direccion_mac' => 'Dirección MAC', 'sistema_operativo' => 'Sistema Operativo',
-                'numero_inventario' => 'Número de Inventario', 'dominio' => 'Dominio',
-                'puerto' => 'Puerto', 'puerto_fibra' => 'Puerto Fibra',
-                'direccion_ip' => 'Dirección IP', 'extension' => 'Extensión',
-                'ubicacion_puerto' => 'Ubicación del Puerto', 'potencia' => 'Potencia',
-                'rango_frecuencia' => 'Rango de Frecuencia', 'unidad_usuario' => 'Unidad / Usuario',
-                'caracteristicas' => 'Características',
-            ];
-
-            $detalleCreacion = [
-                "Tipo: {$tipo->label()}",
+            $detalleCreacion =[
                 "Marca: " . ($validated['marca'] ?: '—'),
                 "Modelo: {$validated['modelo']}",
-                "Serial: {$validated['serial']}",
+                "Ubicación: {$ubicacion->locacion}",
             ];
-
-            foreach ($camposEspecificos as $campo) {
-                if ($campo === 'contraseña_bios') {
-                    continue; // nunca se registra en texto plano
-                }
-
-                $valor = $validated[$campo] ?? null;
-                if ($valor) {
-                    $label = $camposLabels[$campo] ?? $campo;
-                    $detalleCreacion[] = "{$label}: {$valor}";
-                }
+            
+            if ($asignadoId) {
+                $detalleCreacion[] = "Encargado: {$validated['asignado_nombre']} {$validated['asignado_apellido']}";
             }
 
             HistorialEquipo::create([
@@ -767,7 +747,6 @@ class EquipoController extends Controller
                     'equipo_serial' => $equipo->serial,
                     'detalle' => 'Equipo desincorporado: '
                         . '; Motivo: ' . $validated['motivo']
-                        . '; Serial: ' . $equipo->serial
                         . '; Modelo: ' . $equipo->modelo
                         . '; Ubicación: ' . ($equipo->ubicacion?->locacion ?? '—')
                         . ($equipo->userAsignado
@@ -790,7 +769,7 @@ class EquipoController extends Controller
                     'equipo_area' => null,
                     'equipo_tipo' => null,
                     'equipo_serial' => $extra['serial'] ?? null,
-                    'detalle' => 'Equipo no registrado desincorporado: '
+                    'detalle' => 'Equipo desincorporado: '
                         . '; Motivo: ' . $validated['motivo']
                         . '; Tipo: ' . $extra['tipo']
                         . '; Marca: ' . ($extra['marca'] ?: '—')
@@ -819,7 +798,6 @@ class EquipoController extends Controller
                         . '; Tipo: ' . ($perifericosLabels[$periferico['tipo']] ?? $periferico['tipo'])
                         . '; Marca: ' . ($periferico['marca'] ?: '—')
                         . '; Modelo: ' . ($periferico['modelo'] ?: '—')
-                        . '; Serial: ' . ($periferico['serial'] ?: '—')
                         . '; Características: ' . ($periferico['caracteristicas'] ?: '—'),
                     'fecha_ajuste' => now(),
                 ]);
@@ -1122,12 +1100,30 @@ class EquipoController extends Controller
         $pdf->AddPage('P', [$size3['width'], $size3['height']]);
         $pdf->useTemplate($tpl3, 0, 0, $size3['width'], $size3['height']);
 
-        $pdf->SetFont('helvetica', '', 10);
-
         $fechaLabelWidth = 36.67;
         $fechaY = 604.66;
         $fecha1X = 136.94 + $fechaLabelWidth;
         $fecha2X = 374.83 + $fechaLabelWidth;
+
+        $nombreFirma1 = FirmaController::nombreDe('firma1');
+        $areaFirma1 = FirmaController::areaDe('firma1');
+        $nombreFirma2 = FirmaController::nombreDe('firma2');
+        $areaFirma2 = FirmaController::areaDe('firma2');
+
+        // Nombre y área de desempeño
+        $pdf->SetFont('helvetica', 'B', 12);
+        $pdf->SetXY(45, 110);
+        $pdf->Cell(40, 4, $nombreFirma1, 0, 1, 'C');
+        $pdf->SetXY(130, 110);
+        $pdf->Cell(40, 4, $nombreFirma2, 0, 1, 'C');
+
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->SetXY(45, 120);
+        $pdf->Cell(40, 4, $areaFirma1, 0, 1, 'C');
+        $pdf->SetXY(130, 120);
+        $pdf->Cell(40, 4, $areaFirma2, 0, 1, 'C');
+        
+        $pdf->SetFont('helvetica', '', 10);
 
         if (file_exists($firmaPath1) && file_exists($firmaPath2)) {
             // x, y, ancho, alto — se coloca justo encima de la línea "___" y antes de "Fecha:"

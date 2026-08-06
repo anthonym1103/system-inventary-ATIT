@@ -33,6 +33,7 @@ class FirmaController extends Controller
                 'exists'     => file_exists($path),
                 'updated_at' => file_exists($path) ? filemtime($path) : null,
                 'nombre'     => $nombres[$key] ?? '',
+                'area'       => $nombres["area_{$key}"] ?? '',
             ];
         }
 
@@ -50,10 +51,13 @@ class FirmaController extends Controller
             'firma2' => ['nullable', 'image', 'mimes:png', 'max:1024'],
             'nombre1' => ['nullable', 'string', 'max:255'],
             'nombre2' => ['nullable', 'string', 'max:255'],
+            'area1' => ['nullable', 'string', 'max:255'],
+            'area2' => ['nullable', 'string', 'max:255'],
         ]);
 
         $hayArchivo = !empty($validated['firma1'] ?? null) || !empty($validated['firma2'] ?? null);
-        $hayNombre = array_key_exists('nombre1', $validated) || array_key_exists('nombre2', $validated);
+        $hayNombre = $request->has('nombre1') || $request->has('nombre2')
+            || $request->has('area1') || $request->has('area2');
 
         if (! $hayArchivo && ! $hayNombre) {
             return back()->withErrors([
@@ -74,12 +78,10 @@ class FirmaController extends Controller
 
         // Guardar nombres (solo si vinieron en el request)
         $nombres = $this->getNombres();
-        if ($request->filled('nombre1') || $request->has('nombre1')) {
-            $nombres['firma1'] = $request->input('nombre1', '');
-        }
-        if ($request->filled('nombre2') || $request->has('nombre2')) {
-            $nombres['firma2'] = $request->input('nombre2', '');
-        }
+        if ($request->has('nombre1')) $nombres['firma1'] = $request->input('nombre1', '');
+        if ($request->has('nombre2')) $nombres['firma2'] = $request->input('nombre2', '');
+        if ($request->has('area1')) $nombres['area_firma1'] = $request->input('area1', '');
+        if ($request->has('area2')) $nombres['area_firma2'] = $request->input('area2', '');
         $this->saveNombres($nombres);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Firma(s) actualizada(s) correctamente.']);
@@ -104,12 +106,12 @@ class FirmaController extends Controller
         $path = storage_path('app/firmas/' . self::NOMBRES_FILE);
 
         if (! file_exists($path)) {
-            return ['firma1' => '', 'firma2' => ''];
+            return ['firma1' => '', 'firma2' => '', 'area_firma1' => '', 'area_firma2' => ''];
         }
 
         $data = json_decode(File::get($path), true);
 
-        return is_array($data) ? $data : ['firma1' => '', 'firma2' => ''];
+        return is_array($data) ? $data : ['firma1' => '', 'firma2' => '', 'area_firma1' => '', 'area_firma2' => ''];
     }
 
     private function saveNombres(array $nombres): void
@@ -137,5 +139,18 @@ class FirmaController extends Controller
         $data = json_decode(File::get($path), true);
 
         return $data[$key] ?? '';
+    }
+
+    public static function areaDe(string $key): string
+    {
+        $path = storage_path('app/firmas/' . self::NOMBRES_FILE);
+
+        if (! file_exists($path)) {
+            return '';
+        }
+
+        $data = json_decode(File::get($path), true);
+
+        return $data["area_{$key}"] ?? '';
     }
 }

@@ -3,7 +3,6 @@ import { InfoIcon, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,13 +16,15 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-type FirmaInfo = { exists: boolean; updated_at: number | null; nombre: string };
+type FirmaInfo = { exists: boolean; updated_at: number | null; nombre: string; area: string };
 
 type FirmaFormData = {
     firma1: File | null;
     firma2: File | null;
     nombre1: string;
     nombre2: string;
+    area1: string;
+    area2: string;
 };
 
 type FirmaKey = 'firma1' | 'firma2';
@@ -45,6 +46,8 @@ export default function Firmas({
             firma2: null,
             nombre1: firmas.firma1.nombre ?? '',
             nombre2: firmas.firma2.nombre ?? '',
+            area1: firmas.firma1.area ?? '',
+            area2: firmas.firma2.area ?? '',
         });
 
     const handleFileChange = (
@@ -61,6 +64,8 @@ export default function Firmas({
         // del JSON por si el usuario había cancelado antes.
         setData('nombre1', firmas.firma1.nombre ?? '');
         setData('nombre2', firmas.firma2.nombre ?? '');
+        setData('area1', firmas.firma1.area ?? '');
+        setData('area2', firmas.firma2.area ?? '');
         setEditing(true);
     };
 
@@ -78,7 +83,8 @@ export default function Firmas({
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
-                reset();
+                setData('firma1', null);
+                setData('firma2', null);
                 setPreview1(null);
                 setPreview2(null);
                 if (input1.current) input1.current.value = '';
@@ -92,7 +98,9 @@ export default function Firmas({
         data.firma1 !== null ||
         data.firma2 !== null ||
         data.nombre1 !== (firmas.firma1.nombre ?? '') ||
-        data.nombre2 !== (firmas.firma2.nombre ?? '');
+        data.nombre2 !== (firmas.firma2.nombre ?? '') ||
+        data.area1 !== (firmas.firma1.area ?? '') ||
+        data.area2 !== (firmas.firma2.area ?? '');
 
     return (
         <>
@@ -126,9 +134,12 @@ export default function Firmas({
                         error={errors.firma1}
                         nombre={data.nombre1}
                         nombreError={errors.nombre1}
+                        area={data.area1}
+                        areaError={errors.area1}
                         editing={editing}
                         onChange={handleFileChange('firma1', setPreview1)}
                         onNombreChange={(e) => setData('nombre1', e.target.value)}
+                        onAreaChange={(e) => setData('area1', e.target.value)}
                     />
                     <FirmaField
                         firmaKey="firma2"
@@ -139,14 +150,17 @@ export default function Firmas({
                         error={errors.firma2}
                         nombre={data.nombre2}
                         nombreError={errors.nombre2}
+                        area={data.area2}
+                        areaError={errors.area2}
                         editing={editing}
                         onChange={handleFileChange('firma2', setPreview2)}
                         onNombreChange={(e) => setData('nombre2', e.target.value)}
+                        onAreaChange={(e) => setData('area2', e.target.value)}
                     />
                 </div>
 
                 {editing ? (
-                    <div className="flex items-center gap-4">
+                    <div className="flex justify-end items-center gap-4">
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button
@@ -206,7 +220,7 @@ export default function Firmas({
                         )}
                     </div>
                 ):(
-                    <div className="flex items-center gap-4">  
+                    <div className="flex justify-end items-center gap-4">  
                         <Button
                             type="button"
                             variant="outline"
@@ -231,9 +245,12 @@ function FirmaField({
     error,
     nombre,
     nombreError,
+    area,
+    areaError,
     editing,
     onChange,
     onNombreChange,
+    onAreaChange,
 }: {
     firmaKey: FirmaKey;
     inputRef: React.RefObject<HTMLInputElement | null>;
@@ -243,9 +260,12 @@ function FirmaField({
     error?: string;
     nombre: string;
     nombreError?: string;
+    area: string;
+    areaError?: string;
     editing: boolean;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onNombreChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onAreaChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
     const currentUrl = info.exists
         ? `/settings/firmas/${firmaKey}/preview?v=${info.updated_at}`
@@ -278,19 +298,46 @@ function FirmaField({
                     ) : (
                         <span
                             className={
-                                nombre
+                                info.nombre
                                     ? 'text-sm font-medium'
                                     : 'text-sm text-neutral-400 italic'
                             }
                         >
-                            {nombre || 'Sin nombre asignado'}
+                            {info.nombre || 'Sin nombre asignado'}
                         </span>
                     )}
 
                     <InputError message={nombreError} />
                 </div>
 
-                {/* Separador visual entre nombre y firma */}
+                {/* Separador visual entre nombre y area */}
+                <div className="h-px w-full bg-border" />
+
+                {/* Área de desempeño */}
+                <div className="grid gap-1.5">
+                    <Label htmlFor={`${firmaKey}-area`} className="text-xs text-neutral-500">
+                        Área de desempeño
+                    </Label>
+
+                    {editing ? (
+                        <input
+                            id={`${firmaKey}-area`}
+                            type="text"
+                            value={area}
+                            onChange={onAreaChange}
+                            placeholder="Ej. Gerencia ATIT Orinoco"
+                            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        />
+                    ) : (
+                        <span className={info.area ? 'text-sm font-medium' : 'text-sm text-neutral-400 italic'}>
+                            {info.area || 'Sin área asignada'}
+                        </span>
+                    )}
+
+                    <InputError message={areaError} />
+                </div>
+
+                {/* Separador visual entre area y firma */}
                 <div className="h-px w-full bg-border" />
 
                 {/* Firma: va debajo, simulando cómo se ve en el PDF */}

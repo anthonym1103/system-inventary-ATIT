@@ -67,7 +67,8 @@ function DetalleDisplay({ detalle }: { detalle: string }) {
         .slice(colonIndex + 1)
         .split(';')
         .map((s) => s.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter((item) => !/^serial\s*:/i.test(item)); // ya se muestra en la columna Equipo
 
     return (
         <div className="space-y-1 py-1">
@@ -80,7 +81,6 @@ function DetalleDisplay({ detalle }: { detalle: string }) {
         </div>
     );
 }
-
 function useDebounce<T>(value: T, delay: number): T {
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
     useEffect(() => {
@@ -205,14 +205,23 @@ export default function HistorialIndex({ historial, filters, tiposLabels, areasL
                                                         </TableCell>
                                                     )}
                                                     <TableCell className="align-center whitespace-normal break-words max-w-md">
-                                                        <div className="flex justify-center items-center gap-2">
+                                                        <div className="flex items-center justify-center gap-2">
                                                             <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                                            <span className="font-mono text-xs text-muted-foreground break-words">{serial ?? 'N/A'}</span>
+                                                            <div className="flex flex-col text-center">
+                                                                <span className="text-sm font-medium text-muted-foreground">
+                                                                    {tipo ? (tiposLabels[tipo] ?? tipo) : 'Equipo no registrado'}
+                                                                </span>
+                                                                <span className="font-mono text-xs text-muted-foreground">
+                                                                    {serial ?? 'N/A'}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </TableCell>
 
                                                     <TableCell className="align-center whitespace-normal break-words max-w-md">
-                                                        <DetalleDisplay detalle={entry.detalle} />
+                                                        <div className="flex justify-center">
+                                                            <DetalleDisplay detalle={entry.detalle} />
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             );

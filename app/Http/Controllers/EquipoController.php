@@ -809,7 +809,7 @@ class EquipoController extends Controller
 
     private function generarPdfDesincorporacion($equipos, array $equiposExtra, array $perifericos, $user, string $motivo, string $para, string $de, string $numero ): string
     {
-        $templatePath = storage_path('app/pdf-templates/desincorporacionTecnica.pdf');
+        $templatePath = storage_path('app/pdf-templates/desincorporacionTecnica2.pdf');
         if (! file_exists($templatePath)) {
             throw new \RuntimeException(
                 "No se encontró la plantilla PDF en: {$templatePath}. " .
@@ -1122,7 +1122,7 @@ class EquipoController extends Controller
         $x_izq = 85.04; //Punto de inicio en X
         $y_izq = 507; // Punto de inicio en Y
         $ancho_descrip_izq = 195.6; // El ancho es el diferencial de donde tiene que entrar el texto Y -> 223.94 menos X -> 28.35
-        $pdf->MultiCell($ptToMm($ancho_descrip_izq), 6, $areaFirma1, 0 ,'C', false, 0, $ptToMm($x_izq), $ptToMm($y_izq));
+        $pdf->MultiCell($ptToMm($ancho_descrip_izq), 6, $areaFirma1, 1, 'C', false, 0, $ptToMm($x_izq), $ptToMm($y_izq));
 
         $x_der = 313; //Punto de inicio en X
         $y_der = 507; // Punto de inicio en Y

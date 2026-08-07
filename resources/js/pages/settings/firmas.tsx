@@ -14,6 +14,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Pencil, X, Check, Save} from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 type FirmaInfo = { exists: boolean; updated_at: number | null; nombre: string; area: string };
@@ -167,6 +168,7 @@ export default function Firmas({
                                     disabled={!hasChanges || processing}
                                     className="cursor-pointer"
                                 >
+                                    <Save className="h-3.5 w-3.5" />
                                     Guardar firmas
                                 </Button>
                             </DialogTrigger>
@@ -185,6 +187,7 @@ export default function Firmas({
                                 <DialogFooter className="gap-2">
                                     <DialogClose asChild>
                                         <Button variant="outline" className="cursor-pointer">
+                                            <X className="h-3.5 w-3.5" />
                                             Cancelar
                                         </Button>
                                     </DialogClose>
@@ -194,6 +197,7 @@ export default function Firmas({
                                             disabled={processing}
                                             className="cursor-pointer"
                                         >
+                                            <Check className="h-3.5 w-3.5" />
                                             {processing
                                                 ? 'Guardando...'
                                                 : 'Sí, reemplazar'}
@@ -210,6 +214,7 @@ export default function Firmas({
                             disabled={processing}
                             className="cursor-pointer"
                         >
+                            <X className="h-3.5 w-3.5" />
                             Cancelar
                         </Button>
 
@@ -227,6 +232,7 @@ export default function Firmas({
                             onClick={startEditing}
                             className="cursor-pointer"
                         >
+                            <Pencil className="h-3.5 w-3.5" />
                             Editar
                         </Button>
                     </div>

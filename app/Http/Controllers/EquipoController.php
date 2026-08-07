@@ -842,16 +842,16 @@ class EquipoController extends Controller
         $pdf->AddPage('P', [$size1['width'], $size1['height']]);
         $pdf->useTemplate($tpl1, 0, 0, $size1['width'], $size1['height']);
 
-        $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(127.50));
+        $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(97.02));
         $pdf->Cell(0, 4.5, $para);
 
-        $pdf->SetXY($ptToMm(78.62 + 18.91) + 20, $ptToMm(164.22));
+        $pdf->SetXY($ptToMm(78.62 + 18.91) + 20, $ptToMm(130.42));
         $pdf->Cell(0, 4.5, $de);
 
-        $pdf->SetXY($ptToMm(78.62 + 52.61) + 8, $ptToMm(191.10));
+        $pdf->SetXY($ptToMm(78.62 + 52.61) + 8, $ptToMm(156.82));
         $pdf->Cell(0, 4.5, $numero);
 
-        $pdf->SetXY($ptToMm(78.62 + 41.47) + 12, $ptToMm(214.02));
+        $pdf->SetXY($ptToMm(78.62 + 41.47) + 12, $ptToMm(177.02));
         $pdf->Cell(0, 4.5, now()->translatedFormat('j \d\e F \d\e\l Y'));
 
         // --- Helpers reutilizables para todas las tablas del documento ---
@@ -899,7 +899,7 @@ class EquipoController extends Controller
 
         // ---------- TABLA PRINCIPAL: equipos del sistema + equipos no registrados ----------
         $tablaX = $ptToMm(79.62);
-        $yInicioPagina1 = $ptToMm(283.49 + 12.00) + 6;
+        $yInicioPagina1 = $ptToMm(274.83 + 12.00) + 6;
         $limiteY = $size1['height'] - 60;
         $alturaFilaVacia = 6;
 
@@ -1101,8 +1101,8 @@ class EquipoController extends Controller
         $pdf->useTemplate($tpl3, 0, 0, $size3['width'], $size3['height']);
 
         $fechaLabelWidth = 36.67;
-        $fechaY = 604.66;
-        $fecha1X = 136.94 + $fechaLabelWidth;
+        $fechaY = 607.66;
+        $fecha1X = 132.94 + $fechaLabelWidth;
         $fecha2X = 374.83 + $fechaLabelWidth;
 
         $nombreFirma1 = FirmaController::nombreDe('firma1');
@@ -1112,18 +1112,24 @@ class EquipoController extends Controller
 
         // Nombre y área de desempeño
         $pdf->SetFont('helvetica', 'B', 12);
-        $pdf->SetXY(45, 110);
+        $pdf->SetXY(45, 173);
         $pdf->Cell(40, 4, $nombreFirma1, 0, 1, 'C');
-        $pdf->SetXY(130, 110);
+        $pdf->SetXY(130, 173);
         $pdf->Cell(40, 4, $nombreFirma2, 0, 1, 'C');
 
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->SetXY(45, 120);
-        $pdf->Cell(40, 4, $areaFirma1, 0, 1, 'C');
-        $pdf->SetXY(130, 120);
-        $pdf->Cell(40, 4, $areaFirma2, 0, 1, 'C');
+        $pdf->SetFont('helvetica', '', 11);
         
-        $pdf->SetFont('helvetica', '', 10);
+        $x_izq = 85.04; //Punto de inicio en X
+        $y_izq = 507; // Punto de inicio en Y
+        $ancho_descrip_izq = 195.6; // El ancho es el diferencial de donde tiene que entrar el texto Y -> 223.94 menos X -> 28.35
+        $pdf->MultiCell($ptToMm($ancho_descrip_izq), 6, $areaFirma1, 0 ,'C', false, 0, $ptToMm($x_izq), $ptToMm($y_izq));
+
+        $x_der = 313; //Punto de inicio en X
+        $y_der = 507; // Punto de inicio en Y
+        $ancho_descrip_der = 220.81; // El ancho es el diferencial de donde tiene que entrar el texto Y -> 472.36 menos X -> 251.55
+        $pdf->MultiCell($ptToMm($ancho_descrip_der), 6, $areaFirma2, 0 ,'C', false, 0, $ptToMm($x_der), $ptToMm($y_der));
+        
+        $pdf->SetFont('helvetica', '', 11);
 
         if (file_exists($firmaPath1) && file_exists($firmaPath2)) {
             // x, y, ancho, alto — se coloca justo encima de la línea "___" y antes de "Fecha:"

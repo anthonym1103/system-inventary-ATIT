@@ -128,7 +128,7 @@ export default function Firmas({
                     <FirmaField
                         firmaKey="firma1"
                         inputRef={input1}
-                        label="Firma 1 (izquierda)"
+                        label="Elaborado por:"
                         info={firmas.firma1}
                         preview={preview1}
                         error={errors.firma1}
@@ -144,7 +144,7 @@ export default function Firmas({
                     <FirmaField
                         firmaKey="firma2"
                         inputRef={input2}
-                        label="Firma 2 (derecha)"
+                        label="Revisado y aprovado por:"
                         info={firmas.firma2}
                         preview={preview2}
                         error={errors.firma2}
@@ -265,7 +265,7 @@ function FirmaField({
     editing: boolean;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onNombreChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onAreaChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onAreaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }) {
     const currentUrl = info.exists
         ? `/settings/firmas/${firmaKey}/preview?v=${info.updated_at}`
@@ -292,7 +292,7 @@ function FirmaField({
                             type="text"
                             value={nombre}
                             onChange={onNombreChange}
-                            placeholder="Ej. Juan Pérez"
+                            placeholder="Ingrese el nombre..."
                             className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />
                     ) : (
@@ -320,13 +320,11 @@ function FirmaField({
                     </Label>
 
                     {editing ? (
-                        <input
+                        <textarea
                             id={`${firmaKey}-area`}
-                            type="text"
+                            className="border-input flex min-h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             value={area}
                             onChange={onAreaChange}
-                            placeholder="Ej. Gerencia ATIT Orinoco"
-                            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />
                     ) : (
                         <span className={info.area ? 'text-sm font-medium' : 'text-sm text-neutral-400 italic'}>

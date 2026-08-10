@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRef } from 'react';
 import PasswordInput from '@/components/password-input';
 import {
     Select,
@@ -15,6 +16,59 @@ import {
 } from '@/components/ui/select';
 import InputError from '@/components/input-error';
 import { Spinner } from '@/components/ui/spinner';
+
+function RamGbInput({
+    value,
+    onChange,
+    placeholder,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+}) {
+    const clampCursor = (e: React.SyntheticEvent<HTMLInputElement>) => {
+        const target = e.currentTarget;
+        const digits = target.value.replace(/\D/g, '');
+        const maxPos = digits.length;
+
+        requestAnimationFrame(() => {
+            const start = target.selectionStart ?? maxPos;
+            const end = target.selectionEnd ?? maxPos;
+
+            const clampedStart = Math.min(start, maxPos);
+            const clampedEnd = Math.min(end, maxPos);
+
+            if (start > maxPos || end > maxPos) {
+                target.setSelectionRange(clampedStart, clampedEnd);
+            }
+        });
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const target = e.target;
+        const digits = target.value.replace(/\D/g, '').slice(0, 4);
+        const formatted = digits ? `${digits} GB` : '';
+
+        onChange(formatted);
+
+        // El cursor siempre queda justo antes de " GB".
+        requestAnimationFrame(() => {
+            target.setSelectionRange(digits.length, digits.length);
+        });
+    };
+
+    return (
+        <Input
+            value={value}
+            onChange={handleChange}
+            onClick={clampCursor}
+            onKeyUp={clampCursor}
+            onFocus={clampCursor}
+            placeholder={placeholder}
+            inputMode="numeric"
+        />
+    );
+}
 
 interface CampoConfig {
     label: string;
@@ -169,9 +223,10 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                 limited = ipDigits.slice(0, 12);
                 parts = limited.match(/.{1,3}/g) || [];
                 return parts.join('.');
-            case 'ram':
-                const ramDigits = value.replace(/\D/g, '').slice(0, 4);
-                return ramDigits ? `${ramDigits} GB` : '';
+            case 'telefono':
+                const number = value.replace(/[^0-9]/g, '');
+                limited = number.slice(0, 11);
+                return limited;
             default:
                 return value;
         }
@@ -250,7 +305,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     <Label className="cursor-text select-text w-fit">Cédula <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
                                     <Input
                                         value={data.asignado_cedula}
-                                        onChange={(e) => setData('asignado_cedula', e.target.value)}
+                                        onChange={(e) => {
+                                            const valor = e.target.value;
+                                            const formatted = formatInput('cedula', valor);
+                                            setData('asignado_cedula', formatted);
+                                        }}
                                         placeholder="Ej. 12345678"
                                     />
                                      <InputError message={errors.asignado_cedula} />
@@ -280,7 +339,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     <Label className="cursor-text select-text w-fit">Teléfono {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
                                     <Input
                                         value={data.asignado_telefono}
-                                        onChange={(e) => setData('asignado_telefono', e.target.value)}
+                                        onChange={(e) => {
+                                            const valor = e.target.value;
+                                            const formatted = formatInput('telefono', valor);
+                                            setData('asignado_telefono', formatted);
+                                        }}
                                         placeholder="Ej. 04121234567"
                                     />
                                     <InputError message={errors.asignado_telefono} />
@@ -392,7 +455,13 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     className={`grid gap-2 ${config.textarea ? 'sm:col-span-2' : ''}`}
                                 >
                                     <Label className="cursor-text select-text w-fit">{config.label} {isRequired.includes(campo) ? (<span className="text-destructive cursor-text select-text w-fit">*</span>): (<span className="text-muted-foreground text-xs">(opcional)</span>)}</Label>
-                                    { config.textarea ? (
+                                    { campo === 'ram'? (
+                                        <RamGbInput
+                                            value={data[campo] ?? ''}
+                                            onChange={(valor) => setData(campo, valor)}
+                                            placeholder={config.holdertext}
+                                        />
+                                    ) : config.textarea ? (
                                         <textarea
                                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                                             value={data[campo] ?? ''}

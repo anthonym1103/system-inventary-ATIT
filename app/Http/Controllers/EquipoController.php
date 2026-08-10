@@ -842,7 +842,7 @@ class EquipoController extends Controller
         $pdf->AddPage('P', [$size1['width'], $size1['height']]);
         $pdf->useTemplate($tpl1, 0, 0, $size1['width'], $size1['height']);
 
-        $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(97.02));
+        $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(102.02));
         $pdf->Cell(0, 4.5, $para);
 
         $pdf->SetXY($ptToMm(78.62 + 18.91) + 20, $ptToMm(130.42));
@@ -1122,7 +1122,7 @@ class EquipoController extends Controller
         $x_izq = 85.04; //Punto de inicio en X
         $y_izq = 507; // Punto de inicio en Y
         $ancho_descrip_izq = 195.6; // El ancho es el diferencial de donde tiene que entrar el texto Y -> 223.94 menos X -> 28.35
-        $pdf->MultiCell($ptToMm($ancho_descrip_izq), 6, $areaFirma1, 1, 'C', false, 0, $ptToMm($x_izq), $ptToMm($y_izq));
+        $pdf->MultiCell($ptToMm($ancho_descrip_izq), 6, $areaFirma1, 0, 'C', false, 0, $ptToMm($x_izq), $ptToMm($y_izq));
 
         $x_der = 313; //Punto de inicio en X
         $y_der = 507; // Punto de inicio en Y

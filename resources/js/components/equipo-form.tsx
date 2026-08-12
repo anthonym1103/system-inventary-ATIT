@@ -227,6 +227,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                 const number = value.replace(/[^0-9]/g, '');
                 limited = number.slice(0, 11);
                 return limited;
+            case 'cedula':
+                const ident = 'V- ';
+                const digCedula =value.replace(/[^0-9]/g, '');
+                limited = digCedula.slice(0, 9);
+                return ident + limited;
             default:
                 return value;
         }
@@ -455,7 +460,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     className={`grid gap-2 ${config.textarea ? 'sm:col-span-2' : ''}`}
                                 >
                                     <Label className="cursor-text select-text w-fit">{config.label} {isRequired.includes(campo) ? (<span className="text-destructive cursor-text select-text w-fit">*</span>): (<span className="text-muted-foreground text-xs">(opcional)</span>)}</Label>
-                                    { campo === 'ram'? (
+                                    { campo ==='disco' ? (
+                                        <>
+                                            
+                                        </>
+                                    ) : campo === 'ram'? (
                                         <RamGbInput
                                             value={data[campo] ?? ''}
                                             onChange={(valor) => setData(campo, valor)}

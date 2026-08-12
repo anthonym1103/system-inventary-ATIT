@@ -18,6 +18,8 @@ interface EditData {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
+    sedes: Array<{ value: string, label: string }>;
+    pisos: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>
 }
 
@@ -79,6 +81,8 @@ export function EquipoEditModal({ equipoId, isOpen, onClose }: Props) {
                         tiposLabels={data.tiposLabels}
                         camposPorTipo={data.camposPorTipo}
                         ubicaciones={data.ubicaciones}
+                        sedesOptions={data.sedes}
+                        pisosOptions={data.pisos}
                         condiciones={data.condiciones}
                         initialData={data.equipo}
                         tieneContrasenaBios={data.equipo.tiene_contrasena_bios}

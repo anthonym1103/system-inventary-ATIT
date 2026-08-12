@@ -4,6 +4,8 @@ namespace Database\Factories;
 
 use App\Models\Ubicacion;
 use App\Enums\EstadoRegion;
+use App\Enums\Sede;
+use App\Enums\Piso;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,13 +19,14 @@ class UbicacionFactory extends Factory
      * @return array<string, mixed>
      */
 
-    protected $model = Ubicacion::class;
 
     public function definition(): array
     {
+        $estado = fake()->randomElement(EstadoRegion::cases());
         return [
             'estado' => fake()->randomElement(EstadoRegion::cases())->value,
-            'locacion' => fake()->city(),
+            'sede' => fake()->randomElement(Sede::cases())->value,
+            'piso' => fake()->randomElement(Piso::cases())->value,
         ];
     }
 }

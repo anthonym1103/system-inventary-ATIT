@@ -70,6 +70,59 @@ function RamGbInput({
     );
 }
 
+function DiscoInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  // Extraer número y unidad del valor existente (ej. "512 GB" → 512, "GB")
+  const parseValue = (val: string) => {
+    const match = val.match(/^(\d+)\s*(GB|TB)$/i);
+    if (match) {
+      return { number: match[1], unit: match[2].toUpperCase() };
+    }
+    return { number: '', unit: 'GB' }; // valor por defecto
+  };
+
+  const { number, unit } = parseValue(value);
+
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 6); // máximo 6 dígitos
+    const newValue = digits ? `${digits} ${unit}` : '';
+    onChange(newValue);
+  };
+
+  const handleUnitChange = (newUnit: string) => {
+    const newValue = number ? `${number} ${newUnit}` : '';
+    onChange(newValue);
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        value={number}
+        onChange={handleNumberChange}
+        placeholder={placeholder || 'Ingrese la capacidad...'}
+        inputMode="numeric"
+        className="flex-1"
+      />
+      <Select value={unit} onValueChange={handleUnitChange}>
+        <SelectTrigger className="w-24 cursor-pointer">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="GB" className="cursor-pointer">GB</SelectItem>
+          <SelectItem value="TB" className="cursor-pointer">TB</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 interface CampoConfig {
     label: string;
     holdertext?: string;
@@ -96,8 +149,6 @@ const CAMPO_CONFIG: Record<string, CampoConfig> = {
     caracteristicas: { label: 'Características', textarea: true, holdertext: 'Ingrese caracteristicas...' },
 };
 
-
-
 export interface TipoConfig {
     area: string;
     campos: string[];
@@ -108,7 +159,8 @@ export interface TipoConfig {
 export type EquipoFormData = {
     tipo: string;
     estados: string;
-    locacions:string;
+    sedes: string;
+    pisos: string;
     condicion: string;
     asignado_cedula: string;
     asignado_nombre: string;
@@ -128,6 +180,8 @@ interface EquipoFormProps {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
+    sedesOptions: Array<{ value: string, label: string }>;
+    pisosOptions: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>;
     initialData?: Partial<EquipoFormData>;
     tieneContrasenaBios?: boolean;
@@ -135,11 +189,12 @@ interface EquipoFormProps {
     onCancel?: () => void;
 }
 
-export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, condiciones, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
+export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, sedesOptions, pisosOptions, condiciones, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
     const { data, setData, post, put, processing, errors, reset, isDirty } = useForm<EquipoFormData>({
         tipo: '',
         estados: '',
-        locacions: '',
+        sedes: '',
+        pisos: '',
         condicion: 'operativo',
         asignado_cedula: '',
         asignado_nombre: '',
@@ -291,14 +346,47 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         <InputError message={errors.estados} />
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label className="cursor-text select-text w-fit">Locacion del equipo {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
-                        <textarea
-                            className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                            value={data.locacions}
-                            onChange={(e) => setData('locacions', e.target.value)}
-                        />
-                        <InputError message={errors.locacions} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label className="cursor-text select-text w-fit">Sede {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
+                            <Select
+                                value={data.sedes}
+                                onValueChange={(val) => setData('sedes', val)}
+                            >
+                                <SelectTrigger className="w-full cursor-pointer">
+                                    <SelectValue placeholder="Selecciona una sede" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {sedesOptions.map((s) => (
+                                        <SelectItem key={s.value} value={s.value} className="cursor-pointer">
+                                            {s.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.sedes} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label className="cursor-text select-text w-fit">Piso {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
+                            <Select
+                                value={data.pisos}
+                                onValueChange={(val) => setData('pisos', val)}
+                                disabled={!data.sedes}
+                            >
+                                <SelectTrigger className="w-full cursor-pointer">
+                                    <SelectValue placeholder={data.sedes ? 'Selecciona un piso' : 'Elige primero una sede'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {pisosOptions.map((p) => (
+                                        <SelectItem key={p.value} value={p.value} className="cursor-pointer">
+                                            {p.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.pisos} />
+                        </div>
                     </div>
 
                     {requiereEncargado && (
@@ -461,9 +549,11 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                 >
                                     <Label className="cursor-text select-text w-fit">{config.label} {isRequired.includes(campo) ? (<span className="text-destructive cursor-text select-text w-fit">*</span>): (<span className="text-muted-foreground text-xs">(opcional)</span>)}</Label>
                                     { campo ==='disco' ? (
-                                        <>
-                                            
-                                        </>
+                                        <DiscoInput
+                                            value={data[campo] ?? ''}
+                                            onChange={(valor) => setData(campo, valor)}
+                                            placeholder={config.holdertext}
+                                        />
                                     ) : campo === 'ram'? (
                                         <RamGbInput
                                             value={data[campo] ?? ''}

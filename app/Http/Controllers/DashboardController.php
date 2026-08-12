@@ -9,6 +9,8 @@ use App\Enums\Cargo;
 use App\Enums\TipoEquipo;
 use App\Enums\EstadoRegion;
 use App\Enums\CondicionEquipo;
+use App\Enums\Sede;
+use App\Enums\Piso;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -64,15 +66,24 @@ class DashboardController extends Controller
         foreach (CondicionEquipo::cases() as $condicion) {
             $condicionesLabels[$condicion->value] = $condicion->label();
         }
+
+        $sedesLabels = [];
+        foreach (Sede::cases() as $sede) {
+            $sedesLabels[$sede->value] = $sede->label();
+        }
+        $pisosLabels = [];
+        foreach (Piso::cases() as $piso) {
+            $pisosLabels[$piso->value] = $piso->label();
+        }
         
         // 4. Equipos por ubicación (top 5 ubicaciones con más equipos)
         // Obtener las áreas permitidas (si es administrador, todas)
         $areasArray = $allowedAreas ?: array_map(fn($area) => $area->value, Area::cases());
 
-        $equiposPorUbicacion = Ubicacion::select('ubicacions.id', 'ubicacions.estado', 'ubicacions.locacion')
+        $equiposPorUbicacion = Ubicacion::select('ubicacions.id', 'ubicacions.estado', 'ubicacions.sede', 'ubicacions.piso')
             ->join('equipos', 'ubicacions.id', '=', 'equipos.ubicacion_id')
             ->whereIn('equipos.area', $areasArray)
-            ->groupBy('ubicacions.id', 'ubicacions.estado', 'ubicacions.locacion')
+            ->groupBy('ubicacions.id', 'ubicacions.estado', 'ubicacions.sede', 'ubicacions.piso')
             ->selectRaw('COUNT(*) as equipos_count')
             ->havingRaw('COUNT(*) > 0')
             ->orderBy('equipos_count', 'desc')
@@ -86,6 +97,8 @@ class DashboardController extends Controller
             'equiposPorUbicacion' => $equiposPorUbicacion,
             'tiposLabels' => $tiposLabels,
             'estadosLabels' => $estadosLabels,
+            'sedesLabels' => $sedesLabels,
+            'pisosLabels' => $pisosLabels,
             'condicionesLabels' => $condicionesLabels,
         ]);
     }

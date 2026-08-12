@@ -9,10 +9,12 @@ interface Props {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
+    sedes: Array<{ value: string, label: string }>;
+    pisos: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>;
 }
 
-export default function EquipoEdit({ equipo, tiposLabels, camposPorTipo, ubicaciones, condiciones }: Props) {
+export default function EquipoEdit({ equipo, tiposLabels, camposPorTipo, ubicaciones, sedes, pisos, condiciones }: Props) {
     const { id, tiene_contrasena_bios, ...initialData } = equipo;
 
     return (
@@ -34,6 +36,8 @@ export default function EquipoEdit({ equipo, tiposLabels, camposPorTipo, ubicaci
                     tiposLabels={tiposLabels}
                     camposPorTipo={camposPorTipo}
                     ubicaciones={ubicaciones}
+                    sedesOptions={sedes}
+                    pisosOptions={pisos}
                     condiciones= {condiciones}
                     initialData={initialData}
                     tieneContrasenaBios={tiene_contrasena_bios}

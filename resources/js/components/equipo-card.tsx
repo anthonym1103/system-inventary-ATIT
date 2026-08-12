@@ -15,7 +15,7 @@ interface EquipoCardProps {
         condicion: 'operativo' | 'no_operativo';
         area: string;
         detalle: string;
-        ubicacion: { id: number; estado: string; locacion: string };
+        ubicacion: { id: number; estado: string; sede: string; piso: string; };
         user_asignado?: { cedula: string; nombre: string; apellido: string } | null;
     };
     tiposLabels: Record<string, string>;
@@ -94,7 +94,7 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,co
               
                         <div className="flex items-center text-sm text-muted-foreground gap-1">
                             <MapPin className="h-3.5 w-3.5" />
-                            <span>{equipo.ubicacion?.locacion}, {estadosLabls[equipo.ubicacion?.estado]}</span>
+                            <span>{sedesLabels[equipo.ubicacion?.sede]}, {pisosLabels[equipo.ubicacion?.piso]} — {estadosLabls[equipo.ubicacion?.estado]}</span>
                         </div>
 
                         {equipo.user_asignado && (

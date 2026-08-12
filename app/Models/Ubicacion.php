@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Equipo;
 use App\Enums\EstadoRegion;
+use App\Enums\Sede;
 
 class Ubicacion extends Model
 {
@@ -16,11 +17,13 @@ class Ubicacion extends Model
 
     protected $fillable = [
         'estado',
-        'locacion',
+        'piso',
+        'sede',
     ];
 
     protected $casts = [
         'estado' => EstadoRegion::class,
+        'sede' => Sede::class,
     ];
 
     public function equipos(): HasMany

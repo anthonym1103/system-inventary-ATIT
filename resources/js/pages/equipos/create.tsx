@@ -8,10 +8,12 @@ interface Props {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
+    sedes: Array<{ value: string, label: string }>;
+    pisos: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>;
 }
 
-export default function EquipoCreate({ tiposLabels, camposPorTipo, ubicaciones, condiciones}: Props) {
+export default function EquipoCreate({ tiposLabels, camposPorTipo, ubicaciones, sedes, pisos, condiciones}: Props) {
 
     return (
         <>
@@ -31,6 +33,8 @@ export default function EquipoCreate({ tiposLabels, camposPorTipo, ubicaciones, 
                     tiposLabels={tiposLabels}
                     camposPorTipo={camposPorTipo}
                     ubicaciones={ubicaciones}
+                    sedesOptions={sedes}
+                    pisosOptions={pisos}
                     condiciones = {condiciones}
                 />
             </div>

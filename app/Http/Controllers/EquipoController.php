@@ -14,6 +14,8 @@ use App\Enums\TipoEquipo;
 use App\Enums\CondicionEquipo;
 use App\Enums\EstadoRegion;
 use App\Enums\Cargo;
+use App\Enums\Sede;
+use App\Enums\Piso;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -80,6 +82,21 @@ class EquipoController extends Controller
                 $q->where('estado', $estadosBuscados);
             });
         }
+
+        if($request->filled('sede') && $request->input('sede') !== 'all'){
+            $sedeBuscada = $request->input('sede');
+            $query->whereHas('ubicacion', function($q) use ($sedeBuscada){
+                $q->where('sede', $sedeBuscada);
+            });
+        }
+
+        if($request->filled('piso') && $request->input('piso') !== 'all'){
+            $pisoBuscado = $request->input('piso');
+            $query->whereHas('ubicacion', function($q) use ($pisoBuscado){
+                $q->where('piso', $pisoBuscado);
+            });
+        }
+
         if($areaFilter){
             $query->where('area', $areaFilter);
         }
@@ -138,6 +155,8 @@ class EquipoController extends Controller
             'condicionesLabels' => $condicionesLabels,
             'condiciones' => $condiciones,
             'ubicaciones' => $ubicaciones,
+            'sedes' => $this->getSedes(),
+            'pisos' => $this->getPisos(),
             'filters' => $request->only(['search', 'tipo', 'condicion', 'ubicacion_id']) +  ['area' => $areaFilter],
             'permissions' => $permissions,
         ]);
@@ -196,6 +215,8 @@ class EquipoController extends Controller
             'tiposLabels' => $tiposLabels,
             'camposPorTipo' => $camposPorTipo,
             'ubicaciones' => $ubicaciones,
+            'sedes' => $this->getSedes(),
+            'pisos' => $this->getPisos(),
             'condiciones' => $condiciones,
         ]);
     }
@@ -223,7 +244,8 @@ class EquipoController extends Controller
         $rules = [
             'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
             'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
-            'locacions' => ['required', 'string', 'max:255'],
+            'sedes' => ['required', Rule::in(array_column(Sede::cases(), 'value'))],
+            'pisos' => ['required', Rule::in(array_column(Piso::cases(), 'value'))],
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
             'marca' => ['nullable', 'string', 'max:255'],
             'modelo' => ['required', 'string', 'max:255'],
@@ -284,7 +306,8 @@ class EquipoController extends Controller
 
             $ubicacion = Ubicacion::firstOrCreate([
                     'estado' => $validated['estados'],
-                    'locacion' => $validated['locacions'],
+                    'sede' => $validated['sedes'],
+                    'piso' => $validated['pisos'],
                 ]);
 
             $equipo = Equipo::create([
@@ -322,7 +345,7 @@ class EquipoController extends Controller
             $detalleCreacion =[
                 "Marca: " . ($validated['marca'] ?: '—'),
                 "Modelo: {$validated['modelo']}",
-                "Ubicación: {$ubicacion->locacion}",
+                "Ubicación: {$ubicacion->sede->label()} - {$ubicacion->piso->label()}",
             ];
             
             if ($asignadoId) {
@@ -350,6 +373,8 @@ class EquipoController extends Controller
         $this->authorizeEdit($equipo);
         $data = $this->buildEditData($equipo);
         $data['condiciones'] = $this->getCondiciones();
+        $data['sedes'] = $this->getSedes();
+        $data['pisos'] = $this->getPisos();
 
         return Inertia::render('equipos/edit', $data );
     }
@@ -359,6 +384,8 @@ class EquipoController extends Controller
         $this->authorizeEdit($equipo);
         $data = $this->buildEditData($equipo);
         $data['condiciones'] = $this->getCondiciones();
+        $data['sedes'] = $this->getSedes();
+        $data['pisos'] = $this->getPisos();
 
         return response()->json($data);
     }
@@ -429,7 +456,8 @@ class EquipoController extends Controller
                 'id' => $equipo->id,
                 'tipo' => $tipoActual->value,
                 'estados' => $ubicacionActual?->estado ?? '',
-                'locacions' => $ubicacionActual?->locacion ?? '',
+                'sedes' => $ubicacionActual?->sede?->value ?? '',
+                'pisos' => $ubicacionActual?->piso?->value ?? '',
                 'condicion' => $equipo->condicion->value ?? 'operativo',
                 'marca' => $equipo->marca ?? '',
                 'modelo' => $equipo->modelo,
@@ -469,7 +497,8 @@ class EquipoController extends Controller
 
         $rules = [
             'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
-            'locacions' => ['required', 'string', 'max:255'],
+            'sedes' => ['required', Rule::in(array_column(Sede::cases(), 'value'))],
+            'pisos' => ['required', Rule::in(array_column(Piso::cases(), 'value'))],
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
             'detalle' => ['nullable', 'string'],
             'asignado_cedula'   => $requiereEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
@@ -536,7 +565,8 @@ class EquipoController extends Controller
 
             $ubicacion = Ubicacion::firstOrCreate([
                 'estado' => $validated['estados'],
-                'locacion' => $validated['locacions'],
+                'sede' => $validated['sedes'],
+                'piso' => $validated['pisos'],
             ]);
 
             $equipo->update([
@@ -1158,6 +1188,22 @@ class EquipoController extends Controller
     private function getEstadosRegion(): Collection
     {
         return collect(EstadoRegion::cases())->map(fn($case) => [
+            'value' => $case->value,
+            'label' => $case->label(),
+        ])->values();
+    }
+
+    private function getSedes(): Collection
+    {
+        return collect(Sede::cases())->map(fn($case) => [
+            'value' => $case->value,
+            'label' => $case->label(),
+        ])->values();
+    }
+
+    private function getPisos(): Collection
+    {
+        return collect(Piso::cases())->map(fn($case) => [
             'value' => $case->value,
             'label' => $case->label(),
         ])->values();

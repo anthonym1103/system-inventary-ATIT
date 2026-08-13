@@ -9,6 +9,15 @@ enum Sede: string
     case SUBESTACION_SUR = 'subestacion_sur';
     case ALMACEN = 'almacen';
 
+    public function region(): EstadoRegion
+    {
+        return match($this){
+            self::PRINCIPAL, self::ALMACEN => EstadoRegion::BOLIVAR,
+            self::SUBESTACION_NORTE => EstadoRegion::AMAZONAS,
+            self::SUBESTACION_SUR => EstadoRegion::DELTA_AMACURO,
+        };
+    }
+
     public function label(): string
     {
         return match($this){

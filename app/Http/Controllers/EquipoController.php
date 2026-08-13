@@ -132,9 +132,20 @@ class EquipoController extends Controller
             $estadosLabels[$estado->value] = $estado->label();
         }
 
+        
         $condicionesLabels = [];
         foreach (CondicionEquipo::cases() as $condicion) {
             $condicionesLabels[$condicion->value] = $condicion->label();
+        }
+
+        $sedesLabels = [];
+        foreach (Sede::cases() as $sede) {
+            $sedesLabels[$sede->value] = $sede->label();
+        }
+
+        $pisosLabels = [];
+        foreach (Piso::cases() as $piso) {
+            $pisosLabels[$piso->value] = $piso->label();
         }
 
         // 7. Obtener permisos del usuario para acciones (opcional)
@@ -157,6 +168,8 @@ class EquipoController extends Controller
             'ubicaciones' => $ubicaciones,
             'sedes' => $this->getSedes(),
             'pisos' => $this->getPisos(),
+            'sedesLabels' => $sedesLabels,
+            'pisosLabels' => $pisosLabels,
             'filters' => $request->only(['search', 'tipo', 'condicion', 'ubicacion_id']) +  ['area' => $areaFilter],
             'permissions' => $permissions,
         ]);
@@ -284,6 +297,11 @@ class EquipoController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        $sedeSeleccionada = Sede::tryFrom($validated['sedes']);
+        if (! $sedeSeleccionada || $sedeSeleccionada->region()->value !== $validated['estados']) {
+            return back()->withErrors(['sedes' => 'La sede seleccionada no pertenece al estado indicado.'])->withInput();
+        }
 
         // FIX #2: se agregó $requiereEncargado al "use" del closure, ya que se
         // utiliza dentro para decidir si se crea el UserAsignado. Antes no
@@ -533,6 +551,11 @@ class EquipoController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        $sedeSeleccionada = Sede::tryFrom($validated['sedes']);
+        if (! $sedeSeleccionada || $sedeSeleccionada->region()->value !== $validated['estados']) {
+            return back()->withErrors(['sedes' => 'La sede seleccionada no pertenece al estado indicado.'])->withInput();
+        }
 
         DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $equipo, $requiereEncargado) {
             $changes = [];
@@ -1131,7 +1154,7 @@ class EquipoController extends Controller
         $pdf->useTemplate($tpl3, 0, 0, $size3['width'], $size3['height']);
 
         $fechaLabelWidth = 36.67;
-        $fechaY = 607.66;
+        $fechaY = 614.05;
         $fecha1X = 132.94 + $fechaLabelWidth;
         $fecha2X = 374.83 + $fechaLabelWidth;
 
@@ -1163,8 +1186,8 @@ class EquipoController extends Controller
 
         if (file_exists($firmaPath1) && file_exists($firmaPath2)) {
             // x, y, ancho, alto — se coloca justo encima de la línea "___" y antes de "Fecha:"
-            $pdf->Image($firmaPath1, 45, 192, 40, 15, 'PNG', '', '', true, 300);
-            $pdf->Image($firmaPath2, 130, 192, 40, 15, 'PNG', '', '', true, 300);
+            $pdf->Image($firmaPath1, 45, 196, 40, 15, 'PNG', '', '', true, 300);
+            $pdf->Image($firmaPath2, 130, 196, 40, 15, 'PNG', '', '', true, 300);
         }
 
         $pdf->SetXY($ptToMm($fecha1X) + 2, $ptToMm($fechaY));
@@ -1198,6 +1221,7 @@ class EquipoController extends Controller
         return collect(Sede::cases())->map(fn($case) => [
             'value' => $case->value,
             'label' => $case->label(),
+            'region' => $case->region()->value,
         ])->values();
     }
 

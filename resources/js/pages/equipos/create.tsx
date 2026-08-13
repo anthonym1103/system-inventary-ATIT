@@ -8,7 +8,7 @@ interface Props {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
-    sedes: Array<{ value: string, label: string }>;
+    sedes: Array<{ value: string; label: string; region: string }>;
     pisos: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>;
 }

@@ -19,11 +19,11 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        $ubicaciones = Ubicacion::factory(5)->create();
+        $ubicaciones = Ubicacion::factory(20)->create();
  
-        $asignados = UserAsignado::factory(10)->create();
+        $asignados = UserAsignado::factory(30)->create();
 
-        Equipo::factory(35)->afterMaking(function ($equipo) use ($ubicaciones, $asignados){
+        Equipo::factory(300)->afterMaking(function ($equipo) use ($ubicaciones, $asignados){
             $equipo->ubicacion_id = $ubicaciones->random()->id;
             if($equipo->tipo->value === 'micro_escritorio' || $equipo->tipo->value === 'portatil' || $equipo->tipo->value === 'telefono_analogico' || $equipo->tipo->value === 'telefono_digital'){
                 $equipo->asignado_id = $asignados->random()->cedula;

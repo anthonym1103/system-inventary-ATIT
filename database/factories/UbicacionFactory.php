@@ -23,9 +23,18 @@ class UbicacionFactory extends Factory
     public function definition(): array
     {
         $estado = fake()->randomElement(EstadoRegion::cases());
+
+        // 2. Filtra las sedes que pertenecen a ese estado
+        $sedesDelEstado = array_filter(
+            Sede::cases(),
+            fn($sede) => $sede->region() === $estado
+        );
+
+        $sede = fake()->randomElement($sedesDelEstado) ?? Sede::PRINCIPAL;
+
         return [
-            'estado' => fake()->randomElement(EstadoRegion::cases())->value,
-            'sede' => fake()->randomElement(Sede::cases())->value,
+            'estado' => $estado->value,
+            'sede' => $sede->value,
             'piso' => fake()->randomElement(Piso::cases())->value,
         ];
     }

@@ -15,13 +15,12 @@ enum Piso: string
     public function label(): string
     {
         return match($this){
-            self::PLANTA_BAJA => 'Planta Baja',
             self::PISO_1 => 'Piso 1',
             self::PISO_2 => 'Piso 2',
             self::PISO_3 => 'Piso 3',
-            self::PISO_1 => 'Piso 4',
-            self::PISO_2 => 'Piso 5',
-            self::PISO_3 => 'Piso 6',
+            self::PISO_4 => 'Piso 4',
+            self::PISO_5 => 'Piso 5',
+            self::PISO_6 => 'Piso 6',
             default => $this->value,
         };
     }

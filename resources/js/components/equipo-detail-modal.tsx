@@ -13,10 +13,12 @@ interface EquipoDetailModalProps {
     onClose: () => void;
     tiposLabels: Record<string, string>;
     estadosLabels: Record<string, string>;
+    sedesLabels: Record<string, string>;
+    pisosLabels: Record<string, string>;
     condidicionesLabels: Record<string, string>;
 }
 
-export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, estadosLabels, condidicionesLabels }: EquipoDetailModalProps) {
+export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, estadosLabels,sedesLabels, pisosLabels, condidicionesLabels }: EquipoDetailModalProps) {
     const [equipo, setEquipo] = useState<any | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -125,7 +127,7 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="flex items-center gap-2">
                                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                                        <span>{equipo.ubicacion?.locacion}, {estadosLabels[equipo.ubicacion?.estado]}</span>
+                                        <span>{sedesLabels[equipo.ubicacion?.sede]} - {pisosLabels[equipo.ubicacion?.piso]}, {estadosLabels[equipo.ubicacion?.estado]}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Calendar className="h-4 w-4 text-muted-foreground" />

@@ -20,6 +20,8 @@ interface EquipoCardProps {
     };
     tiposLabels: Record<string, string>;
     estadosLabls: Record<string, string>;
+    sedesLabls: Record<string, string>;
+    pisosLabls: Record<string, string>;
     valueViewMode: string;
     condicionesLabels: Record<string, string>;
     permissions: {
@@ -34,7 +36,7 @@ interface EquipoCardProps {
     onScheduleClick: (equipo: any) => void;
 }
 
-export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,condicionesLabels,permissions, selectMode, selectedIds, onToggleSelect, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
+export function EquipoCard({ equipo, tiposLabels, estadosLabls, sedesLabls, pisosLabls, valueViewMode,condicionesLabels,permissions, selectMode, selectedIds, onToggleSelect, onCardClick, onCardEditClick, onScheduleClick  }: EquipoCardProps) {
     const Icon = equipoIconMap[equipo.tipo] || equipoIconMap.micro_escritorio;
     const colorClass = equipoColorMap[equipo.tipo] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
     const classNameViewMode = valueViewMode === 'grid' ? 'line-clamp-5' : ''; 
@@ -94,7 +96,7 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, valueViewMode,co
               
                         <div className="flex items-center text-sm text-muted-foreground gap-1">
                             <MapPin className="h-3.5 w-3.5" />
-                            <span>{sedesLabels[equipo.ubicacion?.sede]}, {pisosLabels[equipo.ubicacion?.piso]} — {estadosLabls[equipo.ubicacion?.estado]}</span>
+                            <span>{sedesLabls[equipo.ubicacion?.sede]}, {pisosLabls[equipo.ubicacion?.piso]} — {estadosLabls[equipo.ubicacion?.estado]}</span>
                         </div>
 
                         {equipo.user_asignado && (

@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Search, Plus, Grid2X2, LayoutList, FileX } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,6 +13,7 @@ import { EquipoCard } from '@/components/equipo-card';
 import { EquipoDetailModal } from '@/components/equipo-detail-modal';
 import { EquipoEditModal } from '@/components/equipo-edit.modal';
 import { SelectItemText, Value } from '@radix-ui/react-select';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { EquipoMantenimientoDialog } from '@/components/equipo-mantenimiento-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -102,7 +104,7 @@ interface Equipo {
     condicion: 'operativo' | 'no_operativo';
     area: string;
     detalle: string;
-    ubicacion: { id: number; estado: string; sedes: string; pisos:string; };
+    ubicacion: { id: number; estado: string; sede: string; piso:string; };
     userAsignado?: { cedula: string; nombre: string; apellido: string } | null;
     created_at: string;
 }
@@ -121,7 +123,7 @@ interface Props {
     condicionesLabels: Record<string, string>;
     condiciones: Array<{ value: string, label: string }>
     ubicaciones: Array<{ value: string, label: string }>;
-    sedes: Array<{ value: string, label: string }>;
+    sedes: Array<{ value: string; label: string; region: string }>;
     pisos: Array<{ value: string, label: string }>;
     sedesLabels: Record<string, string>;
     pisosLabels: Record<string, string>;
@@ -142,7 +144,7 @@ interface Props {
     };
 }
 
-export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, condicionesLabels, condiciones, ubicaciones, filters, permissions }: Props) {
+export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, condicionesLabels, condiciones, ubicaciones,sedes, pisos, sedesLabels, pisosLabels, filters, permissions }: Props) {
     // Inicializar con undefined en lugar de '' para evitar el valor vacío
     const [search, setSearch] = useState(filters.search || '');
     const [tipo, setTipo] = useState<string | undefined>(filters.tipo || undefined);
@@ -166,6 +168,10 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
     const [isLoading, setIsLoading] = useState(false);
     const [motivoDialogOpen, setMotivoDialogOpen] = useState(false);
     const [desincorporando, setDesincorporando] = useState(false);
+    const sedesFiltradas = useMemo(
+        () => sedes.filter((s) => !region || region === 'all' || s.region === region),
+        [sedes, region],
+    );
     const params: Record<string, string> = {};
 
     // Aplicar filtros cuando cambien
@@ -198,7 +204,7 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
             preserveScroll: true,
             replace: true,
         });
-    }, [debouncedSearch, tipo, condicion, region, area]);
+    }, [debouncedSearch, tipo, condicion, region, area, sede, piso]);
 
     const toggleSelected = (id: number) => {
         setSelectedIds((prev) =>
@@ -411,132 +417,117 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                     </div>
                 </div>
 
-                {/**Filtros de busqueda */}
-
                 <Separator className="col-span-2" />
                 <h3 className="font-medium mb-2 text-xs uppercase text-muted-foreground">Filtros</h3>
 
-                <div className="flex flex-col sm:flex-row gap-4 mt-6 mb-10">
+                {/**Filtros de busqueda*/}
+                <div className="flex flex-wrap items-end gap-4 p-4">
                     {/* Tipo */}
-                    <Separator className="col-span-2" />
-
-                    <div className="flex items-center justify-between mt-6 mb-10">
-                        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-                            <Button
-                                variant="outline"
-                                className="cursor-pointer gap-2"
-                                onClick={() => setFiltersOpen(true)}
-                            >
-                                <SlidersHorizontal className="h-4 w-4" />
-                                Filtros
-                                {activeFiltersCount > 0 && (
-                                    <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-medium text-primary-foreground">
-                                        {activeFiltersCount}
-                                    </span>
-                                )}
-                            </Button>
-
-                            <SheetContent side="right" className="w-full sm:max-w-sm overflow-y-auto">
-                                <SheetHeader>
-                                    <SheetTitle>Filtros de inventario</SheetTitle>
-                                </SheetHeader>
-
-                                <div className="flex flex-col gap-4 px-4 pb-6">
-                                    <div className="grid gap-2">
-                                        <Label className="text-sm">Tipo de equipo</Label>
-                                        <Select value={tipo} onValueChange={(val) => setTipo(val || undefined)}>
-                                            <SelectTrigger className="w-full cursor-pointer">
-                                                <SelectValue placeholder="Tipos de equipos" />
-                                            </SelectTrigger>
-                                            <SelectContent className="max-h-72 overflow-y-auto">
-                                                <SelectItem value="all" className="cursor-pointer">Todos los tipos</SelectItem>
-                                                {Object.entries(tiposLabels).map(([value, label]) => (
-                                                    <SelectItem key={value} value={value} className="cursor-pointer">{label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label className="text-sm">Condición</Label>
-                                        <Select value={condicion} onValueChange={(val) => setCondicion(val || undefined)}>
-                                            <SelectTrigger className="w-full cursor-pointer">
-                                                <SelectValue placeholder="Condiciones de equipos" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all" className="cursor-pointer">Todas las condiciones</SelectItem>
-                                                {condiciones.map((c) => (
-                                                    <SelectItem key={c.value} value={c.value} className="cursor-pointer">{c.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label className="text-sm">Estado / Región</Label>
-                                        <Select value={region} onValueChange={(val) => setRegion(val || undefined)}>
-                                            <SelectTrigger className="w-full cursor-pointer">
-                                                <SelectValue placeholder="Ubicaciones de equipos" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all" className="cursor-pointer">Todos las ubicaciones</SelectItem>
-                                                {ubicaciones.map((u) => (
-                                                    <SelectItem key={u.value} value={u.value} className="cursor-pointer">{u.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label className="text-sm">Sede</Label>
-                                        <Select
-                                            value={sede}
-                                            onValueChange={(val) => {
-                                                setSede(val || undefined);
-                                                setPiso(undefined);
-                                            }}
-                                        >
-                                            <SelectTrigger className="w-full cursor-pointer">
-                                                <SelectValue placeholder="Todas las sedes" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all" className="cursor-pointer">Todas las sedes</SelectItem>
-                                                {sedes.map((s) => (
-                                                    <SelectItem key={s.value} value={s.value} className="cursor-pointer">{s.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label className="text-sm">Piso</Label>
-                                        <Select
-                                            value={piso}
-                                            onValueChange={(val) => setPiso(val || undefined)}
-                                            disabled={!sede || sede === 'all'}
-                                        >
-                                            <SelectTrigger className="w-full cursor-pointer">
-                                                <SelectValue placeholder={sede && sede !== 'all' ? 'Todos los pisos' : 'Elige una sede primero'} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all" className="cursor-pointer">Todos los pisos</SelectItem>
-                                                {pisos.map((p) => (
-                                                    <SelectItem key={p.value} value={p.value} className="cursor-pointer">{p.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <Button variant="ghost" size="sm" onClick={clearFilters} className="cursor-pointer self-start">
-                                        Limpiar filtros
-                                    </Button>
-                                </div>
-                            </SheetContent>
-                        </Sheet>
+                    <div className="flex-1 min-w-[140px]">
+                        <Label className="text-xs text-muted-foreground">Tipo</Label>
+                        <Select value={tipo} onValueChange={(val) => setTipo(val || undefined)}>
+                            <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder="Todos los tipos" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-72 overflow-y-auto">
+                                <SelectItem value="all" className="cursor-pointer">Todos los tipos</SelectItem>
+                                {Object.entries(tiposLabels).map(([value, label]) => (
+                                    <SelectItem key={value} value={value} className="cursor-pointer">{label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                </div>
+                    {/* Condición */}
+                    <div className="flex-1 min-w-[140px]">
+                        <Label className="text-xs text-muted-foreground">Condición</Label>
+                        <Select value={condicion} onValueChange={(val) => setCondicion(val || undefined)}>
+                            <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder="Todas las condiciones" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all" className="cursor-pointer">Todas</SelectItem>
+                                {condiciones.map((c) => (
+                                    <SelectItem key={c.value} value={c.value} className="cursor-pointer">{c.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
+                    {/* Región */}
+                    <div className="flex-1 min-w-[140px]">
+                        <Label className="text-xs text-muted-foreground">Región</Label>
+                        <Select
+                            value={region}
+                            onValueChange={(val) => {
+                                setRegion(val || undefined);
+                                setSede(undefined);
+                                setPiso(undefined);
+                            }}
+                        >
+                            <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder="Todas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all" className="cursor-pointer">Todas</SelectItem>
+                                {ubicaciones.map((u) => (
+                                    <SelectItem key={u.value} value={u.value} className="cursor-pointer">{u.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Sede */}
+                    <div className="flex-1 min-w-[140px]">
+                        <Label className="text-xs text-muted-foreground">Sede</Label>
+                        <Select
+                            value={sede}
+                            onValueChange={(val) => {
+                                setSede(val || undefined);
+                                setPiso(undefined);
+                            }}
+                            disabled={!region || region === 'all'}
+                        >
+                            <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder={region && region !== 'all' ? 'Todas' : 'Elige región'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all" className="cursor-pointer">Todas</SelectItem>
+                                {sedesFiltradas.map((s) => (
+                                    <SelectItem key={s.value} value={s.value} className="cursor-pointer">{s.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Piso */}
+                    <div className="flex-1 min-w-[140px]">
+                        <Label className="text-xs text-muted-foreground">Piso</Label>
+                        <Select
+                            value={piso}
+                            onValueChange={(val) => setPiso(val || undefined)}
+                            disabled={!sede || sede === 'all'}
+                        >
+                            <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder={sede && sede !== 'all' ? 'Todos' : 'Elige sede'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all" className="cursor-pointer">Todos</SelectItem>
+                                {pisos.map((p) => (
+                                    <SelectItem key={p.value} value={p.value} className="cursor-pointer">{p.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Botón limpiar */}
+                    <div className="flex items-end pb-1">
+                        <Button variant="ghost" size="sm" onClick={clearFilters} className="cursor-pointer h-10">
+                            Limpiar filtros
+                        </Button>
+                    </div>
+                </div>
+                
                 {/* Vista de equipos , flex flex-col gap-4*/}
                 {showSkeleton ? (
                     viewMode === 'grid' ? <SkeletonGrid /> : <SkeletonTable />
@@ -553,6 +544,8 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                                     equipo={equipo}
                                     tiposLabels={tiposLabels}
                                     estadosLabls={estadosLabels}
+                                    sedesLabls={sedesLabels}
+                                    pisosLabls={pisosLabels}
                                     valueViewMode={viewMode}
                                     condicionesLabels={condicionesLabels}
                                     permissions={permissions}
@@ -594,6 +587,8 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                     onClose={() => setModalOpen(false)}
                     tiposLabels={tiposLabels}
                     estadosLabels={estadosLabels}
+                    sedesLabels = {sedesLabels}
+                    pisosLabels = {pisosLabels}
                     condidicionesLabels={condicionesLabels}
                 />
 

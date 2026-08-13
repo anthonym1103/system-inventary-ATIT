@@ -180,7 +180,7 @@ interface EquipoFormProps {
     tiposLabels: Record<string, string>;
     camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
-    sedesOptions: Array<{ value: string, label: string }>;
+    sedesOptions: Array<{ value: string; label: string; region: string }>;
     pisosOptions: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>;
     initialData?: Partial<EquipoFormData>;
@@ -210,6 +210,10 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
 
     const tipoConfig = data.tipo ? camposPorTipo[data.tipo] : undefined;
     const camposActivos = useMemo(() => tipoConfig?.campos ?? [], [tipoConfig]);
+    const sedesFiltradas = useMemo(
+        () => sedesOptions.filter((s) => s.region === data.estados),
+            [sedesOptions, data.estados],
+    );
     const requiereEncargado = tipoConfig?.requiereEncargado ?? false;
     const cardForMode = mode === 'create' ? 'mx-[22%]' : '';
 
@@ -330,7 +334,12 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         <Label className="cursor-text select-text w-fit">Estado/Region {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
                         <Select
                             value={data.estados}
-                            onValueChange={(val) => setData('estados', val)}
+                            onValueChange={(val) => setData((prev) => ({
+                                ...prev,
+                                estados: val,
+                                sedes: '',
+                                pisos: '',
+                            }))}
                         >
                             <SelectTrigger className="w-full cursor-pointer">
                                 <SelectValue placeholder="Selecciona una ubicación" />
@@ -351,13 +360,14 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                             <Label className="cursor-text select-text w-fit">Sede {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
                             <Select
                                 value={data.sedes}
-                                onValueChange={(val) => setData('sedes', val)}
+                                onValueChange={(val) => setData((prev) => ({ ...prev, sedes: val, pisos: '' }))}
+                                disabled={!data.estados}
                             >
                                 <SelectTrigger className="w-full cursor-pointer">
-                                    <SelectValue placeholder="Selecciona una sede" />
+                                    <SelectValue placeholder={data.estados ? 'Selecciona una sede' : 'Elige primero un estado'} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {sedesOptions.map((s) => (
+                                    {sedesFiltradas.map((s) => (
                                         <SelectItem key={s.value} value={s.value} className="cursor-pointer">
                                             {s.label}
                                         </SelectItem>

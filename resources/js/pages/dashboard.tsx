@@ -14,7 +14,7 @@ interface Equipo {
     serial: string;
     condicion: 'operativo' | 'no_operativo';
     area: string;
-    ubicacion: { estado: string; locacion: string };
+    ubicacion: { estado: string; sede: string; piso: string; };
     created_at: string;
 }
 
@@ -24,10 +24,12 @@ interface Props {
     ultimosEquipos: Equipo[];
     estadosLabels: Record<string, string>;
     condicionesLabels: Record<string, string>;
-    equiposPorUbicacion: Array<{ id: number; estado: string; locacion: string; equipos_count: number }>;
+    equiposPorUbicacion: Array<{ id: number; estado: string; sede: string; piso: string; equipos_count: number }>;
+    sedesLabels: Record<string, string>;
+    pisosLabels: Record<string, string>;
 }
 
-export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos, estadosLabels, condicionesLabels, equiposPorUbicacion }: Props) {
+export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos, estadosLabels, condicionesLabels, equiposPorUbicacion, sedesLabels, pisosLabels }: Props) {
     // Función para mostrar el área en español
     const areaLabel = (area: string) => {
         const map: Record<string, string> = {
@@ -115,7 +117,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                                                 {condicionesLabels[equipo.condicion]}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>{equipo.ubicacion?.locacion}, {estadosLabels[equipo.ubicacion?.estado]}</TableCell>
+                                        <TableCell>{sedesLabels[equipo.ubicacion?.sede]} — {pisosLabels[equipo.ubicacion?.piso]}, {estadosLabels[equipo.ubicacion?.estado]}</TableCell>
                                         <TableCell>{new Date(equipo.created_at).toLocaleDateString()}</TableCell>
                                     </TableRow>
                                 ))}
@@ -145,8 +147,8 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                             <TableBody>
                                 {equiposPorUbicacion.map((ubic) => (
                                     <TableRow key={ubic.id}>
-                                        <TableCell>{ubic.locacion}, {estadosLabels[ubic.estado]}</TableCell>
-                                        <TableCell>{ubic.equipos_count}</TableCell>
+                                        <TableCell>{estadosLabels[ubic.estado]}</TableCell>
+                                        <TableCell className="pl-16">{ubic.equipos_count}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

@@ -1315,8 +1315,8 @@ class EquipoController extends Controller
 
         $html .= '<h2>Detalle de equipos (' . $total . ')</h2>';
         $html .= '<table border="1" cellpadding="3"><thead><tr style="background-color:#194271;color:#fff;">
-            <th width="18%">Tipo</th><th width="17%">Marca</th><th width="17%">Modelo</th>
-            <th width="20%">Serial</th><th width="13%">Condición</th><th width="15%">Ubicación</th>
+            <th width="16.6666%">Tipo</th><th width="16.6666%">Marca</th><th width="16.6666%">Modelo</th>
+            <th width="16.6666%">Serial</th><th width="16.6666%">Condición</th><th width="16.6666%">Ubicación</th>
         </tr></thead><tbody>';
 
         foreach ($equipos as $equipo) {
@@ -1349,7 +1349,7 @@ class EquipoController extends Controller
         }
 
         $html = '<table border="1" cellpadding="4"><thead><tr style="background-color:#f0f0f0;">
-            <th width="70%">Categoría</th><th width="30%">Cantidad</th>
+            <th width="50%">Categoría</th><th width="50%">Cantidad</th>
         </tr></thead><tbody>';
 
         foreach ($coleccion as $label => $count) {
@@ -1381,10 +1381,7 @@ class EquipoController extends Controller
         if ($request->filled('piso') && $request->input('piso') !== 'all') {
             $descripciones[] = 'Piso: ' . (Piso::tryFrom($request->input('piso'))?->label() ?? $request->input('piso'));
         }
-        if ($request->filled('area')) {
-            $descripciones[] = 'Área: ' . (Area::tryFrom($request->input('area'))?->label() ?? $request->input('area'));
-        }
-
+        
         return $descripciones;
     }
 

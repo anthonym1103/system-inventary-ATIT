@@ -176,6 +176,27 @@ class EquipoController extends Controller
 
     }
 
+    public function reporte(Request $request)
+    {
+        $user = Auth::user();
+
+        [$query] = $this->buildFilteredEquiposQuery($request, $user);
+
+        $equipos = $query->with(['ubicacion'])->latest()->get();
+
+        $total = $equipos->count();
+        $porCondicion = $equipos->groupBy(fn ($e) => $e->condicion->value)->map->count();
+        $porArea = $equipos->groupBy(fn ($e) => $e->area->label())->map->count()->sortDesc();
+        $porTipo = $equipos->groupBy(fn ($e) => $e->tipo->label())->map->count()->sortDesc();
+        $porSede = $equipos->groupBy(fn ($e) => $e->ubicacion?->sede?->label() ?? 'Sin sede')->map->count()->sortDesc();
+
+        $filtrosAplicados = $this->describirFiltros($request);
+
+        $pdfPath = $this->generarPdfReporte($equipos, $total, $porCondicion, $porArea, $porTipo, $porSede, $filtrosAplicados, $user);
+
+        return response()->file($pdfPath, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+    }
+
     public function show(Equipo $equipo)
     {
         $user = Auth::user();
@@ -1199,6 +1220,172 @@ class EquipoController extends Controller
         $pdf->Output($outputPath, 'F');
 
         return $outputPath;
+    }
+
+    private function buildFilteredEquiposQuery(Request $request, $user): array
+    {
+        $areaFilter = $request->input('area');
+
+        if ($user->hasRole(Cargo::ADMINISTRADOR->value) && $areaFilter && in_array($areaFilter, array_column(Area::cases(), 'value'))) {
+            $allowedAreas = [$areaFilter];
+        } else {
+            $allowedAreas = $this->getUserAllowedAreas($user);
+        }
+
+        $query = Equipo::query()
+            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), function ($q) use ($allowedAreas) {
+                $q->whereIn('area', $allowedAreas);
+            });
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('serial', 'ILIKE', "%{$search}%")
+                ->orWhere('marca', 'ILIKE', "%{$search}%")
+                ->orWhere('modelo', 'ILIKE', "%{$search}%")
+                ->orWhere('tipo', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('tipo') && $request->input('tipo') !== 'all') {
+            $query->where('tipo', $request->input('tipo'));
+        }
+        if ($request->filled('condicion') && $request->input('condicion') !== 'all') {
+            $query->where('condicion', $request->input('condicion'));
+        }
+        if ($request->filled('estado_region') && $request->input('estado_region') !== 'all') {
+            $estadosBuscados = $request->input('estado_region');
+            $query->whereHas('ubicacion', fn ($q) => $q->where('estado', $estadosBuscados));
+        }
+        if ($request->filled('sede') && $request->input('sede') !== 'all') {
+            $sedeBuscada = $request->input('sede');
+            $query->whereHas('ubicacion', fn ($q) => $q->where('sede', $sedeBuscada));
+        }
+        if ($request->filled('piso') && $request->input('piso') !== 'all') {
+            $pisoBuscado = $request->input('piso');
+            $query->whereHas('ubicacion', fn ($q) => $q->where('piso', $pisoBuscado));
+        }
+        if ($areaFilter) {
+            $query->where('area', $areaFilter);
+        }
+
+        return [$query, $areaFilter, $allowedAreas];
+    }
+
+    private function generarPdfReporte($equipos, int $total, $porCondicion, $porArea, $porTipo, $porSede, array $filtrosAplicados, $user): string
+    {
+        $tempDir = 'storage/temp';
+        if (!Storage::disk('local')->exists($tempDir)) {
+            Storage::disk('local')->makeDirectory($tempDir, 0755, true);
+        }
+
+        $fileName = 'reporte_inventario_' . now()->timestamp . '.pdf';
+        $outputPath = Storage::disk('local')->path($tempDir . '/' . $fileName);
+
+        $pdf = new FpdiTcpdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
+        $pdf->SetCreator('ATIT Orinoco');
+        $pdf->SetAuthor($user->name);
+        $pdf->SetTitle('Reporte de Inventario');
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(true);
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->AddPage();
+        $pdf->SetFont('helvetica', '', 10);
+
+        $filtrosHtml = empty($filtrosAplicados)
+            ? '<p><i>Sin filtros aplicados (inventario completo dentro de tu alcance)</i></p>'
+            : '<ul>' . implode('', array_map(fn ($f) => "<li>{$f}</li>", $filtrosAplicados)) . '</ul>';
+
+        $html = '<h1 style="color:#194271;">Reporte de Inventario</h1>';
+        $html .= '<p><b>Generado por:</b> ' . e($user->name) . ' &nbsp; <b>Fecha:</b> ' . now()->format('d/m/Y H:i') . '</p>';
+        $html .= '<p><b>Filtros aplicados:</b></p>' . $filtrosHtml;
+        $html .= '<hr>';
+
+        $html .= '<h2>Resumen</h2>';
+        $html .= '<table border="1" cellpadding="4">
+            <tr style="background-color:#194271;color:#fff;"><td><b>Total de equipos encontrados</b></td><td><b>' . $total . '</b></td></tr>
+            <tr><td>Operativos</td><td>' . ($porCondicion['operativo'] ?? 0) . '</td></tr>
+            <tr><td>No operativos</td><td>' . ($porCondicion['no_operativo'] ?? 0) . '</td></tr>
+        </table>';
+
+        $html .= '<h2>Por área</h2>' . $this->tablaConteo($porArea);
+        $html .= '<h2>Por tipo de equipo</h2>' . $this->tablaConteo($porTipo);
+        $html .= '<h2>Por sede</h2>' . $this->tablaConteo($porSede);
+
+        $html .= '<h2>Detalle de equipos (' . $total . ')</h2>';
+        $html .= '<table border="1" cellpadding="3"><thead><tr style="background-color:#194271;color:#fff;">
+            <th width="18%">Tipo</th><th width="17%">Marca</th><th width="17%">Modelo</th>
+            <th width="20%">Serial</th><th width="13%">Condición</th><th width="15%">Ubicación</th>
+        </tr></thead><tbody>';
+
+        foreach ($equipos as $equipo) {
+            $ubicacion = $equipo->ubicacion
+                ? ($equipo->ubicacion->sede?->label() ?? '—') . ' / ' . ($equipo->ubicacion->piso?->label() ?? '—')
+                : '—';
+
+            $html .= '<tr>
+                <td>' . e($equipo->tipo->label()) . '</td>
+                <td>' . e($equipo->marca ?? '—') . '</td>
+                <td>' . e($equipo->modelo) . '</td>
+                <td>' . e($equipo->serial) . '</td>
+                <td>' . e($equipo->condicion->label()) . '</td>
+                <td>' . e($ubicacion) . '</td>
+            </tr>';
+        }
+
+        $html .= '</tbody></table>';
+
+        $pdf->writeHTML($html, true, false, true, false, '');
+        $pdf->Output($outputPath, 'F');
+
+        return $outputPath;
+    }
+
+    private function tablaConteo($coleccion): string
+    {
+        if ($coleccion->isEmpty()) {
+            return '<p><i>Sin datos</i></p>';
+        }
+
+        $html = '<table border="1" cellpadding="4"><thead><tr style="background-color:#f0f0f0;">
+            <th width="70%">Categoría</th><th width="30%">Cantidad</th>
+        </tr></thead><tbody>';
+
+        foreach ($coleccion as $label => $count) {
+            $html .= '<tr><td>' . e($label) . '</td><td>' . $count . '</td></tr>';
+        }
+
+        return $html . '</tbody></table>';
+    }
+
+    private function describirFiltros(Request $request): array
+    {
+        $descripciones = [];
+
+        if ($request->filled('search')) {
+            $descripciones[] = 'Búsqueda: "' . e($request->input('search')) . '"';
+        }
+        if ($request->filled('tipo') && $request->input('tipo') !== 'all') {
+            $descripciones[] = 'Tipo: ' . (TipoEquipo::tryFrom($request->input('tipo'))?->label() ?? $request->input('tipo'));
+        }
+        if ($request->filled('condicion') && $request->input('condicion') !== 'all') {
+            $descripciones[] = 'Condición: ' . (CondicionEquipo::tryFrom($request->input('condicion'))?->label() ?? $request->input('condicion'));
+        }
+        if ($request->filled('estado_region') && $request->input('estado_region') !== 'all') {
+            $descripciones[] = 'Estado/Región: ' . (EstadoRegion::tryFrom($request->input('estado_region'))?->label() ?? $request->input('estado_region'));
+        }
+        if ($request->filled('sede') && $request->input('sede') !== 'all') {
+            $descripciones[] = 'Sede: ' . (Sede::tryFrom($request->input('sede'))?->label() ?? $request->input('sede'));
+        }
+        if ($request->filled('piso') && $request->input('piso') !== 'all') {
+            $descripciones[] = 'Piso: ' . (Piso::tryFrom($request->input('piso'))?->label() ?? $request->input('piso'));
+        }
+        if ($request->filled('area')) {
+            $descripciones[] = 'Área: ' . (Area::tryFrom($request->input('area'))?->label() ?? $request->input('area'));
+        }
+
+        return $descripciones;
     }
 
     private function formatName(string $value): string

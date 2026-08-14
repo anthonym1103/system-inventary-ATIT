@@ -46,6 +46,7 @@ interface Props {
     };
     rolesByArea: Record<string, RoleOption[]>;
     areaLabels: Record<string, string>;
+    adminRole: RoleOption;
     filters: { search: string };
 }
 
@@ -65,6 +66,7 @@ export default function UsuariosIndex({
     users,
     rolesByArea,
     areaLabels,
+    adminRole,
     filters,
 }: Props) {
     const { auth } = usePage().props;
@@ -145,7 +147,7 @@ export default function UsuariosIndex({
     // Un usuario con rol Administrador no puede ser editado desde aquí
     const isAdmin = (role: string | null) => role === 'administrador';
 
-    const canEdit = (user: UserRow) => !isSelf(user.id) && !isAdmin(user.role);
+    const canEdit = (user: UserRow) => !isSelf(user.id);
 
     return (
         <>
@@ -180,7 +182,10 @@ export default function UsuariosIndex({
                                 <TableBody>
                                     {users.data.map((user) => {
                                         const isEditing = editingUserId === user.id;
-                                        const options = user.area ? (rolesByArea[user.area] ?? []) : [];
+                                        const options = [
+                                            ...(user.area ? (rolesByArea[user.area] ?? []) : []),
+                                            adminRole,
+                                        ];
                                         const editable = canEdit(user);
 
                                         return (
@@ -294,13 +299,7 @@ export default function UsuariosIndex({
                                                                 onClick={() => startEditing(user)}
                                                                 disabled={!editable}
                                                                 className="cursor-pointer"
-                                                                title={
-                                                                    isSelf(user.id)
-                                                                        ? 'No puedes modificar tu propio rol'
-                                                                        : isAdmin(user.role)
-                                                                            ? 'El rol Administrador no se puede modificar desde aquí'
-                                                                                : undefined
-                                                                }
+                                                                title={isSelf(user.id) ? 'No puedes modificar tu propio rol' : undefined}
                                                             >
                                                                 <Pencil className="h-3.5 w-3.5" />
                                                                 Editar rol

@@ -80,6 +80,8 @@ class DashboardController extends Controller
         // Obtener las áreas permitidas (si es administrador, todas)
         $areasArray = $allowedAreas ?: array_map(fn($area) => $area->value, Area::cases());
 
+        $totalEquiposEnAlcance = (clone $query)->count();
+
         $equiposPorUbicacion = Ubicacion::select('ubicacions.id', 'ubicacions.estado', 'ubicacions.sede', 'ubicacions.piso')
             ->join('equipos', 'ubicacions.id', '=', 'equipos.ubicacion_id')
             ->whereIn('equipos.area', $areasArray)
@@ -88,7 +90,14 @@ class DashboardController extends Controller
             ->havingRaw('COUNT(*) > 0')
             ->orderBy('equipos_count', 'desc')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($item) use ($totalEquiposEnAlcance) {
+                $item->porcentaje = $totalEquiposEnAlcance > 0
+                    ? round(($item->equipos_count / $totalEquiposEnAlcance) * 100, 1)
+                    : 0;
+
+                return $item;
+            });
         
         return Inertia::render('dashboard', [
             'totalesPorArea' => $totalesPorArea,

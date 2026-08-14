@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { useMemo } from 'react';
-import { Search, Plus, Grid2X2, LayoutList, FileX } from 'lucide-react';
+import { Search, Plus, Grid2X2, LayoutList, FileX, FileText } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -291,6 +291,18 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
 
     };
 
+    const buildReportUrl = () => {
+        const query = new URLSearchParams();
+        if (debouncedSearch) query.set('search', debouncedSearch);
+        if (tipo) query.set('tipo', tipo);
+        if (condicion) query.set('condicion', condicion);
+        if (region) query.set('estado_region', region);
+        if (sede) query.set('sede', sede);
+        if (piso) query.set('piso', piso);
+        if (area) query.set('area', area);
+        return `/equipos/reporte?${query.toString()}`;
+    };
+
     const handlePageChange = (url: string | null) => {
         if (url) router.get(url, {}, { preserveState: true, preserveScroll: false });
     };
@@ -344,6 +356,16 @@ export default function EquiposIndex({ equipos, tiposLabels, estadosLabels, cond
                     </div>
                     <div className="flex justify-end items-center gap-2">
                         <div className='flex gap-2'>
+                            {!selectMode && (
+                                <Button variant="outline" className="cursor-pointer" asChild>
+                                    <a href={buildReportUrl()} target="_blank" rel="noopener noreferrer">
+                                        <FileText className="h-4 w-4" />
+                                        Generar Reporte
+                                    </a>
+                                </Button>
+                            )}
+
+
                             {(permissions.can_create && !selectMode) && (
                                 <Button variant="outline" asChild>
                                     <Link href="/equipos/create">

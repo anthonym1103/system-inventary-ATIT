@@ -24,7 +24,14 @@ interface Props {
     ultimosEquipos: Equipo[];
     estadosLabels: Record<string, string>;
     condicionesLabels: Record<string, string>;
-    equiposPorUbicacion: Array<{ id: number; estado: string; sede: string; piso: string; equipos_count: number }>;
+    equiposPorUbicacion: Array<{
+        id: number;
+        estado: string;
+        sede: string;
+        piso: string;
+        equipos_count: number;
+        porcentaje: number;
+    }>;
     sedesLabels: Record<string, string>;
     pisosLabels: Record<string, string>;
 }
@@ -136,23 +143,32 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
                     <CardHeader>
                         <CardTitle>Ubicaciones con más equipos</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Ubicación</TableHead>
-                                    <TableHead>Cantidad de equipos</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {equiposPorUbicacion.map((ubic) => (
-                                    <TableRow key={ubic.id}>
-                                        <TableCell>{estadosLabels[ubic.estado]}</TableCell>
-                                        <TableCell className="pl-16">{ubic.equipos_count}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    <CardContent className="space-y-4">
+                        {equiposPorUbicacion.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No hay datos de ubicación disponibles.</p>
+                        ) : (
+                            equiposPorUbicacion.map((ubic) => (
+                                <div key={ubic.id} className="space-y-1.5">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="font-medium">
+                                            {sedesLabels[ubic.sede] ?? 'Sin sede'} — {pisosLabels[ubic.piso] ?? 'Sin piso'}
+                                            <span className="ml-1 text-muted-foreground">
+                                                ({estadosLabels[ubic.estado]})
+                                            </span>
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                            {ubic.equipos_count} equipo{ubic.equipos_count !== 1 ? 's' : ''} · {ubic.porcentaje}%
+                                        </span>
+                                    </div>
+                                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                        <div
+                                            className="h-full rounded-full bg-primary transition-all"
+                                            style={{ width: `${ubic.porcentaje}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </CardContent>
                 </Card>
             </div>

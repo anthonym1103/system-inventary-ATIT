@@ -59,6 +59,7 @@ class UserController extends Controller
             'users' => $users,
             'rolesByArea' => $this->rolesByArea(),
             'areaLabels' => $this->areaLabels,
+            'adminRole' => ['value' => Cargo::ADMINISTRADOR->value, 'label' => 'Administrador'],
             'filters' => $request->only(['search']),
         ]);
     }
@@ -73,15 +74,13 @@ class UserController extends Controller
             abort(403, 'No puedes modificar tu propio rol.');
         }
 
-        // Solo puede asignar supervisor o tecnico dentro del área del usuario
-        // No puede promover a Administrador desde esta pantalla
-        if (! $user->area) {
-            abort(422, 'El usuario no tiene área asignada.');
-        }
+        $allowedRoles = [Cargo::ADMINISTRADOR->value];
 
-        $allowedRoles = collect([Cargo::SUPERVISOR, Cargo::TECNICO])
-            ->map(fn (Cargo $cargo) => "{$cargo->value}_{$user->area->value}")
-            ->toArray();
+        if ($user->area) {
+            $allowedRoles = array_merge($allowedRoles, collect([Cargo::SUPERVISOR, Cargo::TECNICO])
+                ->map(fn (Cargo $cargo) => "{$cargo->value}_{$user->area->value}")
+                ->toArray());
+        }
 
         $validated = $request->validate([
             'role' => ['required', 'string', Rule::in($allowedRoles)],

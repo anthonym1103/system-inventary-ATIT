@@ -88,6 +88,10 @@ class UserController extends Controller
 
         $user->syncRoles([$validated['role']]);
 
+        /*if ($validated['role'] === Cargo::ADMINISTRADOR->value) {
+            $user->update(['area' => null]);
+        }*/
+
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Rol actualizado correctamente.']);
 
         return back();

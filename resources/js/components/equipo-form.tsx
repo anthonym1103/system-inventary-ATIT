@@ -1,6 +1,6 @@
 import { Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import InputError from '@/components/input-error';
 import { Spinner } from '@/components/ui/spinner';
+import { Checkbox } from './ui/checkbox';
 
 function RamGbInput({
     value,
@@ -123,6 +124,9 @@ function DiscoInput({
   );
 }
 
+const asText = (value: string | boolean | undefined): string =>
+    typeof value === 'string' ? value : '';
+
 interface CampoConfig {
     label: string;
     holdertext?: string;
@@ -152,7 +156,6 @@ const CAMPO_CONFIG: Record<string, CampoConfig> = {
 export interface TipoConfig {
     area: string;
     campos: string[];
-    requiereEncargado: boolean;
 }
 
 
@@ -162,6 +165,7 @@ export type EquipoFormData = {
     sedes: string;
     pisos: string;
     condicion: string;
+    con_encargado:boolean;
     asignado_cedula: string;
     asignado_nombre: string;
     asignado_apellido: string;
@@ -171,7 +175,7 @@ export type EquipoFormData = {
     modelo: string;
     serial: string;
     detalle: string;
-    [campo: string]: string;
+    [campo: string]: string | boolean; 
 };
 
 interface EquipoFormProps {
@@ -196,6 +200,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
         sedes: '',
         pisos: '',
         condicion: 'operativo',
+        con_encargado: false,
         asignado_cedula: '',
         asignado_nombre: '',
         asignado_apellido: '',
@@ -214,30 +219,20 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
         () => sedesOptions.filter((s) => s.region === data.estados),
             [sedesOptions, data.estados],
     );
-    const requiereEncargado = tipoConfig?.requiereEncargado ?? false;
+    const mostrarEncargado = mode === 'edit' || Boolean(data.tipo);
     const cardForMode = mode === 'create' ? 'mx-[22%]' : '';
 
     const handleTipoChange = (nuevoTipo: string) => {
         const nuevosCampos = camposPorTipo[nuevoTipo]?.campos ?? [];
-        const nuevoRequiereEncargado = camposPorTipo[nuevoTipo]?.requiereEncargado ?? false;
         const limpios: Record<string, string> = {};
 
         nuevosCampos.forEach((campo) => {
-            // Si el campo ya estaba activo con el tipo anterior, conservamos
-            // su valor; si es nuevo para este tipo, lo dejamos vacío.
-            limpios[campo] = camposActivos.includes(campo) ? data[campo] ?? '' : '';
+            limpios[campo] = camposActivos.includes(campo) ? asText(data[campo]) ?? '' : '';
         });
 
         setData((prev) => ({
             ...prev,
             tipo: nuevoTipo,
-            ...(! nuevoRequiereEncargado && {
-                asignado_cedula: '',
-                asignado_nombre: '',
-                asignado_apellido: '',
-                asignado_telefono: '',
-                asignado_gerencia: '',
-            }),
             ...limpios,
         }));
     };
@@ -399,69 +394,103 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         </div>
                     </div>
 
-                    {requiereEncargado && (
+                    {mostrarEncargado && (
                         <div className="space-y-4 rounded-lg border p-4">
-                            <p className="text-sm font-medium">Encargado del equipo</p>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="cursor-text select-text w-fit">Cédula <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
-                                    <Input
-                                        value={data.asignado_cedula}
-                                        onChange={(e) => {
-                                            const valor = e.target.value;
-                                            const formatted = formatInput('cedula', valor);
-                                            setData('asignado_cedula', formatted);
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium">Encargado del equipo</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Indica si este equipo estará asignado a una persona.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="con-encargado"
+                                        checked={data.con_encargado}
+                                        onCheckedChange={(checked) => {
+                                            const value = Boolean(checked);
+                                            
+                                            setData((prev) => ({
+                                                ...prev,
+                                                con_encargado: value,
+                                                ...(!value && {
+                                                    asignado_cedula: '',
+                                                    asignado_nombre: '',
+                                                    asignado_apellido: '',
+                                                    asignado_telefono: '',
+                                                    asignado_gerencia: '',
+                                                }),
+                                            }));
                                         }}
-                                        placeholder="Ej. 12345678"
+                                        className="cursor-pointer"
                                     />
-                                     <InputError message={errors.asignado_cedula} />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label cursor-text select-text w-fit>Nombre <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
-                                    <Input
-                                        value={data.asignado_nombre}
-                                        onChange={(e) => setData('asignado_nombre', e.target.value)}
-                                        placeholder="Nombre"
-                                    />
-                                    <InputError message={errors.asignado_nombre} />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label className="cursor-text select-text w-fit"> Apellido <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
-                                    <Input
-                                        value={data.asignado_apellido}
-                                        onChange={(e) => setData('asignado_apellido', e.target.value)}
-                                        placeholder="Apellido"
-                                    />
-                                    <InputError message={errors.asignado_apellido} />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label className="cursor-text select-text w-fit">Teléfono {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
-                                    <Input
-                                        value={data.asignado_telefono}
-                                        onChange={(e) => {
-                                            const valor = e.target.value;
-                                            const formatted = formatInput('telefono', valor);
-                                            setData('asignado_telefono', formatted);
-                                        }}
-                                        placeholder="Ej. 04121234567"
-                                    />
-                                    <InputError message={errors.asignado_telefono} />
-                                </div>
-
-                                <div className="grid gap-2 sm:col-span-2">
-                                    <Label>Gerencia {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
-                                    <Input
-                                        value={data.asignado_gerencia}
-                                        onChange={(e) => setData('asignado_gerencia', e.target.value)}
-                                        placeholder="Ej. Gerencia ATIT"
-                                    />
-                                    <InputError message={errors.asignado_gerencia} />
+                                    <Label htmlFor="con-encargado" className="text-sm cursor-pointer">
+                                        Sí, asignar
+                                    </Label>
                                 </div>
                             </div>
+
+                            {data.con_encargado && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label className="cursor-text select-text w-fit">Cédula <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                        <Input
+                                            value={data.asignado_cedula}
+                                            onChange={(e) => {
+                                                const valor = e.target.value;
+                                                const formatted = formatInput('cedula', valor);
+                                                setData('asignado_cedula', formatted);
+                                            }}
+                                            placeholder="Ej. 12345678"
+                                        />
+                                        <InputError message={errors.asignado_cedula} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label cursor-text select-text w-fit>Nombre <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                        <Input
+                                            value={data.asignado_nombre}
+                                            onChange={(e) => setData('asignado_nombre', e.target.value)}
+                                            placeholder="Nombre"
+                                        />
+                                        <InputError message={errors.asignado_nombre} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label className="cursor-text select-text w-fit"> Apellido <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                        <Input
+                                            value={data.asignado_apellido}
+                                            onChange={(e) => setData('asignado_apellido', e.target.value)}
+                                            placeholder="Apellido"
+                                        />
+                                        <InputError message={errors.asignado_apellido} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label className="cursor-text select-text w-fit">Teléfono {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
+                                        <Input
+                                            value={data.asignado_telefono}
+                                            onChange={(e) => {
+                                                const valor = e.target.value;
+                                                const formatted = formatInput('telefono', valor);
+                                                setData('asignado_telefono', formatted);
+                                            }}
+                                            placeholder="Ej. 04121234567"
+                                        />
+                                        <InputError message={errors.asignado_telefono} />
+                                    </div>
+
+                                    <div className="grid gap-2 sm:col-span-2">
+                                        <Label>Gerencia {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
+                                        <Input
+                                            value={data.asignado_gerencia}
+                                            onChange={(e) => setData('asignado_gerencia', e.target.value)}
+                                            placeholder="Ej. Gerencia ATIT"
+                                        />
+                                        <InputError message={errors.asignado_gerencia} />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -550,7 +579,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         {camposActivos.map((campo) => {
                             const config = CAMPO_CONFIG[campo] ?? { label: campo };
                             const esPasswordEnEdicion = config.type === 'password' && mode === 'edit';
-                            const isRequired = ['puerto', 'contraseña_bios', 'ram', 'disco', 'sistema_operativo', 'numero_inventario', 'potencia', 'rango_frecuencia', 'unidad_usuario']
+                            const isRequired = ['puerto', 'contraseña_bios', 'ram', 'disco', 'sistema_operativo', 'numero_inventario', 'potencia', 'rango_frecuencia', 'unidad_usuario'];
 
                             return (
                                 <div
@@ -560,27 +589,27 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     <Label className="cursor-text select-text w-fit">{config.label} {isRequired.includes(campo) ? (<span className="text-destructive cursor-text select-text w-fit">*</span>): (<span className="text-muted-foreground text-xs">(opcional)</span>)}</Label>
                                     { campo ==='disco' ? (
                                         <DiscoInput
-                                            value={data[campo] ?? ''}
+                                            value={asText(data[campo])}
                                             onChange={(valor) => setData(campo, valor)}
                                             placeholder={config.holdertext}
                                         />
                                     ) : campo === 'ram'? (
                                         <RamGbInput
-                                            value={data[campo] ?? ''}
+                                            value={asText(data[campo])}
                                             onChange={(valor) => setData(campo, valor)}
                                             placeholder={config.holdertext}
                                         />
                                     ) : config.textarea ? (
                                         <textarea
                                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                                            value={data[campo] ?? ''}
+                                            value={asText(data[campo])}
                                             onChange={(e) => setData(campo, e.target.value)}
                                             placeholder={config.holdertext}
                                         />
                                     ) : config.type === 'password' ? (
                                         <>
                                             <PasswordInput
-                                                value={data[campo] ?? ''}
+                                                value={asText(data[campo])}
                                                 onChange={(e) => setData(campo, e.target.value)}
                                                 placeholder={
                                                     esPasswordEnEdicion
@@ -596,7 +625,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                         </>
                                     ) : (
                                         <Input
-                                            value={data[campo] ?? ''}
+                                            value={asText(data[campo])}
                                             onChange={(e) => {
                                                 const valor = e.target.value;
                                                 const formatted = formatInput(campo, valor);

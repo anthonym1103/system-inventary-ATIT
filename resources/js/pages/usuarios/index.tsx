@@ -220,15 +220,15 @@ export default function UsuariosIndex({
 
                                                 <TableCell>
                                                     <div className="flex justify-center">
-                                                        {user.area
-                                                            ? (isAdmin(user.role) ? (
-                                                                    "Todas"
-                                                                ):(areaLabels[user.area] ?? user.area)
-                                                            ):(
-                                                                <span className="text-muted-foreground text-sm">
-                                                                    Sin área
-                                                                </span>
-                                                            )}
+                                                        {isAdmin(user.role) ? (
+                                                            'Todas'
+                                                        ) : user.area ? (
+                                                            areaLabels[user.area] ?? user.area
+                                                        ) : (
+                                                            <span className="text-muted-foreground text-sm">
+                                                                Sin área
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </TableCell>
 

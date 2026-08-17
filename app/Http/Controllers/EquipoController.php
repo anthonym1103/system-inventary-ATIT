@@ -238,7 +238,6 @@ class EquipoController extends Controller
             $camposPorTipo[$tipo->value] = [
                 'area' => $tipo->modulo()->value,
                 'campos' => $tipo->camposEspecificos(),
-                'requiereEncargado' => $tipo->requiereEncargado(),
             ];
         }
 
@@ -273,7 +272,7 @@ class EquipoController extends Controller
         }
 
         $camposEspecificos = $tipo->camposEspecificos();
-        $requiereEncargado = $tipo->requiereEncargado();
+        $conEncargado = $request->boolean('con_encargado');
 
         $rules = [
             'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
@@ -285,9 +284,10 @@ class EquipoController extends Controller
             'modelo' => ['required', 'string', 'max:255'],
             'serial' => ['required', 'string', 'max:255', 'unique:equipos,serial'],
             'detalle' => ['nullable', 'string'],
-            'asignado_cedula'    => $requiereEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
-            'asignado_nombre'    => $requiereEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
-            'asignado_apellido'  => $requiereEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
+            'con_encargado' => ['nullable', 'boolean'],
+            'asignado_cedula' => $conEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
+            'asignado_nombre' => $conEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
+            'asignado_apellido' => $conEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
             'asignado_telefono'  => ['nullable', 'string', 'max:20'],
             'asignado_gerencia'  => ['nullable', 'string', 'max:255'],
         ];
@@ -327,10 +327,10 @@ class EquipoController extends Controller
         // FIX #2: se agregó $requiereEncargado al "use" del closure, ya que se
         // utiliza dentro para decidir si se crea el UserAsignado. Antes no
         // estaba importado y provocaba un error de variable indefinida.
-        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $requiereEncargado) {
+        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $conEncargado) {
             $asignadoId = null;
 
-            if ($requiereEncargado && ! empty($validated['asignado_cedula'])) {
+            if ($conEncargado && ! empty($validated['asignado_cedula'])) {
                 $asignado = UserAsignado::updateOrCreate(
                     ['cedula' => $validated['asignado_cedula']],
                     [
@@ -471,7 +471,6 @@ class EquipoController extends Controller
             $camposPorTipo[$tipo->value] = [
                 'area' => $tipo->modulo()->value,
                 'campos' => $tipo->camposEspecificos(),
-                'requiereEncargado' => $tipo->requiereEncargado(),
             ];
         }
 
@@ -503,6 +502,7 @@ class EquipoController extends Controller
                 'serial' => $equipo->serial,
                 'detalle' => $equipo->detalle ?? '',
                 'tiene_contrasena_bios' => (bool) ($registroEspecifico?->contraseña_bios ?? null),
+                'con_encargado'        => (bool) $equipo->userAsignado,
                 'asignado_cedula'     => $equipo->userAsignado?->cedula ?? '',
                 'asignado_nombre'     => $equipo->userAsignado?->nombre ?? '',
                 'asignado_apellido'   => $equipo->userAsignado?->apellido ?? '',
@@ -532,7 +532,7 @@ class EquipoController extends Controller
    
 
         $camposEspecificos = $tipo->camposEspecificos();
-        $requiereEncargado = $tipo->requiereEncargado();
+        $conEncargado = $request->boolean('con_encargado');
 
         $rules = [
             'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
@@ -540,9 +540,10 @@ class EquipoController extends Controller
             'pisos' => ['required', Rule::in(array_column(Piso::cases(), 'value'))],
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
             'detalle' => ['nullable', 'string'],
-            'asignado_cedula'   => $requiereEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
-            'asignado_nombre'   => $requiereEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
-            'asignado_apellido' => $requiereEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
+            'con_encargado'     => ['nullable', 'boolean'],
+            'asignado_cedula'   => $conEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
+            'asignado_nombre'   => $conEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
+            'asignado_apellido' => $conEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
             'asignado_telefono' => ['nullable', 'string', 'max:20'],
             'asignado_gerencia' => ['nullable', 'string', 'max:255'],
         ];
@@ -578,7 +579,7 @@ class EquipoController extends Controller
             return back()->withErrors(['sedes' => 'La sede seleccionada no pertenece al estado indicado.'])->withInput();
         }
 
-        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $equipo, $requiereEncargado) {
+        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $equipo, $conEncargado) {
             $changes = [];
 
             $generalLabels = [
@@ -594,7 +595,7 @@ class EquipoController extends Controller
             }
 
             $asignadoId = null;
-            if ($requiereEncargado && ! empty($validated['asignado_cedula'])) {
+            if ($conEncargado && ! empty($validated['asignado_cedula'])) {
                 $asignado = UserAsignado::updateOrCreate(
                     ['cedula' => $validated['asignado_cedula']],
                     [

@@ -77,6 +77,7 @@ export default function UsuariosIndex({
 
     const [editingUserId, setEditingUserId] = useState<number | null>(null);
     const [selectedRole, setSelectedRole] = useState<string>('');
+    const [editingArea, setEditingArea] = useState<string>('');
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
@@ -96,15 +97,17 @@ export default function UsuariosIndex({
     const startEditing = (user: UserRow) => {
         setEditingUserId(user.id);
         setSelectedRole(user.role || '');
+        setEditingArea(user.area || '');
     };
 
     const cancelEditing = () => {
         setEditingUserId(null);
         setSelectedRole('');
+        setEditingArea('');
     };
 
     const saveRole = (user: UserRow) => {
-        if (!selectedRole || selectedRole === user.role) {
+        if (!selectedRole) {
             cancelEditing();
             return;
         }
@@ -113,7 +116,10 @@ export default function UsuariosIndex({
 
         router.patch(
             `/usuarios/${user.id}/role`,
-            { role: selectedRole },
+            {
+                role: selectedRole,
+                area: !user.area ? editingArea : undefined,
+            },
             {
                 preserveScroll: true,
                 onSuccess: cancelEditing,
@@ -173,17 +179,18 @@ export default function UsuariosIndex({
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-[25%] text-center">Usuario</TableHead>
-                                        <TableHead className="w-[25%] text-center">Correo</TableHead>
+                                        <TableHead className="w-[22%] text-center">Correo</TableHead>
                                         <TableHead className="w-[18%] text-center">Área</TableHead>
-                                        <TableHead className="w-[17%] text-center">Rol</TableHead>
+                                        <TableHead className="w-[20%] text-center">Rol</TableHead>
                                         <TableHead className="w-[15%] text-center">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {users.data.map((user) => {
                                         const isEditing = editingUserId === user.id;
+                                        const areaParaOpciones = user.area || editingArea;
                                         const options = [
-                                            ...(user.area ? (rolesByArea[user.area] ?? []) : []),
+                                            ...(areaParaOpciones ? (rolesByArea[areaParaOpciones] ?? []) : []),
                                             adminRole,
                                         ];
                                         const editable = canEdit(user);
@@ -233,35 +240,61 @@ export default function UsuariosIndex({
                                                 </TableCell>
 
                                                 <TableCell>
-                                                    <div className="flex justify-center">
+                                                    <div className="flex flex-col items-center gap-2 w-full min-w-0">
                                                         {isEditing ? (
-                                                            <Select
-                                                                value={selectedRole}
-                                                                onValueChange={setSelectedRole}
-                                                            >
-                                                                <SelectTrigger className="w-fit">
-                                                                    <SelectValue placeholder="Selecciona un rol" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {options.map((opt) => (
-                                                                        <SelectItem
-                                                                            key={opt.value}
-                                                                            value={opt.value}
-                                                                            className="cursor-pointer"
-                                                                        >
-                                                                            {opt.label}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
+                                                            <>
+                                                                {!user.area && (
+                                                                    <Select
+                                                                        value={editingArea}
+                                                                        onValueChange={(val) => {
+                                                                            setEditingArea(val);
+                                                                            setSelectedRole('');
+                                                                        }}
+                                                                    >
+                                                                        <SelectTrigger className="w-full max-w-[140px] cursor-pointer truncate">
+                                                                            <SelectValue placeholder="Área para el nuevo rol" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {Object.entries(areaLabels).map(([value, label]) => (
+                                                                                <SelectItem key={value} value={value} className="cursor-pointer">
+                                                                                    {label}
+                                                                                </SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                )}
+
+                                                                <Select
+                                                                    value={selectedRole}
+                                                                    onValueChange={setSelectedRole}
+                                                                    disabled={!user.area && !editingArea}
+                                                                >
+                                                                    <SelectTrigger className="w-full max-w-[140px] cursor-pointer truncate">
+                                                                        <SelectValue
+                                                                            placeholder={
+                                                                                !user.area && !editingArea
+                                                                                    ? 'Elige un área primero'
+                                                                                    : 'Selecciona un rol'
+                                                                            }
+                                                                        />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {options.map((opt) => (
+                                                                            <SelectItem
+                                                                                key={opt.value}
+                                                                                value={opt.value}
+                                                                                className="cursor-pointer"
+                                                                            >
+                                                                                {opt.label}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </>
                                                         ) : (
                                                             <Badge
                                                                 className="w-fit px-2 py-1"
-                                                                variant={
-                                                                    isAdmin(user.role)
-                                                                        ? 'default'
-                                                                        : 'secondary'
-                                                                }
+                                                                variant={isAdmin(user.role) ? 'default' : 'secondary'}
                                                             >
                                                                 {roleLabel(user.role)}
                                                             </Badge>
@@ -284,7 +317,7 @@ export default function UsuariosIndex({
                                                             <Button
                                                                 size="sm"
                                                                 onClick={() => saveRole(user)}
-                                                                disabled={processing}
+                                                                disabled={processing || !selectedRole}
                                                                 className="cursor-pointer"
                                                             >
                                                                 <Check className="h-3.5 w-3.5" />

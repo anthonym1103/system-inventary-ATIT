@@ -94,7 +94,7 @@ export default function DeleteUser() {
                                     <DialogFooter className="gap-2">
                                         <DialogClose asChild>
                                             <Button
-                                                variant="secondary"
+                                                variant="outline"
                                                 className="cursor-pointer"
                                                 onClick={() =>
                                                     resetAndClearErrors()
@@ -105,7 +105,7 @@ export default function DeleteUser() {
                                         </DialogClose>
 
                                         <Button
-                                            variant="destructive"
+                                            variant="destructiveNotification"
                                             disabled={processing}
                                             asChild
                                         >

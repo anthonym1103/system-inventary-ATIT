@@ -35,7 +35,7 @@ class HistorialController extends Controller
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search){
-                $eq->where('equipo_serial', 'ILIKE', "%{$search}%")
+                $q->where('equipo_serial', 'ILIKE', "%{$search}%")
                     ->orWhereHas('usuario',function ($eq) use ($search){
                         $eq->where('name', 'ILIKE', "%{$search}%")
                             ->orWhere('user_name', 'ILIKE', "%{$search}%");

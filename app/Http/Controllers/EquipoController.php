@@ -102,7 +102,7 @@ class EquipoController extends Controller
         }
 
         // 5. Paginación (10 por página, puedes cambiar)
-        $equipos = $query->latest()->paginate(10)->onEachSide(1)->withQueryString();
+        $equipos = $query->latest()->paginate(12)->onEachSide(1)->withQueryString();
 
         // 6. Datos para filtros (tipos, condiciones, ubicaciones)
         $tiposLabels = [];

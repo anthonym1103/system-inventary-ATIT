@@ -74,11 +74,18 @@ class UserController extends Controller
             abort(403, 'No puedes modificar tu propio rol.');
         }
 
+
+        $areaInput = $request->validate([
+            'area' => ['nullable', 'string', Rule::in(array_column(Area::cases(), 'value'))],
+        ])['area'] ?? null;
+
+        $areaEfectiva = $user->area?->value ?? $areaInput;
+
         $allowedRoles = [Cargo::ADMINISTRADOR->value];
 
-        if ($user->area) {
+        if ($areaEfectiva) {
             $allowedRoles = array_merge($allowedRoles, collect([Cargo::SUPERVISOR, Cargo::TECNICO])
-                ->map(fn (Cargo $cargo) => "{$cargo->value}_{$user->area->value}")
+                ->map(fn (Cargo $cargo) => "{$cargo->value}_{$areaEfectiva}")
                 ->toArray());
         }
 
@@ -88,9 +95,11 @@ class UserController extends Controller
 
         $user->syncRoles([$validated['role']]);
 
-        /*if ($validated['role'] === Cargo::ADMINISTRADOR->value) {
+        if ($validated['role'] === Cargo::ADMINISTRADOR->value) {
             $user->update(['area' => null]);
-        }*/
+        } elseif ($areaEfectiva && $user->area?->value !== $areaEfectiva) {
+            $user->update(['area' => $areaEfectiva]);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Rol actualizado correctamente.']);
 

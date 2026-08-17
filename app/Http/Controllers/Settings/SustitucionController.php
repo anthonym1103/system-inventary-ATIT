@@ -19,7 +19,6 @@ class SustitucionController extends Controller
 
     public function generate(Request $request)
     {
-        
         $validated = $request->validate([
             'nuevo_tipo'   => ['required', 'string', 'max:255'],
             'nuevo_marca'  => ['nullable', 'string', 'max:255'],
@@ -34,8 +33,10 @@ class SustitucionController extends Controller
             'motivo' => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $user = $request->user();
+
         try {
-            $pdfPath = $this->generarPdfSustitucion($validated, $request->user());
+            $pdfPath = $this->generarPdfSustitucion($validated, $user);
         } catch (\Throwable $e) {
             report($e);
 
@@ -45,7 +46,37 @@ class SustitucionController extends Controller
             ], 500);
         }
 
+        HistorialEquipo::create([
+            'usuario_id' => $user->id,
+            'equipo_id' => null,
+            'equipo_area' => $user->area?->value,
+            'equipo_tipo' => null,
+            'equipo_serial' => $validated['nuevo_serial'] . ' / ' . $validated['viejo_serial'],
+            'detalle' => $this->detalleSustitucion($validated),
+            'fecha_ajuste' => now(),
+        ]);
+
         return response()->download($pdfPath)->deleteFileAfterSend(true);
+    }
+
+    private function detalleSustitucion(array $data): string
+    {
+        $partes = [
+            'Nuevo - Tipo: ' . $data['nuevo_tipo'],
+            'Nuevo - Marca: ' . ($data['nuevo_marca'] ?: '—'),
+            'Nuevo - Modelo: ' . $data['nuevo_modelo'],
+            'Nuevo - Serial nuevo: ' . $data['nuevo_serial'],
+            'Viejo - Tipo: ' . $data['viejo_tipo'],
+            'Viejo - Marca: ' . ($data['viejo_marca'] ?: '—'),
+            'Viejo - Modelo: ' . $data['viejo_modelo'],
+            'Viejo - Serial viejo: ' . $data['viejo_serial'],
+        ];
+
+        if (!empty($data['motivo'])) {
+            $partes[] = 'Motivo: ' . $data['motivo'];
+        }
+
+        return 'Sustitución de equipo: ' . implode('; ', $partes);
     }
 
     private function generarPdfSustitucion(array $data, $user): string

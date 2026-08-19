@@ -38,6 +38,7 @@ class SustitucionController extends Controller
             'entrega_microprocesador' => ['nullable', 'string', 'max:255'],
             'entrega_ram' => ['nullable', 'string', 'max:100'],
             'entrega_disco' => ['nullable', 'string', 'max:100'],
+            'entrega_disco_unidad' => ['nullable', 'in:GB,TB'],
             'entrega_cpu_serial' => ['required', 'string', 'max:255'],
             'entrega_inmovilizado' => ['nullable', 'string', 'max:100'],
 
@@ -76,7 +77,7 @@ class SustitucionController extends Controller
             'sustituir_inventario' => ['nullable', 'string', 'max:255'],
             'sustituir_nombre_computador' => ['nullable', 'string', 'max:255'],
             'sustituir_disco_capacidad' => ['nullable', 'string', 'max:50'],
-            'sustituir_disco_unidad' => ['nullable', 'in:MB,GB'],
+            'sustituir_disco_unidad' => ['nullable', 'in:GB,TB'],
         ]);
 
         // AutoCad 2007 solo puede ir marcado si Windows 7 está marcado
@@ -129,7 +130,9 @@ class SustitucionController extends Controller
         $pdf->setPrintFooter(false);
         $pdf->SetMargins(0, 0, 0);
         $pdf->SetAutoPageBreak(false);
-        $pdf->SetFont('helvetica', '', 8);
+
+        $pdf->SetTextColor(0, 0, 128);
+        $pdf->SetFont('dejavusans', '', 8);
 
         $pdf->setSourceFile($templatePath);
         $tpl = $pdf->importPage(1);
@@ -155,72 +158,82 @@ class SustitucionController extends Controller
         };
 
         // ---------- Encabezado ----------
-        $write(406.62, 48.94, 23.31, now()->format('d/m/Y'));
-        $write(398.09, 110.76, 42.45, $data['personal'] ?? null);
-        $write(481.90, 110.76, 42.21, $data['telefono'] ?? null);
-        $write(82.18, 115.56, 35.71, $data['nombre_usuario'] ?? null);
-        $write(277.73, 115.56, 33.82, $data['cedula'] ?? null);
-        $write(45.36, 141.24, 34.76, $data['unidad'] ?? null);
-        $write(90.09, 162.00, 43.63, $data['ubicacion_fisica'] ?? null);
-        $write(74.63, 177.84, 28.18, $data['aliado_atit'] ?? null);
+        $write(414.62, 46.94, 23.31, now()->format('d/m/Y'));
+        $pdf->SetFont('dejavusans', 'B', 10);
+        $write(454.71, 81.01, 35.50, $data['entrega_modelo'] ?? null);
+        $pdf->SetFont('dejavusans', '', 8);
+        $write(344.09, 116.76, 42.45, $data['personal'] ?? null);
+        $write(431.90, 116.76, 42.21, $data['telefono'] ?? null);
+        $write(82.18, 113.56, 35.71, $data['nombre_usuario'] ?? null);
+        $write(277.73, 113.56, 33.82, $data['cedula'] ?? null);
+        $write(44.36, 139.24, 34.76, $data['unidad'] ?? null);
+        $write(75.09, 160.00, 43.63, $data['ubicacion_fisica'] ?? null);
+        $write(65.20, 175.84, 28.18, $data['aliado_atit'] ?? null);
         // $write(166.22, 177.84, 17.63, $data['aliado_ext'] ?? null); // TODO: confirmar "Ext"
-        $write(319.57, 177.84, 39.21, $data['personal_enlace'] ?? null);
+        $write(308.20, 175.84, 39.21, $data['personal_enlace'] ?? null);
         // $write(428.47, 177.84, 17.74, $data['personal_enlace_ext'] ?? null); // TODO: confirmar "Ext"
 
+
         // ---------- Información del equipo a entregar ----------
-        $write(81.10, 209.40, 19.43, $data['entrega_tipo_equipo'] ?? null);
-        $write(255.05, 209.40, 30.22, $data['entrega_marca'] ?? null);
-        $write(361.87, 209.40, 35.50, $data['entrega_modelo'] ?? null);
-        $write(45.36, 225.24, 78.11, $data['entrega_microprocesador'] ?? null);
-        $write(403.61, 225.24, 38.96, $data['entrega_ram'] ?? null);
-        $write(502.63, 225.24, 24.47, $data['entrega_disco'] ?? null);
-        $write(64.66, 244.56, 18.29, $data['entrega_cpu_serial'] ?? null);
-        $write(360.31, 244.56, 73.98, $data['entrega_inmovilizado'] ?? null);
+        $write(97.60, 207.40, 19.43, $data['entrega_tipo_equipo'] ?? null);
+        $write(255.05, 207.40, 30.22, $data['entrega_marca'] ?? null);
+        $write(361.87, 207.40, 35.50, $data['entrega_modelo'] ?? null);
+        $write(44.36, 223.24, 78.11, $data['entrega_microprocesador'] ?? null);
+        $write(387.20, 223.24, 38.96, $data['entrega_ram'] ?? null);
+
+        $capacidadEntrega = $data['entrega_disco'] ?? null;
+        if($capacidadEntrega){
+            $capacidadEntrega .= ' ' . ($data['entrega_disco_unidad'] ?? 'GB');
+        }
+        $write(502.63, 223.24, 24.47, $capacidadEntrega ?? null);
+
+        $write(71.90, 242.56, 18.29, $data['entrega_cpu_serial'] ?? null);
+        $write(360.31, 242.56, 73.98, $data['entrega_inmovilizado'] ?? null);
 
         $monitor = $this->formatPeriferico($data, 'monitor');
         $teclado = $this->formatPeriferico($data, 'teclado');
         $mouse = $this->formatPeriferico($data, 'mouse');
         $regulador = $this->formatPeriferico($data, 'regulador');
 
-        $write(93.62, 263.91, 47.11, $monitor);
-        $write(90.98, 281.79, 44.59, $teclado);
-        $write(81.62, 302.07, 35.11, $mouse);
-        $write(105.14, 322.47, 58.73, $regulador);
+        $write(168.62, 261.51, 47.11, $monitor);
+        $write(163.98, 279.29, 44.59, $teclado);
+        $write(166.62, 299.67, 35.11, $mouse);
+        $write(170.14, 319.97, 58.73, $regulador);
 
-        $write(85.54, 343.35, 39.07, $data['nombre_computador'] ?? null);
-        $write(360.31, 343.35, 40.66, $data['correo'] ?? null);
+        $write(109.54, 340.35, 39.07, $data['nombre_computador'] ?? null);
+        $write(359.31, 340.35, 40.66, $data['correo'] ?? null);
 
         // ---------- Software a instalar ----------
-        $mark(89.72, 380.07, 43.29, (bool) ($data['canaima'] ?? false));
-        $mark(191.90, 380.07, 32.34, (bool) ($data['project'] ?? false));
-        $mark(325.80, 380.07, 37.89, (bool) ($data['autocad'] ?? false));
-        $mark(487.46, 380.07, 48.40, (bool) ($data['windows7'] ?? false));
-        $mark(45.36, 396.03, 31.40, (bool) ($data['debian'] ?? false));
-        $write(43.80, 415.35, 65.00, $data['virtualizacion'] ?? null);
+        $mark(102.72, 378.07, 43.29, (bool) ($data['canaima'] ?? false));
+        $mark(217.10, 378.07, 32.34, (bool) ($data['project'] ?? false));
+        $mark(324.01, 378.07, 37.89, (bool) ($data['autocad'] ?? false));
+        $mark(497.26, 378.07, 48.40, (bool) ($data['windows7'] ?? false));
+        $mark(113.72, 395.03, 31.40, (bool) ($data['debian'] ?? false));
+        $write(43.80, 413.35, 65.00, $data['virtualizacion'] ?? null);
 
         // ---------- Información del equipo a sustituir ----------
-        $write(81.11, 450.41, 19.32, $data['sustituir_tipo_equipo'] ?? null);
-        $write(252.41, 450.41, 30.22, $data['sustituir_marca'] ?? null);
-        $write(359.23, 450.41, 35.50, $data['sustituir_modelo'] ?? null);
-        $write(44.04, 464.21, 78.00, $data['sustituir_microprocesador'] ?? null);
-        $write(388.99, 464.21, 25.78, $data['sustituir_serial_cpu'] ?? null);
-        $write(85.66, 477.89, 38.95, $data['sustituir_ram'] ?? null);
-        $write(271.10, 477.89, 35.94, $data['sustituir_sistema_operativo'] ?? null);
-        $write(434.71, 477.89, 50.72, $data['sustituir_inventario'] ?? null);
-        $write(98.73, 494.57, 35.57, $data['sustituir_nombre_computador'] ?? null);
+        $write(96.61, 448.41, 19.32, $data['sustituir_tipo_equipo'] ?? null);
+        $write(251.41, 448.41, 30.22, $data['sustituir_marca'] ?? null);
+        $write(358.23, 448.41, 35.50, $data['sustituir_modelo'] ?? null);
+        $write(44.04, 462.21, 78.00, $data['sustituir_microprocesador'] ?? null);
+        $write(387.01, 462.21, 25.78, $data['sustituir_serial_cpu'] ?? null);
+        $write(71.66, 475.89, 38.95, $data['sustituir_ram'] ?? null);
+        $write(280.01, 475.89, 35.94, $data['sustituir_sistema_operativo'] ?? null);
+        $write(433.71, 475.89, 50.72, $data['sustituir_inventario'] ?? null);
+        $write(119.73, 492.01, 35.57, $data['sustituir_nombre_computador'] ?? null);
 
         $capacidad = $data['sustituir_disco_capacidad'] ?? null;
         if ($capacidad) {
             $capacidad .= ' ' . ($data['sustituir_disco_unidad'] ?? 'GB');
         }
-        $write(408.88, 493.01, 37.61, $capacidad);
+        $write(408.88, 492.01, 37.61, $capacidad);
 
         // ---------- Componentes a retirar (marcado automático) ----------
-        $mark(216.77, 509.45, 18.29, true); // El CPU siempre se retira en una sustitución
-        $mark(271.61, 509.45, 34.70, $monitor !== null);
-        $mark(344.35, 509.45, 34.76, $teclado !== null);
-        $mark(425.35, 509.45, 28.84, $mouse !== null);
-        $mark(499.66, 509.45, 46.09, $regulador !== null);
+        $mark(216.77, 508.45, 18.29, true); // El CPU siempre se retira en una sustitución
+        $mark(272.61, 508.45, 34.70, $monitor !== null);
+        $mark(344.35, 508.45, 34.76, $teclado !== null);
+        $mark(426.35, 508.45, 28.84, $mouse !== null);
+        $mark(499.66, 508.45, 46.09, $regulador !== null);
 
         $pdf->Output($outputPath, 'F');
 

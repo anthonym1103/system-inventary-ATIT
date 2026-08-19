@@ -45,7 +45,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="name"
+                                    autoComplete="off"
                                     name="name"
                                     placeholder="Ej. Juan Pérez"
                                 />
@@ -62,7 +62,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                                     type="text"
                                     required
                                     tabIndex={2}
-                                    autoComplete="user_name"
+                                    autoComplete="off"
                                     name="user_name"
                                     placeholder="Usuario..."
                                 />
@@ -105,7 +105,7 @@ export default function Register({ areaOptions = [] }: RegisterProps) {
                                     type="email"
                                     required
                                     tabIndex={4}
-                                    autoComplete="email"
+                                    autoComplete="off"
                                     name="email"
                                     placeholder="email@example.com"
                                 />

@@ -54,6 +54,17 @@ interface Props {
     processing?: boolean;
 }
 
+
+const formatInput = (type: string, value: string): string => {
+    switch (type) {
+        case 'serial': {
+            return value.toUpperCase().slice(0, 255);
+        }
+        default:
+            return value;
+    }
+};
+
 export function EquipoDesincorporarDialog({
     isOpen,
     onClose,
@@ -185,6 +196,7 @@ export function EquipoDesincorporarDialog({
                                 setPara(e.target.value);
                                 if (error) setError(null);
                             }}
+                            autoComplete="off"
                             placeholder="Ej. CN. Carlos Suarez..."
                         />
                     </div>
@@ -199,6 +211,7 @@ export function EquipoDesincorporarDialog({
                                 setDe(e.target.value);
                                 if (error) setError(null);
                             }}
+                            autoComplete="off"
                             placeholder="Ej. Ing. Juan Perez..."
                         />
                     </div>
@@ -213,6 +226,7 @@ export function EquipoDesincorporarDialog({
                                 setNumero(e.target.value);
                                 if (error) setError(null);
                             }}
+                            autoComplete="off"
                             placeholder="Ej. ATIT-RGY 103/2026"
                         />
                     </div>
@@ -286,7 +300,7 @@ export function EquipoDesincorporarDialog({
                                 <Input
                                     placeholder="Serial"
                                     value={row.serial}
-                                    onChange={(e) => updateEquipoExtra(row.id, 'serial', e.target.value)}
+                                    onChange={(e) => updateEquipoExtra(row.id, 'serial', formatInput('serial', e.target.value))}
                                 />
                                 <Button
                                     type="button"
@@ -351,7 +365,7 @@ export function EquipoDesincorporarDialog({
                             <Input
                                 placeholder="Serial"
                                 value={row.serial}
-                                onChange={(e) => updatePeriferico(row.id, 'serial', e.target.value)}
+                                onChange={(e) => updatePeriferico(row.id, 'serial', formatInput('serial', e.target.value))}
                             />
                             <Input
                                 placeholder="Características"

@@ -11,6 +11,59 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 
+function RamGbInput({
+    value,
+    onChange,
+    placeholder,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+}) {
+    const clampCursor = (e: React.SyntheticEvent<HTMLInputElement>) => {
+        const target = e.currentTarget;
+        const digits = target.value.replace(/\D/g, '');
+        const maxPos = digits.length;
+
+        requestAnimationFrame(() => {
+            const start = target.selectionStart ?? maxPos;
+            const end = target.selectionEnd ?? maxPos;
+
+            const clampedStart = Math.min(start, maxPos);
+            const clampedEnd = Math.min(end, maxPos);
+
+            if (start > maxPos || end > maxPos) {
+                target.setSelectionRange(clampedStart, clampedEnd);
+            }
+        });
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const target = e.target;
+        const digits = target.value.replace(/\D/g, '').slice(0, 4);
+        const formatted = digits ? `${digits} GB` : '';
+
+        onChange(formatted);
+
+        // El cursor siempre queda justo antes de " GB".
+        requestAnimationFrame(() => {
+            target.setSelectionRange(digits.length, digits.length);
+        });
+    };
+
+    return (
+        <Input
+            value={value}
+            onChange={handleChange}
+            onClick={clampCursor}
+            onKeyUp={clampCursor}
+            onFocus={clampCursor}
+            placeholder={placeholder}
+            inputMode="numeric"
+        />
+    );
+}
+
 interface NotaEntregaFormData {
     personal: string;
     telefono: string;
@@ -27,6 +80,7 @@ interface NotaEntregaFormData {
     entrega_microprocesador: string;
     entrega_ram: string;
     entrega_disco: string;
+    entrega_disco_unidad: string;
     entrega_cpu_serial: string;
     entrega_inmovilizado: string;
 
@@ -82,6 +136,7 @@ const initialForm: NotaEntregaFormData = {
     entrega_microprocesador: '',
     entrega_ram: '',
     entrega_disco: '',
+    entrega_disco_unidad: 'GB',
     entrega_cpu_serial: '',
     entrega_inmovilizado: '',
 
@@ -116,6 +171,48 @@ const initialForm: NotaEntregaFormData = {
 // Campos que pertenecen a cada periférico, usados para limpiarlos cuando se desactiva la sección.
 const PERIFERICO_PREFIJOS = ['monitor', 'teclado', 'mouse', 'regulador'] as const;
 
+// Formatea el valor de un campo según su naturaleza, igual que hace equipo-form.tsx
+// con su propia función formatInput.
+const formatInput = (type: string, value: string): string => {
+    switch (type) {
+        case 'serial': {
+            // Seriales de CPU/periféricos: mayúsculas, sin límite práctico distinto al backend (max:255)
+            return value.toUpperCase().slice(0, 255);
+        }
+        case 'cedula': {
+            // Igual formato que "asignado_cedula" en equipo-form: "V- " + hasta 9 dígitos
+            const ident = 'V- ';
+            const digits = value.replace(/[^0-9]/g, '');
+            return ident + digits.slice(0, 9);
+        }
+        case 'telefono': {
+            // Solo dígitos, máximo 11 (igual que equipo-form)
+            const digits = value.replace(/[^0-9]/g, '');
+            return digits.slice(0, 11);
+        }
+        case 'numero': {
+            // Campos puramente numéricos (ej. capacidad de disco)
+            return value.replace(/\D/g, '');
+        }
+        case 'nombre_usuario': {
+            // Capitaliza cada palabra, igual que CreateNewUser::formatFullName en el backend
+            return value
+                .replace(/\s+/g, ' ')
+                .split(' ')
+                .map((palabra) =>
+                    palabra ? palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase() : palabra,
+                )
+                .join(' ');
+        }
+        case 'correo': {
+            // Normaliza a minúsculas y sin espacios, como espera cualquier validación de email
+            return value.trim().toLowerCase();
+        }
+        default:
+            return value;
+    }
+};
+
 // Fila reutilizable para Marca/Modelo/Serial de un periférico
 function PerifericoRow({
     label,
@@ -133,19 +230,21 @@ function PerifericoRow({
             <Label className="w-fit">{label}. Marca/Modelo/Serial</Label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Input
-                    placeholder="Marca"
+                    placeholder="Marca..."
                     value={data[`${prefix}_marca` as keyof NotaEntregaFormData] as string}
                     onChange={(e) => onChange(`${prefix}_marca` as keyof NotaEntregaFormData, e.target.value)}
                 />
                 <Input
-                    placeholder="Modelo"
+                    placeholder="Modelo..."
                     value={data[`${prefix}_modelo` as keyof NotaEntregaFormData] as string}
                     onChange={(e) => onChange(`${prefix}_modelo` as keyof NotaEntregaFormData, e.target.value)}
                 />
                 <Input
-                    placeholder="Serial"
+                    placeholder="Serial..."
                     value={data[`${prefix}_serial` as keyof NotaEntregaFormData] as string}
-                    onChange={(e) => onChange(`${prefix}_serial` as keyof NotaEntregaFormData, e.target.value)}
+                    onChange={(e) =>
+                        onChange(`${prefix}_serial` as keyof NotaEntregaFormData, formatInput('serial', e.target.value))
+                    }
                 />
             </div>
         </div>
@@ -248,7 +347,11 @@ export default function Sustitucion() {
             <Head title="Sustitucion" />
 
             <div className="p-6 w-full space-y-6">
-                <h1 className="text-2xl font-bold">Nota de Entrega</h1>
+                <Heading
+                    variant="small"
+                    title="Nota de Entrega"
+                    description="Genera el formato de entrega/sustitución de equipo para el usuario."
+                />
 
                 <form onSubmit={handleSubmit} className="space-y-6 mx-[22%]">
                     {/* Datos del usuario */}
@@ -260,38 +363,70 @@ export default function Sustitucion() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label>Nombre de usuario <span className="text-destructive">*</span></Label>
-                                    <Input value={data.nombre_usuario} onChange={(e) => setField('nombre_usuario', e.target.value)} />
+                                    <Input
+                                        value={data.nombre_usuario}
+                                        onChange={(e) => setField('nombre_usuario', formatInput('nombre_usuario', e.target.value))}
+                                        placeholder="Ej. Juan Perez"
+                                    />
                                     <InputError message={errors.nombre_usuario} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Cédula <span className="text-destructive">*</span></Label>
-                                    <Input value={data.cedula} onChange={(e) => setField('cedula', e.target.value)} />
+                                    <Input
+                                        value={data.cedula}
+                                        onChange={(e) => setField('cedula', formatInput('cedula', e.target.value))}
+                                        placeholder="V- 12345678"
+                                    />
                                     <InputError message={errors.cedula} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>N° Personal</Label>
-                                    <Input value={data.personal} onChange={(e) => setField('personal', e.target.value)} />
+                                    <Input 
+                                        value={data.personal} 
+                                        onChange={(e) => setField('personal', e.target.value)} 
+                                        placeholder="N° Personal..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Teléfono</Label>
-                                    <Input value={data.telefono} onChange={(e) => setField('telefono', e.target.value)} />
+                                    <Input
+                                        value={data.telefono}
+                                        onChange={(e) => setField('telefono', formatInput('telefono', e.target.value))}
+                                        placeholder="Ej. 04121234567"
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Unidad</Label>
-                                    <Input value={data.unidad} onChange={(e) => setField('unidad', e.target.value)} />
+                                    <Input 
+                                        value={data.unidad} 
+                                        onChange={(e) => setField('unidad', e.target.value)} 
+                                        placeholder="Unidad..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Ubicación Física</Label>
-                                    <Input value={data.ubicacion_fisica} onChange={(e) => setField('ubicacion_fisica', e.target.value)} />
+                                    <Input 
+                                        value={data.ubicacion_fisica} 
+                                        onChange={(e) => setField('ubicacion_fisica', e.target.value)} 
+                                        placeholder="Ubicación Física..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Aliado ATIT</Label>
-                                    <Input value={data.aliado_atit} onChange={(e) => setField('aliado_atit', e.target.value)} />
+                                    <Input 
+                                        value={data.aliado_atit} 
+                                        onChange={(e) => setField('aliado_atit', e.target.value)} 
+                                        placeholder="Aliado ATIT..."
+                                    />
                                     {/* TODO: campo "Ext" pendiente de confirmar significado */}
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Personal Enlace</Label>
-                                    <Input value={data.personal_enlace} onChange={(e) => setField('personal_enlace', e.target.value)} />
+                                    <Input 
+                                        value={data.personal_enlace} 
+                                        onChange={(e) => setField('personal_enlace', e.target.value)} 
+                                        placeholder="Personal Enlace..."
+                                    />
                                     {/* TODO: campo "Ext" pendiente de confirmar significado */}
                                 </div>
                             </div>
@@ -307,46 +442,102 @@ export default function Sustitucion() {
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="grid gap-2">
                                     <Label>Tipo de Equipo <span className="text-destructive">*</span></Label>
-                                    <Input value={data.entrega_tipo_equipo} onChange={(e) => setField('entrega_tipo_equipo', e.target.value)} />
+                                    <Input 
+                                        value={data.entrega_tipo_equipo} 
+                                        onChange={(e) => setField('entrega_tipo_equipo', e.target.value)} 
+                                        placeholder="Tipo de Equipo..."
+                                    />
                                     <InputError message={errors.entrega_tipo_equipo} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Marca</Label>
-                                    <Input value={data.entrega_marca} onChange={(e) => setField('entrega_marca', e.target.value)} />
+                                    <Input 
+                                        value={data.entrega_marca} 
+                                        onChange={(e) => setField('entrega_marca', e.target.value)} 
+                                        placeholder="Marca..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Modelo <span className="text-destructive">*</span></Label>
-                                    <Input value={data.entrega_modelo} onChange={(e) => setField('entrega_modelo', e.target.value)} />
+                                    <Input 
+                                        value={data.entrega_modelo} 
+                                        onChange={(e) => setField('entrega_modelo', e.target.value)} 
+                                        placeholder="Modelo..."
+                                    />
                                     <InputError message={errors.entrega_modelo} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Microprocesador</Label>
-                                    <Input value={data.entrega_microprocesador} onChange={(e) => setField('entrega_microprocesador', e.target.value)} />
+                                    <Input 
+                                        value={data.entrega_microprocesador} 
+                                        onChange={(e) => setField('entrega_microprocesador', e.target.value)} 
+                                        placeholder="Microprocesador..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Memoria RAM</Label>
-                                    <Input value={data.entrega_ram} onChange={(e) => setField('entrega_ram', e.target.value)} />
+                                    <RamGbInput
+                                        value={data.entrega_ram}
+                                        onChange={(value) => setField('entrega_ram', value)}
+                                        placeholder="Ej. 8 GB"
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Disco Duro</Label>
-                                    <Input value={data.entrega_disco} onChange={(e) => setField('entrega_disco', e.target.value)} />
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            value={data.entrega_disco} 
+                                            onChange={(e) => setField('entrega_disco', formatInput('numero', e.target.value))} 
+                                            className="max-w-[calc(100%-6rem)]"
+                                            placeholder="Ej. 500 GB."
+                                        />
+                                        <Select
+                                            value={data.entrega_disco_unidad}
+                                            onValueChange={(v) => setField('entrega_disco_unidad', v)}
+                                        >
+                                            <SelectTrigger className="w-24 cursor-pointer">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="GB">GB</SelectItem>
+                                                <SelectItem value="TB">TB</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>CPU Serial <span className="text-destructive">*</span></Label>
-                                    <Input value={data.entrega_cpu_serial} onChange={(e) => setField('entrega_cpu_serial', e.target.value)} />
+                                    <Input
+                                        value={data.entrega_cpu_serial}
+                                        onChange={(e) => setField('entrega_cpu_serial', formatInput('serial', e.target.value))}
+                                        placeholder="Serial del CPU..."
+                                    />
                                     <InputError message={errors.entrega_cpu_serial} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Inmovilizado</Label>
-                                    <Input value={data.entrega_inmovilizado} onChange={(e) => setField('entrega_inmovilizado', e.target.value)} />
+                                    <Input 
+                                        value={data.entrega_inmovilizado} 
+                                        onChange={(e) => setField('entrega_inmovilizado', e.target.value)} 
+                                        placeholder="Inmovilizado..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Nombre del computador</Label>
-                                    <Input value={data.nombre_computador} onChange={(e) => setField('nombre_computador', e.target.value)} />
+                                    <Input 
+                                        value={data.nombre_computador} 
+                                        onChange={(e) => setField('nombre_computador', e.target.value)} 
+                                        placeholder="Nombre del computador..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Correo</Label>
-                                    <Input type="email" value={data.correo} onChange={(e) => setField('correo', e.target.value)} />
+                                    <Input
+                                        type="email"
+                                        value={data.correo}
+                                        onChange={(e) => setField('correo', formatInput('correo', e.target.value))}
+                                        placeholder="Correo electrónico..."
+                                    />
                                 </div>
                             </div>
                         </CardContent>
@@ -397,16 +588,30 @@ export default function Sustitucion() {
                         <CardContent className="space-y-4">
                             <div className="flex flex-wrap gap-6">
                                 <div className="flex items-center gap-2">
-                                    <Checkbox checked={data.canaima} onCheckedChange={(c) => setField('canaima', Boolean(c))} id="canaima" />
+                                    <Checkbox 
+                                        checked={data.canaima}
+                                        disabled={data.windows7} 
+                                        onCheckedChange={(c) => setField('canaima', Boolean(c))} 
+                                        id="canaima" 
+                                    />
                                     <Label htmlFor="canaima" className="cursor-pointer">Canaima v4.1</Label>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Checkbox checked={data.project} onCheckedChange={(c) => setField('project', Boolean(c))} id="project" />
-                                    <Label htmlFor="project" className="cursor-pointer">Project</Label>
+                                    <Checkbox 
+                                        checked={data.windows7}
+                                        disabled={data.canaima} 
+                                        onCheckedChange={(c) => toggleWindows7(Boolean(c))} 
+                                        id="windows7" 
+                                    />
+                                    <Label htmlFor="windows7" className="cursor-pointer">Windows 7</Label>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Checkbox checked={data.windows7} onCheckedChange={(c) => toggleWindows7(Boolean(c))} id="windows7" />
-                                    <Label htmlFor="windows7" className="cursor-pointer">Windows 7</Label>
+                                    <Checkbox 
+                                        checked={data.project} 
+                                        onCheckedChange={(c) => setField('project', Boolean(c))} 
+                                        id="project" 
+                                    />
+                                    <Label htmlFor="project" className="cursor-pointer">Project</Label>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Checkbox
@@ -420,7 +625,11 @@ export default function Sustitucion() {
                                     </Label>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Checkbox checked={data.debian} onCheckedChange={(c) => setField('debian', Boolean(c))} id="debian" />
+                                    <Checkbox 
+                                        checked={data.debian} 
+                                        onCheckedChange={(c) => setField('debian', Boolean(c))} 
+                                        id="debian" 
+                                    />
                                     <Label htmlFor="debian" className="cursor-pointer">Debian</Label>
                                 </div>
                             </div>
@@ -442,50 +651,87 @@ export default function Sustitucion() {
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="grid gap-2">
                                     <Label>Tipo de Equipo <span className="text-destructive">*</span></Label>
-                                    <Input value={data.sustituir_tipo_equipo} onChange={(e) => setField('sustituir_tipo_equipo', e.target.value)} />
+                                    <Input 
+                                        value={data.sustituir_tipo_equipo} 
+                                        onChange={(e) => setField('sustituir_tipo_equipo', e.target.value)} 
+                                        placeholder="Tipo de equipo..."
+                                    />
                                     <InputError message={errors.sustituir_tipo_equipo} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Marca</Label>
-                                    <Input value={data.sustituir_marca} onChange={(e) => setField('sustituir_marca', e.target.value)} />
+                                    <Input 
+                                        value={data.sustituir_marca} 
+                                        onChange={(e) => setField('sustituir_marca', e.target.value)} 
+                                        placeholder="Marca..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Modelo <span className="text-destructive">*</span></Label>
-                                    <Input value={data.sustituir_modelo} onChange={(e) => setField('sustituir_modelo', e.target.value)} />
+                                    <Input 
+                                        value={data.sustituir_modelo} 
+                                        onChange={(e) => setField('sustituir_modelo', e.target.value)} 
+                                        placeholder="Modelo..."
+                                    />
                                     <InputError message={errors.sustituir_modelo} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Microprocesador</Label>
-                                    <Input value={data.sustituir_microprocesador} onChange={(e) => setField('sustituir_microprocesador', e.target.value)} />
+                                    <Input 
+                                        value={data.sustituir_microprocesador} 
+                                        onChange={(e) => setField('sustituir_microprocesador', e.target.value)} 
+                                        placeholder="Microprocesador..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Serial CPU <span className="text-destructive">*</span></Label>
-                                    <Input value={data.sustituir_serial_cpu} onChange={(e) => setField('sustituir_serial_cpu', e.target.value)} />
+                                    <Input
+                                        value={data.sustituir_serial_cpu}
+                                        onChange={(e) => setField('sustituir_serial_cpu', formatInput('serial', e.target.value))}
+                                        placeholder="Serial CPU..."
+                                    />
                                     <InputError message={errors.sustituir_serial_cpu} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Memoria RAM</Label>
-                                    <Input value={data.sustituir_ram} onChange={(e) => setField('sustituir_ram', e.target.value)} />
+                                    <RamGbInput
+                                        value={data.sustituir_ram}
+                                        onChange={(value) => setField('sustituir_ram', value)}
+                                        placeholder="Ej. 8 GB"
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Sistema Operativo</Label>
-                                    <Input value={data.sustituir_sistema_operativo} onChange={(e) => setField('sustituir_sistema_operativo', e.target.value)} />
+                                    <Input 
+                                        value={data.sustituir_sistema_operativo} 
+                                        onChange={(e) => setField('sustituir_sistema_operativo', e.target.value)} 
+                                        placeholder="Sistema Operativo..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Inventario</Label>
-                                    <Input value={data.sustituir_inventario} onChange={(e) => setField('sustituir_inventario', e.target.value)} />
+                                    <Input 
+                                        value={data.sustituir_inventario} 
+                                        onChange={(e) => setField('sustituir_inventario', e.target.value)} 
+                                        placeholder="Inventario..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Nombre del computador</Label>
-                                    <Input value={data.sustituir_nombre_computador} onChange={(e) => setField('sustituir_nombre_computador', e.target.value)} />
+                                    <Input 
+                                        value={data.sustituir_nombre_computador} 
+                                        onChange={(e) => setField('sustituir_nombre_computador', e.target.value)} 
+                                        placeholder="Nombre del computador..."
+                                    />
                                 </div>
                                 <div className="grid gap-2 sm:col-span-2">
                                     <Label>Capacidad Disco Duro</Label>
                                     <div className="flex gap-2">
                                         <Input
                                             value={data.sustituir_disco_capacidad}
-                                            onChange={(e) => setField('sustituir_disco_capacidad', e.target.value)}
-                                            placeholder="Ej. 500"
+                                            onChange={(e) => setField('sustituir_disco_capacidad', formatInput('numero', e.target.value))}
+                                            className="max-w-[49%] min-w-[33%]"
+                                            placeholder="Ej. 500 GB"
                                         />
                                         <Select
                                             value={data.sustituir_disco_unidad}
@@ -495,8 +741,8 @@ export default function Sustitucion() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="MB">MB</SelectItem>
                                                 <SelectItem value="GB">GB</SelectItem>
+                                                <SelectItem value="TB">TB</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>

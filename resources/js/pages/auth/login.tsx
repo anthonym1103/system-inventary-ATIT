@@ -53,7 +53,7 @@ export default function Login({
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="user-name"
+                                    autoComplete="user_name"
                                     placeholder="Usuario..."
                                 />
                                 <InputError message={translate('user_name', errors.user_name)} />

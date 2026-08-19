@@ -298,6 +298,7 @@ function FirmaField({
                             type="text"
                             value={nombre}
                             onChange={onNombreChange}
+                            autoComplete="off"
                             placeholder="Ingrese el nombre..."
                             className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />

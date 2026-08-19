@@ -4,7 +4,7 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Settings\FirmaController;
-use App\Http\Controllers\Settings\SustitucionController;
+//use App\Http\Controllers\Settings\SustitucionController;
 
 
 
@@ -13,8 +13,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::get('settings/sustitucion', [SustitucionController::class, 'edit'])->name('sustitucion.edit');
-    Route::post('settings/sustitucion', [SustitucionController::class, 'generate'])->name('sustitucion.generate');
+    //Route::get('settings/sustitucion', [SustitucionController::class, 'edit'])->name('sustitucion.edit');
+    //Route::post('settings/sustitucion', [SustitucionController::class, 'generate'])->name('sustitucion.generate');
     Route::get('settings/firmas', [FirmaController::class, 'edit'])->name('firmas.edit');
     Route::post('settings/firmas', [FirmaController::class, 'update'])->name('firmas.update');
     Route::get('settings/firmas/{tipo}/preview', [FirmaController::class, 'show'])

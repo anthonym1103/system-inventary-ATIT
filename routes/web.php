@@ -8,6 +8,7 @@ use App\Http\Controllers\EquipoController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Settings\SustitucionController;
 
 
 Route::inertia('/', 'welcome', [
@@ -22,6 +23,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('equipos/reporte', [EquipoController::class, 'reporte'])->name('equipos.reporte');
     Route::resource('equipos', EquipoController::class);
     Route::get('equipos/{equipo}/edit-data', [EquipoController::class, 'editData'])->name('equipos.edit-data');
+    Route::get('sustitucion', [SustitucionController::class, 'edit'])->name('sustitucion.edit');
+    Route::post('sustitucion', [SustitucionController::class, 'generate'])->name('sustitucion.generate');
     Route::post('mantenimientos', [NotificacionController::class, 'store'])->name('notificacion.store');
     Route::patch('mantenimientos/{mantenimiento}/leido', [NotificacionController::class, 'markAsRead'])->name('notificacion.leido');
     Route::get('historial', [HistorialController::class, 'index'])->name('historial.index');

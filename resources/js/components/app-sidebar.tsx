@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard, History, Layers, LucideUsers } from 'lucide-react';
+import { LayoutDashboard, History, Layers, LucideUsers, ClipboardList } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { Notifications } from '@/components/notifications';
@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
-import { useState } from 'react';
 
 const baseNavItems: NavItem[] = [
     {
@@ -63,6 +62,10 @@ function getNavItems(data: any): NavItem[] {
             title: 'Inventario Transmisión',
             href: '/equipos?area=transmision_datos',
             icon: Layers,
+        },{
+            title: 'Sustitución',
+            href: '/sustitucion', 
+            icon: ClipboardList,
         }];
 
         const newItems = [

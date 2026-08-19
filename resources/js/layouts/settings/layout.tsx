@@ -9,7 +9,7 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
-import { edit as editSustitucion } from '@/routes/sustitucion';
+
 
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
@@ -33,7 +33,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
             icon: null,
         },
         ...(auth.role === 'administrador' 
-            ?[{title: 'Firmas', href:'/settings/firmas', icon: null}, {title: 'Sustitución',href: editSustitucion(), icon: null,}]
+            ?[{title: 'Firmas', href:'/settings/firmas', icon: null}]
             :[]), 
     ];
 

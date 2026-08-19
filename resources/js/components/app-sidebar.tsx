@@ -44,6 +44,10 @@ function getNavItems(data: any): NavItem[] {
             title: 'Gestion de Usuarios',
             href: '/usuarios',
             icon: LucideUsers,
+        },{
+            title: 'Sustitución',
+            href: '/sustitucion', 
+            icon: ClipboardList,
         });
     }
     
@@ -62,10 +66,6 @@ function getNavItems(data: any): NavItem[] {
             title: 'Inventario Transmisión',
             href: '/equipos?area=transmision_datos',
             icon: Layers,
-        },{
-            title: 'Sustitución',
-            href: '/sustitucion', 
-            icon: ClipboardList,
         }];
 
         const newItems = [

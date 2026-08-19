@@ -12,7 +12,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 
 interface NotaEntregaFormData {
-    rotacion: boolean;
     personal: string;
     telefono: string;
     nombre_usuario: string;
@@ -68,7 +67,6 @@ interface NotaEntregaFormData {
 }
 
 const initialForm: NotaEntregaFormData = {
-    rotacion: false,
     personal: '',
     telefono: '',
     nombre_usuario: '',
@@ -115,6 +113,9 @@ const initialForm: NotaEntregaFormData = {
     sustituir_disco_unidad: 'GB',
 };
 
+// Campos que pertenecen a cada periférico, usados para limpiarlos cuando se desactiva la sección.
+const PERIFERICO_PREFIJOS = ['monitor', 'teclado', 'mouse', 'regulador'] as const;
+
 // Fila reutilizable para Marca/Modelo/Serial de un periférico
 function PerifericoRow({
     label,
@@ -123,7 +124,7 @@ function PerifericoRow({
     onChange,
 }: {
     label: string;
-    prefix: 'monitor' | 'teclado' | 'mouse' | 'regulador';
+    prefix: (typeof PERIFERICO_PREFIJOS)[number];
     data: NotaEntregaFormData;
     onChange: (field: keyof NotaEntregaFormData, value: string) => void;
 }) {
@@ -156,6 +157,10 @@ export default function Sustitucion() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
+    // Los periféricos son opcionales: puede que no se entregue ninguno junto al equipo,
+    // así que el bloque de campos empieza oculto hasta que el usuario indique que sí aplica.
+    const [incluirPerifericos, setIncluirPerifericos] = useState(false);
+
     const setField = (field: keyof NotaEntregaFormData, value: string | boolean) => {
         setData((prev) => ({ ...prev, [field]: value }));
     };
@@ -169,6 +174,24 @@ export default function Sustitucion() {
         }));
     };
 
+    const toggleIncluirPerifericos = (checked: boolean) => {
+        setIncluirPerifericos(checked);
+
+        // Si el usuario desactiva la sección, se limpian los campos para no enviar
+        // datos residuales que ya no corresponden a lo que se va a entregar.
+        if (!checked) {
+            setData((prev) => {
+                const limpio = { ...prev };
+                PERIFERICO_PREFIJOS.forEach((prefix) => {
+                    limpio[`${prefix}_marca`] = '';
+                    limpio[`${prefix}_modelo`] = '';
+                    limpio[`${prefix}_serial`] = '';
+                });
+                return limpio;
+            });
+        }
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setProcessing(true);
@@ -177,7 +200,7 @@ export default function Sustitucion() {
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
-            const response = await fetch('/settings/sustitucion', {
+            const response = await fetch('/sustitucion/generar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -213,6 +236,7 @@ export default function Sustitucion() {
             a.click();
             window.URL.revokeObjectURL(url);
             setData(initialForm);
+            setIncluirPerifericos(false);
             toast.success('Nota de entrega generada correctamente.');
         } finally {
             setProcessing(false);
@@ -223,27 +247,16 @@ export default function Sustitucion() {
         <>
             <Head title="Sustitucion" />
 
-            <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Nota de Entrega"
-                    description="Genera el formato de entrega/sustitución de equipo para el usuario."
-                />
+            <div className="p-6 w-full space-y-6">
+                <h1 className="text-2xl font-bold">Nota de Entrega</h1>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Encabezado */}
+                <form onSubmit={handleSubmit} className="space-y-6 mx-[22%]">
+                    {/* Datos del usuario */}
                     <Card>
-                        <CardHeader><CardTitle className="text-base">Datos del usuario</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle className="text-base">Datos del usuario</CardTitle>
+                        </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <Checkbox
-                                    id="rotacion"
-                                    checked={data.rotacion}
-                                    onCheckedChange={(c) => setField('rotacion', Boolean(c))}
-                                />
-                                <Label htmlFor="rotacion" className="cursor-pointer">Rotación</Label>
-                            </div>
-
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label>Nombre de usuario <span className="text-destructive">*</span></Label>
@@ -287,7 +300,9 @@ export default function Sustitucion() {
 
                     {/* Equipo a entregar */}
                     <Card>
-                        <CardHeader><CardTitle className="text-base">Equipo a Entregar</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle className="text-base">Equipo a Entregar</CardTitle>
+                        </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="grid gap-2">
@@ -337,26 +352,48 @@ export default function Sustitucion() {
                         </CardContent>
                     </Card>
 
-                    {/* Periféricos entregados (marcan "Componentes a retirar" automáticamente) */}
+                    {/* Periféricos entregados (opcional; marcan "Componentes a retirar" automáticamente) */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Periféricos entregados</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-xs text-muted-foreground">
-                                Si llenas Marca/Modelo/Serial de un periférico, se marcará automáticamente
-                                en "Componentes a retirar" del equipo sustituido.
-                            </p>
-                            <PerifericoRow label="Monitor" prefix="monitor" data={data} onChange={setField} />
-                            <PerifericoRow label="Teclado" prefix="teclado" data={data} onChange={setField} />
-                            <PerifericoRow label="Mouse" prefix="mouse" data={data} onChange={setField} />
-                            <PerifericoRow label="Regulador" prefix="regulador" data={data} onChange={setField} />
+                            <div className="flex items-center gap-2">
+                                <Checkbox
+                                    id="incluir_perifericos"
+                                    checked={incluirPerifericos}
+                                    onCheckedChange={(c) => toggleIncluirPerifericos(Boolean(c))}
+                                />
+                                <Label htmlFor="incluir_perifericos" className="cursor-pointer">
+                                    ¿Se entregan periféricos junto con el equipo?
+                                </Label>
+                            </div>
+
+                            {incluirPerifericos ? (
+                                <div className="space-y-4">
+                                    <p className="text-xs text-muted-foreground">
+                                        Si llenas Marca/Modelo/Serial de un periférico, se marcará automáticamente
+                                        en "Componentes a retirar" del equipo sustituido.
+                                    </p>
+                                    <PerifericoRow label="Monitor" prefix="monitor" data={data} onChange={setField} />
+                                    <PerifericoRow label="Teclado" prefix="teclado" data={data} onChange={setField} />
+                                    <PerifericoRow label="Mouse" prefix="mouse" data={data} onChange={setField} />
+                                    <PerifericoRow label="Regulador" prefix="regulador" data={data} onChange={setField} />
+                                </div>
+                            ) : (
+                                <p className="text-xs text-muted-foreground">
+                                    Marca la casilla si vas a entregar monitor, teclado, mouse y/o regulador
+                                    junto con el equipo.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
 
                     {/* Software */}
                     <Card>
-                        <CardHeader><CardTitle className="text-base">Software a Instalar</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle className="text-base">Software a Instalar</CardTitle>
+                        </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex flex-wrap gap-6">
                                 <div className="flex items-center gap-2">
@@ -398,7 +435,9 @@ export default function Sustitucion() {
 
                     {/* Equipo a sustituir */}
                     <Card>
-                        <CardHeader><CardTitle className="text-base">Equipo a Sustituir</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle className="text-base">Equipo a Sustituir</CardTitle>
+                        </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="grid gap-2">
@@ -466,7 +505,7 @@ export default function Sustitucion() {
                         </CardContent>
                     </Card>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-center gap-2">
                         <Button type="submit" disabled={processing} className="cursor-pointer">
                             {processing && <Spinner />}
                             Generar Nota de Entrega

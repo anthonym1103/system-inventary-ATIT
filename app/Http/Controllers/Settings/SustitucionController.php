@@ -20,7 +20,6 @@ class SustitucionController extends Controller
     {
         $validated = $request->validate([
             // Encabezado
-            'rotacion' => ['boolean'],
             'personal' => ['nullable', 'string', 'max:50'],
             'telefono' => ['nullable', 'string', 'max:50'],
             'nombre_usuario' => ['required', 'string', 'max:255'],
@@ -157,7 +156,6 @@ class SustitucionController extends Controller
 
         // ---------- Encabezado ----------
         $write(406.62, 48.94, 23.31, now()->format('d/m/Y'));
-        $mark(398.83, 83.60, 54.51, (bool) ($data['rotacion'] ?? false));
         $write(398.09, 110.76, 42.45, $data['personal'] ?? null);
         $write(481.90, 110.76, 42.21, $data['telefono'] ?? null);
         $write(82.18, 115.56, 35.71, $data['nombre_usuario'] ?? null);

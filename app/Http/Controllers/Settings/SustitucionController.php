@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use setasign\Fpdi\Tcpdf\Fpdi as FpdiTcpdf;
+use App\Models\HistorialEquipo;
+use App\Enums\Area;
+use Illuminate\Support\Facades\Auth;
 
 class SustitucionController extends Controller
 {
@@ -98,7 +101,50 @@ class SustitucionController extends Controller
             ], 500);
         }
 
+        $this->registrarHistorial($validated);
+
         return response()->download($pdfPath)->deleteFileAfterSend(true);
+    }
+
+    private function registrarHistorial(array $data): void
+    {
+        $user = Auth::user();
+
+        HistorialEquipo::create([
+            'usuario_id' => $user->id,
+            'equipo_id' => null,
+            'equipo_area' => $user->area?->value,
+            'equipo_tipo' => $data['entrega_tipo_equipo'] ?? null,
+            'equipo_serial' => $data['entrega_cpu_serial'] ?? null,
+            'detalle' => $this->detalleSustitucion($data),
+            'fecha_ajuste' => now(),
+        ]);
+    }
+
+    private function detalleSustitucion(array $data): string
+    {
+        $partes = [
+            'Usuario: ' . ($data['nombre_usuario'] ?? '—') . ' (Cédula: ' . ($data['cedula'] ?? '—') . ')',
+            'Equipo Entregado - Tipo: ' . ($data['entrega_tipo_equipo'] ?? '—'),
+            'Equipo Entregado - Marca/Modelo: ' . ($data['entrega_marca'] ?? '—') . ' / ' . ($data['entrega_modelo'] ?? '—'),
+            'Equipo Entregado - Serial CPU: ' . ($data['entrega_cpu_serial'] ?? '—'),
+            'Equipo Sustituido - Tipo: ' . ($data['sustituir_tipo_equipo'] ?? '—'),
+            'Equipo Sustituido - Marca/Modelo: ' . ($data['sustituir_marca'] ?? '—') . ' / ' . ($data['sustituir_modelo'] ?? '—'),
+            'Equipo Sustituido - Serial CPU: ' . ($data['sustituir_serial_cpu'] ?? '—'),
+        ];
+
+        $perifericos = array_filter([
+            $this->formatPeriferico($data, 'monitor'),
+            $this->formatPeriferico($data, 'teclado'),
+            $this->formatPeriferico($data, 'mouse'),
+            $this->formatPeriferico($data, 'regulador'),
+        ]);
+
+        if (!empty($perifericos)) {
+            $partes[] = 'Periféricos entregados: ' . implode(', ', $perifericos);
+        }
+
+        return 'Sustitucion de equipo: ' . implode('; ', $partes);
     }
 
     private function generarPdfSustitucion(array $data): string

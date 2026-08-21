@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('rango_frecuencia')->nullable();
             $table->string('unidad_usuario')->nullable();
             $table->string('caracteristicas')->nullable();
-            $table->string('numero_inventario')->nullable();
             $table->timestamps();
         });
     }

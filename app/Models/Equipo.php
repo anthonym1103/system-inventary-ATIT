@@ -31,6 +31,7 @@ class Equipo extends Model
         'marca',
         'modelo',
         'serial',
+        'numero_inventario',
         'detalle',
     ];
 

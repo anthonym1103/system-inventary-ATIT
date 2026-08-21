@@ -540,21 +540,32 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                 </div>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label className="cursor-text select-text w-fit">Serial <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
-                                <Input
-                                    value={data.serial}
-                                    onChange={(e) => {
-                                        const valor = e.target.value;
-                                        const formatted = formatInput('serial', valor);
-                                        setData('serial', formatted)
-                                    }}
-                                    placeholder="Ingrese el serial del equipo..."
-                                />
-                                <InputError message={errors.serial} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="cursor-text select-text w-fit">Serial <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                    <Input
+                                        value={data.serial}
+                                        onChange={(e) => {
+                                            const valor = e.target.value;
+                                            const formatted = formatInput('serial', valor);
+                                            setData('serial', formatted)
+                                        }}
+                                        placeholder="Ingrese el serial del equipo..."
+                                    />
+                                    <InputError message={errors.serial} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="cursor-text select-text w-fit">N° Inventario <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span></Label>
+                                    <Input
+                                        placeholder="Ingrese el numero de inventario del equipo..."
+                                    />
+                                    <InputError message={errors.serial} />
+                                </div>
                             </div>
+
                         </>
                     )}
+
 
                     <div className="grid gap-2">
                         <Label className="cursor-text select-text w-fit">Observaciones {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>

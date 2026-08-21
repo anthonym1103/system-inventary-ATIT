@@ -20,7 +20,7 @@ import type { NavItem } from '@/types';
 
 const baseNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Inicio',
         href: dashboard(),
         icon: LayoutDashboard,
     },{
@@ -116,9 +116,9 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                {/*<NavFooter items={footerNavItems} className="mt-auto" />*/}
-
-                <Notifications />
+                {auth.permissions.includes('gestionar_notiMantenimiento') && (
+                    <Notifications />
+                )}
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

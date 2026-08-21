@@ -58,7 +58,7 @@ class CreateNewUser implements CreatesNewUsers
             'name.required' => 'Porfavor, introduce tu nombre.',
             'name.max' => 'El campo del nombre no debe tener más de 255 caracteres.',
             'name.min' => 'El nombre debe tener al menos 2 caracteres.',
-            'name.regex' => 'El nombre solo puede contener letras y espacios.',
+            'name.regex' => 'El nombre solo puede contener letras, espacios y no puede comenzar con un numero.',
             'user_name.required' => 'Debe ingresar un nombre de usuario',
             'user_name.unique' => 'Este nombre de usuario ya esta en uso',
             'user_name.regex' => 'El nombre de usuario debe empezar con letra y solo puede contener letras, números y guión bajo y punto.',

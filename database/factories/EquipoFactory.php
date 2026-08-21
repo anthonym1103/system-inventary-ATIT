@@ -45,6 +45,7 @@ class EquipoFactory extends Factory
             'marca' => fake()->company(),
             'modelo' => fake()->bothify('Modelo-###'),
             'serial' => fake()->unique()->uuid(),
+            'numero_inventario' => fake()->unique()->numerify('INV-####'),
             'detalle' => fake()->optional()->sentence(),
         ];
     }
@@ -100,7 +101,6 @@ class EquipoFactory extends Factory
                 if($equipo->tipo->value === 'radio_portatil' || $equipo->tipo->value === 'radio_base' || $equipo->tipo->value === 'radio_movil'){
                     Transmision::factory()->create([
                         'id' => $equipo->id,
-                        'numero_inventario' => null,
                         ]);
                 }else{
                     Transmision::factory()->create([

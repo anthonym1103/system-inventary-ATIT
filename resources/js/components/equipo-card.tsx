@@ -27,6 +27,7 @@ interface EquipoCardProps {
     permissions: {
         can_edit: boolean;
         can_delete: boolean;
+        can_notiMantenimiento: boolean;
     };
     selectMode: boolean;
     selectedIds: number[];
@@ -117,7 +118,7 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, sedesLabls, piso
             </div>
 
             <CardFooter className="pt-2 flex justify-end gap-2 border-t max-h-[15%]">
-                {!selectMode && (
+                {(permissions.can_notiMantenimiento && !selectMode)&& (
                     <Button
                         className="cursor-pointer" 
                         variant="outline"

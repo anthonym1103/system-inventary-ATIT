@@ -1,5 +1,5 @@
-import { Head, useForm } from '@inertiajs/react';
-import { InfoIcon, Upload } from 'lucide-react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { InfoIcon, Upload, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Pencil, X, Check, Save} from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { disable } from '@/routes/two-factor';
 
 type FirmaInfo = { exists: boolean; updated_at: number | null; nombre: string; area: string };
 
@@ -95,6 +96,18 @@ export default function Firmas({
         });
     };
 
+    const handleDelete = (key: FirmaKey) => {
+        if (!confirm('¿Estás seguro de eliminar esta firma?')) return;
+
+        router.delete(`/settings/firmas/${key}`, {
+            preserveScroll:true,
+            onSuccess: () => {
+                // Recargar solo los datos de firmas para actualizar la UI
+                router.reload({ only: ['firmas'] });
+            },
+        });
+    };
+
     const hasChanges =
         data.firma1 !== null ||
         data.firma2 !== null ||
@@ -139,6 +152,7 @@ export default function Firmas({
                         areaError={errors.area1}
                         editing={editing}
                         onChange={handleFileChange('firma1', setPreview1)}
+                        onDelete={handleDelete}
                         onNombreChange={(e) => setData('nombre1', e.target.value)}
                         onAreaChange={(e) => setData('area1', e.target.value)}
                     />
@@ -155,6 +169,7 @@ export default function Firmas({
                         areaError={errors.area2}
                         editing={editing}
                         onChange={handleFileChange('firma2', setPreview2)}
+                        onDelete={handleDelete}
                         onNombreChange={(e) => setData('nombre2', e.target.value)}
                         onAreaChange={(e) => setData('area2', e.target.value)}
                     />
@@ -255,6 +270,7 @@ function FirmaField({
     areaError,
     editing,
     onChange,
+    onDelete,
     onNombreChange,
     onAreaChange,
 }: {
@@ -270,6 +286,7 @@ function FirmaField({
     areaError?: string;
     editing: boolean;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onDelete: (key: FirmaKey) => void;
     onNombreChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onAreaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }) {
@@ -346,7 +363,7 @@ function FirmaField({
                 <div className="h-px w-full bg-border" />
 
                 {/* Firma: va debajo, simulando cómo se ve en el PDF */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-3">
                     <div className="flex h-16 w-32 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white">
                         {preview ? (
                             <img
@@ -366,14 +383,28 @@ function FirmaField({
                     </div>
 
                     {editing && (
-                        <button
-                            type="button"
-                            onClick={triggerFileSelect}
-                            className="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium transition hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
-                        >
-                            <Upload className="h-3.5 w-3.5 shrink-0" />
-                            Seleccionar imagen
-                        </button>
+                        <>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    type="button"
+                                    onClick={triggerFileSelect}
+                                    className="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium transition truncate hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                                >
+                                    <Upload className="h-3.5 w-3.5 shrink-0" />
+                                    Seleccionar imagen
+                                </button>
+                                <Button
+                                    type="button"
+                                    className={info.exists ? 'cursor-pointer' : 'cursor-none'}
+                                    variant="destructiveNotification"
+                                    onClick={() => onDelete(firmaKey)}
+                                    disabled={!info.exists}
+                                >
+                                    <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                                    Borrar
+                                </Button>
+                            </div>
+                        </>
                     )}
 
                     <input

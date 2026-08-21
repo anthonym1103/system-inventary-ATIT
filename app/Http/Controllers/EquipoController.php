@@ -153,6 +153,7 @@ class EquipoController extends Controller
             'can_create' => $user->can('crear_equipos'),
             'can_edit'   => $user->can('editar_equipos'),
             'can_delete' => $user->can('eliminar_equipos'),
+            'can_notiMantenimiento' => $user->can('gestionar_notiMantenimiento'),
             'can_viewHistorial'=> $user->can('ver_historial'),
             'can_asigRoles' => $user->can('asignar_roles'),
         ];
@@ -1316,8 +1317,8 @@ class EquipoController extends Controller
 
         $html .= '<h2>Detalle de equipos (' . $total . ')</h2>';
         $html .= '<table border="1" cellpadding="3"><thead><tr style="background-color:#194271;color:#fff;">
-            <th width="16.6666%">Tipo</th><th width="16.6666%">Marca</th><th width="16.6666%">Modelo</th>
-            <th width="16.6666%">Serial</th><th width="16.6666%">Condición</th><th width="16.6666%">Ubicación</th>
+            <th width="14.285%">Tipo</th><th width="14.285%">Marca</th><th width="14.285%">Modelo</th><th width="14.285%">N° Inventario</th>
+            <th width="14.285%">Serial</th><th width="14.285%">Condición</th><th width="14.285%">Ubicación</th>
         </tr></thead><tbody>';
 
         foreach ($equipos as $equipo) {
@@ -1329,12 +1330,13 @@ class EquipoController extends Controller
                 <td>' . e($equipo->tipo->label()) . '</td>
                 <td>' . e($equipo->marca ?? '—') . '</td>
                 <td>' . e($equipo->modelo) . '</td>
+                <td>' . e($equipo_numero_inventario ?? '—') . '</td>
                 <td>' . e($equipo->serial) . '</td>
                 <td>' . e($equipo->condicion->label()) . '</td>
                 <td>' . e($ubicacion) . '</td>
             </tr>';
-        }
-
+        } //modificar para que cargue el N° inventario
+        
         $html .= '</tbody></table>';
 
         $pdf->writeHTML($html, true, false, true, false, '');

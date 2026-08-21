@@ -17,6 +17,7 @@ Route::middleware(['auth'])->group(function () {
     //Route::post('settings/sustitucion', [SustitucionController::class, 'generate'])->name('sustitucion.generate');
     Route::get('settings/firmas', [FirmaController::class, 'edit'])->name('firmas.edit');
     Route::post('settings/firmas', [FirmaController::class, 'update'])->name('firmas.update');
+    Route::delete('/settings/firmas/{tipo}', [FirmaController::class, 'destroy'])->name('settings.firmas.destroy');
     Route::get('settings/firmas/{tipo}/preview', [FirmaController::class, 'show'])
         ->whereIn('tipo', ['firma1', 'firma2'])
         ->name('firmas.show');

@@ -51,7 +51,7 @@ export default function Dashboard({ totalesPorArea, condiciones, ultimosEquipos,
 
     return (
         <>
-            <Head title="Dashboard" />
+            <Head title="Inicio" />
             <div className="p-6 space-y-6">
                 <h1 className="text-2xl font-bold">Resumen de Inventario</h1>
                 

@@ -22,7 +22,6 @@ class Infraestructura extends Model
         'disco',
         'direccion_mac',
         'sistema_operativo',
-        'numero_inventario',
         'dominio',
     ];
 

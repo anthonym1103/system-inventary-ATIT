@@ -60,12 +60,9 @@ export default function Welcome({
                         </div>
                         
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
-                            Sistema de Gestion
+                            Sistema de Gestion de inventario
                             <span className="block text-primary mt-2">ATIT ORINOCO</span>
                         </h1>
-                        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                            Administra y da seguimiento a los equipos de la Gerencia ATIT ORINOCO de CORPOELEC.
-                        </p>
                         
                         <div className="flex flex-wrap justify-center gap-4 pt-6">
                             {!auth.user && (

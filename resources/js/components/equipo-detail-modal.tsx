@@ -54,7 +54,7 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
                 { label: 'Disco', value: equipo.infraestructura.disco },
                 { label: 'Sistema Operativo', value: equipo.infraestructura.sistema_operativo },
                 { label: 'MAC', value: equipo.infraestructura.direccion_mac },
-                { label: 'Numero Inventario', value: equipo.infraestructura.numero_inventario },
+                { label: 'N° Inventario', value: equipo.numero_inventario },
                 { label: 'Dominio', value: equipo.infraestructura.dominio },
             );
         }
@@ -66,6 +66,7 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
                 { label: 'Puerto', value: equipo.rede.puerto },
                 { label: 'Puerto Fibra', value: equipo.rede.puerto_fibra },
                 { label: 'Extensión', value: equipo.rede.extension},
+                { label: 'N° Inventario', value: equipo.numero_inventario },
                 { label: 'Ubicacion Puerto', value: equipo.rede.ubicacion_puerto },
             );
             if (equipo.rede.contraseña_bios) {
@@ -77,7 +78,7 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
             detalles.push(
                 { label: 'Potencia', value: equipo.transmision.potencia },
                 { label: 'Frecuencia', value: equipo.transmision.rango_frecuencia },
-                { label: 'Inventario', value: equipo.transmision.numero_inventario },
+                { label: 'N° Inventario', value: equipo.numero_inventario },
                 { label: 'Características', value: equipo.transmision.caracteristicas },
             );
         }

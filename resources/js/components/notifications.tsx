@@ -102,7 +102,7 @@ export function Notifications() {
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton
                             size="lg"
-                            className="group text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent"
+                            className="group text-sidebar-accent-foreground cursor-pointer data-[state=open]:bg-sidebar-accent"
                         >
                             <Bell className="ml-2 size-4" />
                             <span>Notificaciones</span>
@@ -147,7 +147,7 @@ export function Notifications() {
                                         <div className="flex-1 space-y-0.5">
                                             <p className={`text-sm font-medium leading-tight cursor-text w-fit ${m.leido ? 'text-muted-foreground' : ''}`}>
                                                 {m.equipo
-                                                    ? `Equipo: ${m.equipo.modelo}`.trim()
+                                                    ? `${m.equipo.tipo}`.trim()
                                                     : 'Equipo'}
                                             </p>
                                             {m.equipo?.serial && (
@@ -155,6 +155,11 @@ export function Notifications() {
                                                     Serial: {m.equipo.serial}
                                                 </p>
                                             )}
+                                            
+                                            <p className="text-xs text-muted-foreground mt-2 cursor-text w-fit">
+                                                Ubicacion: {`${m.equipo?.ubicacion?.sede} - ${m.equipo?.ubicacion?.piso} (${m.equipo?.ubicacion?.estado}) `}
+                                            </p>
+
                                             <p className="text-xs text-muted-foreground cursor-text w-fit">
                                                 Programado para:{' '}
                                                 {new Date(

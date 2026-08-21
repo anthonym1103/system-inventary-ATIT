@@ -20,6 +20,7 @@ class RoleSeeder extends Seeder
         'editar_equipos',
         'eliminar_equipos',
         'ver_historial',
+        'gestionar_notiMantenimiento',
         'asignar_roles',
     ];
 
@@ -51,6 +52,7 @@ class RoleSeeder extends Seeder
         $adminRole->syncPermissions([
                 'ver_historial',
                 'asignar_roles',
+                'gestionar_notiMantenimiento',
                 'eliminar_equipos',
                 ],);
 
@@ -64,7 +66,8 @@ class RoleSeeder extends Seeder
         // Aquí se define qué permisos tiene cada cargo
         $permisos = match ($cargo) {
             Cargo::SUPERVISOR->value => [
-                'ver_historial'
+                'ver_historial',
+                'gestionar_notiMantenimiento',
                 ],
             Cargo::TECNICO->value => [
                 'crear_equipos', 

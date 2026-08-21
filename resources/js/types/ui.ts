@@ -32,5 +32,12 @@ export type Mantenimiento = {
         marca: string | null;
         modelo: string;
         serial: string;
+        ubicacion?:{
+            id: number;
+            estado: string;
+            piso: string;
+            sede: string;
+        };
     };
+    
 };

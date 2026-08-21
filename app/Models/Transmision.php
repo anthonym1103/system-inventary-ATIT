@@ -21,7 +21,6 @@ class Transmision extends Model
         'rango_frecuencia',
         'unidad_usuario',
         'caracteristicas',
-        'numero_inventario',
     ];
 
     public function equipo(): BelongsTo

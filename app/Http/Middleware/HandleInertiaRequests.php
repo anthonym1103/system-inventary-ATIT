@@ -41,7 +41,9 @@ class HandleInertiaRequests extends Middleware
         $pendientesCount = 0;
 
         if ($user) {
-            $notificaciones = Notificacion::with('equipo:id,tipo,marca,modelo,serial')
+            $notificaciones = Notificacion::with(
+                    'equipo:id,ubicacion_id,tipo,marca,modelo,serial', 
+                    'equipo.ubicacion:id,estado,piso,sede')
                 ->where('usuario_id', $user->id)
                 ->where('fecha_mantenimiento', '<=', now()->toDateString())
                 ->orderBy('fecha_mantenimiento')

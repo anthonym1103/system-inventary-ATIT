@@ -140,6 +140,7 @@ interface Props {
         can_create: boolean;
         can_edit: boolean;
         can_delete: boolean;
+        can_notiMantenimiento: boolean;
         can_viewHistorial: boolean;
     };
 }

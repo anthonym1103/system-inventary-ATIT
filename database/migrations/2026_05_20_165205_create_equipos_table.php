@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('marca')->nullable();
             $table->string('modelo');
             $table->string('serial')->unique();
+            $table->string('numero_inventario')->nullable();
             $table->text('detalle')->nullable();
             $table->timestamps();
 

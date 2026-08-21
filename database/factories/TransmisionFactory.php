@@ -25,7 +25,6 @@ class TransmisionFactory extends Factory
             'rango_frecuencia' => fake()->numerify('###Ghz'),
             'unidad_usuario' => fake()->name(),
             'caracteristicas' => fake()->sentence(),
-            'numero_inventario' => fake()->unique()->numerify('Inv-####')
         ];
     }
 }

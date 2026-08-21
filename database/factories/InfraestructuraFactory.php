@@ -28,7 +28,6 @@ class InfraestructuraFactory extends Factory
             'disco' => fake()->randomElement(['256GB SSD','512GB SSD','256GB HDD']),
             'direccion_mac' => fake()->macAddress(),
             'sistema_operativo' => fake()->randomElement(['Windows 10','Windows 7','Windows 11']),
-            'numero_inventario' => fake()->unique()->numerify('INV-####'),
             'dominio' => fake()->domainName(),
     
         ];

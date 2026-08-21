@@ -83,16 +83,17 @@ export function EquipoMantenimientoDialog({ equipo, isOpen, onClose }: Props) {
                             id="detalle"
                             value={data.detalle}
                             onChange={(e) => setData('detalle', e.target.value)}
+                            autoComplete='off'
                             placeholder="Ej. Revisar ventiladores y limpieza general"
                         />
                         <InputError message={errors.detalle} />
                     </div>
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+                        <Button className="cursor-pointer" type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                             Cancelar
                         </Button>
-                        <Button type="submit" disabled={processing}>
+                        <Button className="cursor-pointer" type="submit" disabled={processing}>
                             {processing && <Spinner />}
                             Programar
                         </Button>

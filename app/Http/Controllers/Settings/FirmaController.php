@@ -89,6 +89,23 @@ class FirmaController extends Controller
         return back();
     }
 
+    public function destroy(string $tipo): SymfonyResponse
+    {
+        abort_unless(Auth::user()->hasRole(Cargo::ADMINISTRADOR->value), 403);
+        abort_unless(array_key_exists($tipo, self::FIRMAS), 404);
+
+        $filename = self::FIRMAS[$tipo];
+        $path = storage_path("app/firmas/{$filename}");
+
+        if (file_exists($path)) {
+            File::delete($path);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Firma(s) actualizada(s) correctamente.']);
+
+        return back();
+    }
+
     public function show(string $tipo): SymfonyResponse
     {
         abort_unless(array_key_exists($tipo, self::FIRMAS), 404);

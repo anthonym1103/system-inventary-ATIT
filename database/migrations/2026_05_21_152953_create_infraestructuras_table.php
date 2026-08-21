@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('disco')->nullable();
             $table->string('direccion_mac')->nullable();
             $table->string('sistema_operativo')->nullable();
-            $table->string('numero_inventario')->nullable();
             $table->string('dominio')->nullable();
             $table->timestamps();
         });

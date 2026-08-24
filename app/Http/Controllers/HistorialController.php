@@ -17,6 +17,8 @@ class HistorialController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        $areaFilter = $request->input('area');
+
         abort_unless($user->can('ver_historial'), 403);
 
         $allowedAreas = $this->getUserAllowedAreas($user);
@@ -50,12 +52,14 @@ class HistorialController extends Controller
         // Ordenar por fecha más reciente
         $historial = $query->latest('fecha_ajuste')->paginate(15)->onEachSide(1)->withQueryString();
 
-        $tiposLabels = [];
-        foreach (TipoEquipo::cases() as $tipo) {
-            if (empty($allowedAreas) || in_array($tipo->modulo()->value, $allowedAreas)) {
-                $tiposLabels[$tipo->value] = $tipo->label();
-            }
-        }
+        $tiposLabels = Equipo::query()
+            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), fn ($q) => $q->whereIn('area', $allowedAreas))
+            ->when($user->hasRole(Cargo::ADMINISTRADOR->value) && $areaFilter, fn ($q) => $q->where('area', $areaFilter))
+            ->distinct()
+            ->pluck('tipo')
+            ->mapWithKeys(fn ($tipo) => [$tipo => $this->tipoLabel($tipo)])
+            ->sort()
+            ->toArray();
 
         $areaLabels = [];
         foreach (Area::cases() as $area) {
@@ -100,4 +104,14 @@ class HistorialController extends Controller
 
         return [];
     }
+
+    private function tipoLabel(?string $tipo): string
+    {
+        if (! $tipo) {
+            return '—';
+        }
+
+        return TipoEquipo::tryFrom($tipo)?->label() ?? $tipo;
+    }
+    
 } 

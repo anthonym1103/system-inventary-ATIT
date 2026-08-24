@@ -4,9 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Equipo;
 use App\Models\HistorialEquipo;
-use App\Models\Infraestructura;
-use App\Models\Rede;
-use App\Models\Transmision;
 use App\Models\Ubicacion;
 use App\Models\UserAsignado;
 use App\Enums\Area;
@@ -22,7 +19,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Settings\FirmaController;
 use setasign\Fpdi\Tcpdf\Fpdi as FpdiTcpdf;
@@ -48,24 +44,16 @@ class EquipoController extends Controller
             $allowedAreas = $this->getUserAllowedAreas($user);
         }
 
-        $relacionEquipo = $this->getRelacionEquipo($allowedAreas);
-
         // 2. Query base con filtro de áreas
         $query = Equipo::query()
-            ->with(array_merge(['ubicacion', 'userAsignado'], $relacionEquipo))
+            ->with(['ubicacion', 'userAsignado'])
             ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), function ($q) use ($allowedAreas) {
                 $q->whereIn('area', $allowedAreas);
             });
 
         // 3. Búsqueda por texto (serial, marca, modelo, tipo)
         if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('serial', 'ILIKE', "%{$search}%")
-                  ->orWhere('marca', 'ILIKE', "%{$search}%")
-                  ->orWhere('modelo', 'ILIKE', "%{$search}%")
-                  ->orWhere('tipo', 'ILIKE', "%{$search}%");
-            });
+            $this->aplicarBusqueda($query, $request->input('search'));
         }
 
         // 4. Filtros adicionales (por tipo, condición, ubicación)
@@ -105,18 +93,18 @@ class EquipoController extends Controller
         $equipos = $query->latest()->paginate(12)->onEachSide(1)->withQueryString();
 
         // 6. Datos para filtros (tipos, condiciones, ubicaciones)
-        $tiposLabels = [];
-        foreach (TipoEquipo::cases() as $tipo) {
-            if(count($allowedAreas) === 1 && in_array($tipo->modulo()->value, $allowedAreas)){
-                $tiposLabels[$tipo->value] = $tipo->label();
-            }else{
-                foreach($allowedAreas as $area){
-                    if($tipo->modulo()->value === $area){
-                        $tiposLabels[$tipo->value] = $tipo->label();
-                    }
-                }
-            }
-        }
+        // "tipo" ya no está atado a un área fija (el usuario puede escribir
+        // uno libre), así que en vez de derivarlo desde TipoEquipo::modulo()
+        // tomamos los tipos que realmente existen dentro del alcance visible
+        // para este usuario/área.
+        $tiposLabels = Equipo::query()
+            ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas), fn ($q) => $q->whereIn('area', $allowedAreas))
+            ->when($user->hasRole(Cargo::ADMINISTRADOR->value) && $areaFilter, fn ($q) => $q->where('area', $areaFilter))
+            ->distinct()
+            ->pluck('tipo')
+            ->mapWithKeys(fn ($tipo) => [$tipo => $this->tipoLabel($tipo)])
+            ->sort()
+            ->toArray();
 
         // Solo mostrar ubicaciones que tengan equipos en las áreas permitidas
         $ubicacionesCargadas = Ubicacion::whereHas('equipos', function ($q) use ($allowedAreas, $user) {
@@ -188,8 +176,8 @@ class EquipoController extends Controller
         $total = $equipos->count();
         $porCondicion = $equipos->groupBy(fn ($e) => $e->condicion->value)->map->count();
         $porArea = $equipos->groupBy(fn ($e) => $e->area->label())->map->count()->sortDesc();
-        $porTipo = $equipos->groupBy(fn ($e) => $e->tipo->label())->map->count()->sortDesc();
-        $porSede = $equipos->groupBy(fn ($e) => $e->ubicacion?->sede?->label() ?? 'Sin sede')->map->count()->sortDesc();
+        $porTipo = $equipos->groupBy(fn ($e) => $this->tipoLabel($e->tipo))->map->count()->sortDesc();
+        $porSede = $equipos->groupBy(fn ($e) => $e->ubicacion?->sede_label ?? 'Sin sede')->map->count()->sortDesc();
 
         $filtrosAplicados = $this->describirFiltros($request);
 
@@ -204,18 +192,7 @@ class EquipoController extends Controller
         $allowedAreas = $this->getUserAllowedAreas($user);
         abort_unless(in_array($equipo->area->value, $allowedAreas), 403);
 
-        $relacion = match ($equipo->tipo->modulo()) {
-            Area::INFRAESTRUCTURA => 'infraestructura',
-            Area::REDES => 'rede',
-            Area::TRANSMISION => 'transmision',
-        };
-
-        $equipo->load(['ubicacion', 'userAsignado', $relacion]);
-        $registroEspecifico = $equipo->{$relacion};
-
-        if ($registroEspecifico && !empty($registroEspecifico->contraseña_bios)) {
-            $registroEspecifico->contraseña_bios = Crypt::decryptString($registroEspecifico->contraseña_bios);
-        }
+        $equipo->load(['ubicacion', 'userAsignado']);
 
         return response()->json($equipo);
     }
@@ -225,33 +202,15 @@ class EquipoController extends Controller
         $user = Auth::user();
         abort_unless($user->can('crear_equipos'), 403);
 
-        $allowedAreas = $this->getUserAllowedAreas($user);
 
-        $tiposLabels = [];
-        $camposPorTipo = [];
-
-        foreach (TipoEquipo::cases() as $tipo) {
-            if (!in_array($tipo->modulo()->value, $allowedAreas)) {
-                continue;
-            }
-
-            $tiposLabels[$tipo->value] = $tipo->label();
-            $camposPorTipo[$tipo->value] = [
-                'area' => $tipo->modulo()->value,
-                'campos' => $tipo->camposEspecificos(),
-            ];
-        }
-
-        $ubicaciones = $this->getEstadosRegion();
-        $condiciones = $this->getCondiciones();
+        $tiposLabels = $this->getTiposLabelsForArea($user);
 
         return Inertia::render('equipos/create', [
             'tiposLabels' => $tiposLabels,
-            'camposPorTipo' => $camposPorTipo,
-            'ubicaciones' => $ubicaciones,
+            'ubicaciones' => $this->getEstadosRegion(),
             'sedes' => $this->getSedes(),
             'pisos' => $this->getPisos(),
-            'condiciones' => $condiciones,
+            'condiciones' => $this->getCondiciones(),
         ]);
     }
 
@@ -259,76 +218,39 @@ class EquipoController extends Controller
     {
         $user = Auth::user();
         abort_unless($user->can('crear_equipos'), 403);
+        abort_if(is_null($user->area), 403, 'Tu usuario no tiene un área asignada; no puedes registrar equipos.');
 
-        $tipo = TipoEquipo::tryFrom((string) $request->input('tipo'));
-
-        if (! $tipo) {
-            return back()->withErrors(['tipo' => 'Debes seleccionar un tipo de equipo válido.'])->withInput();
-        }
-
-        $allowedAreas = $this->getUserAllowedAreas($user);
-
-        if (!in_array($tipo->modulo()->value, $allowedAreas)) {
-            abort(403, 'No tienes permiso para crear equipos de esta área.');
-        }
-
-        $camposEspecificos = $tipo->camposEspecificos();
         $conEncargado = $request->boolean('con_encargado');
 
-        $rules = [
-            'tipo' => ['required', Rule::in(array_column(TipoEquipo::cases(), 'value'))],
+        $validated = $request->validate([
+            // "tipo" es texto libre: puede venir de la lista predefinida o
+            // ser escrito a mano por el usuario, por eso ya no se valida
+            // contra TipoEquipo::cases().
+            'tipo' => ['required', 'string', 'max:150'],
             'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
-            'sedes' => ['required', Rule::in(array_column(Sede::cases(), 'value'))],
-            'pisos' => ['required', Rule::in(array_column(Piso::cases(), 'value'))],
+            'sedes' => ['required', 'string', 'max:150'],
+            'pisos' => ['required', 'string', 'max:150'],
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
             'marca' => ['nullable', 'string', 'max:255'],
             'modelo' => ['required', 'string', 'max:255'],
             'serial' => ['required', 'string', 'max:255', 'unique:equipos,serial'],
+            'numero_inventario' => ['nullable', 'string', 'max:100'],
             'detalle' => ['nullable', 'string'],
+            'caracteristicas' => ['nullable', 'string'],
             'con_encargado' => ['nullable', 'boolean'],
             'asignado_cedula' => $conEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
             'asignado_nombre' => $conEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
             'asignado_apellido' => $conEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
             'asignado_telefono'  => ['nullable', 'string', 'max:20'],
             'asignado_gerencia'  => ['nullable', 'string', 'max:255'],
-        ];
-
-        // Reglas por campo específico de la tabla del área correspondiente.
-        $reglasCampos = [
-            'anio' => ['nullable', 'digits:4'],
-            'ram' => ['required', 'string', 'max:50'],
-            'disco' => ['required', 'string', 'max:100'],
-            'direccion_mac' => ['nullable', 'string', 'regex:/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/'],
-            'sistema_operativo' => ['required', 'string', 'max:100'],
-            'numero_inventario' => ['required', 'string', 'max:100'],
-            'dominio' => ['nullable', 'string', 'max:255'],
-            'puerto' => ['required', 'string', 'max:50'],
-            'puerto_fibra' => ['nullable', 'string', 'max:50'],
-            'contraseña_bios' => ['required', 'string', 'min:4'],
-            'direccion_ip' => ['nullable', 'ip'],
-            'extension' => ['nullable', 'string', 'max:50'],
-            'ubicacion_puerto' => ['nullable', 'string', 'max:100'],
-            'potencia' => ['required', 'string', 'max:50'],
-            'rango_frecuencia' => ['required', 'string', 'max:100'],
-            'unidad_usuario' => ['required', 'string', 'max:255'],
-            'caracteristicas' => ['nullable', 'string'],
-        ];
-
-        foreach ($camposEspecificos as $campo) {
-            $rules[$campo] = $reglasCampos[$campo] ?? ['nullable', 'string', 'max:255'];
-        }
-
-        $validated = $request->validate($rules);
+        ]);
 
         $sedeSeleccionada = Sede::tryFrom($validated['sedes']);
-        if (! $sedeSeleccionada || $sedeSeleccionada->region()->value !== $validated['estados']) {
+        if ($sedeSeleccionada && $sedeSeleccionada->region()->value !== $validated['estados']) {
             return back()->withErrors(['sedes' => 'La sede seleccionada no pertenece al estado indicado.'])->withInput();
         }
 
-        // FIX #2: se agregó $requiereEncargado al "use" del closure, ya que se
-        // utiliza dentro para decidir si se crea el UserAsignado. Antes no
-        // estaba importado y provocaba un error de variable indefinida.
-        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $conEncargado) {
+        DB::transaction(function () use ($validated, $user, $conEncargado) {
             $asignadoId = null;
 
             if ($conEncargado && ! empty($validated['asignado_cedula'])) {
@@ -350,42 +272,27 @@ class EquipoController extends Controller
                     'piso' => $validated['pisos'],
                 ]);
 
+            // El área ya no se deriva del tipo: es siempre el área fija del
+            // técnico que está registrando el equipo.
             $equipo = Equipo::create([
                 'ubicacion_id' => $ubicacion->id,
                 'asignado_id' => $asignadoId,
-                'area' => $tipo->modulo()->value,
-                'tipo' => $tipo->value,
+                'area' => $user->area->value,
+                'tipo' => trim($validated['tipo']),
                 'condicion' => $validated['condicion'],
                 'marca' => $validated['marca'] ?: null,
                 'modelo' => $validated['modelo'],
                 'serial' => $validated['serial'],
+                'numero_inventario' => $validated['numero_inventario'] ?: null,
                 'detalle' => $validated['detalle'] ?: null,
+                'caracteristicas' => $validated['caracteristicas'] ?: null,
             ]);
 
-            // Solo nos quedamos con los campos que aplican a este tipo.
-            $datosEspecificos = collect($validated)->only($camposEspecificos)->toArray();
-
-            if (array_key_exists('contraseña_bios', $datosEspecificos)) {
-                $datosEspecificos['contraseña_bios'] = Crypt::encryptString($datosEspecificos['contraseña_bios']);
-            }
-
-            $modeloEspecifico = match ($tipo->modulo()) {
-                Area::INFRAESTRUCTURA => Infraestructura::class,
-                Area::REDES => Rede::class,
-                Area::TRANSMISION => Transmision::class,
-            };
-
-            // forceFill + asignación manual del id porque estas tablas
-            // usan el id de "equipos" como PK compartida y no es fillable.
-            $registro = new $modeloEspecifico();
-            $registro->forceFill($datosEspecificos);
-            $registro->id = $equipo->id;
-            $registro->save();
-
             $detalleCreacion =[
+                "Tipo: {$equipo->tipo}",
                 "Marca: " . ($validated['marca'] ?: '—'),
                 "Modelo: {$validated['modelo']}",
-                "Ubicación: {$ubicacion->sede->label()} - {$ubicacion->piso->label()}",
+                "Ubicación: {$ubicacion->sede_label} - {$ubicacion->piso_label}",
             ];
             
             if ($asignadoId) {
@@ -396,7 +303,7 @@ class EquipoController extends Controller
                 'usuario_id' => auth()->id(),
                 'equipo_id'  => $equipo->id,
                 'equipo_area' => $equipo->area->value,
-                'equipo_tipo' => $equipo->tipo->value,
+                'equipo_tipo' => $equipo->tipo,
                 'equipo_serial' => $equipo->serial,
                 'detalle'    => 'Equipo registrado: ' . implode('; ', $detalleCreacion),
                 'fecha_ajuste' => now(),
@@ -411,7 +318,7 @@ class EquipoController extends Controller
     public function edit(Equipo $equipo)
     {
         $this->authorizeEdit($equipo);
-        $data = $this->buildEditData($equipo);
+        $data = $this->buildEditData($equipo, Auth::user());
         $data['condiciones'] = $this->getCondiciones();
         $data['sedes'] = $this->getSedes();
         $data['pisos'] = $this->getPisos();
@@ -422,7 +329,7 @@ class EquipoController extends Controller
     public function editData(Equipo $equipo)
     {
         $this->authorizeEdit($equipo);
-        $data = $this->buildEditData($equipo);
+        $data = $this->buildEditData($equipo, Auth::user());
         $data['condiciones'] = $this->getCondiciones();
         $data['sedes'] = $this->getSedes();
         $data['pisos'] = $this->getPisos();
@@ -439,81 +346,40 @@ class EquipoController extends Controller
         abort_unless(in_array($equipo->area->value, $allowedAreas), 403);
     }
 
-    private function buildEditData(Equipo $equipo): array
+    private function buildEditData(Equipo $equipo, $user): array
     {
-        $tipoActual = $equipo->tipo;
-
         $equipo->load(['ubicacion', 'userAsignado']);
 
-        // Se usa la ubicación ya cargada para exponer "estados" y "locacions",
+        // Se usa la ubicación ya cargada para exponer "estados" y "sedes",
         // los mismos nombres de campo que usa el formulario tanto en crear
-        // como en editar. Antes se devolvía "ubicacion_id", que el formulario
-        // nunca leía ni enviaba, dejando el Select de Estado/Región vacío.
+        // como en editar.
         $ubicacionActual = $equipo->ubicacion;
 
-        $relacion = match ($tipoActual->modulo()) {
-            Area::INFRAESTRUCTURA => 'infraestructura',
-            Area::REDES => 'rede',
-            Area::TRANSMISION => 'transmision',
-        };
-
-        $equipo->load($relacion);
-        $registroEspecifico = $equipo->{$relacion};
-
-        $tiposLabels = [];
-        $camposPorTipo = [];
-
-        foreach (TipoEquipo::cases() as $tipo) {
-            if ($tipo->modulo() !== $tipoActual->modulo()) {
-                continue;
-            }
-
-            $tiposLabels[$tipo->value] = $tipo->label();
-            $camposPorTipo[$tipo->value] = [
-                'area' => $tipo->modulo()->value,
-                'campos' => $tipo->camposEspecificos(),
-            ];
-        }
-
-        $datosEspecificos = [];
-        if ($registroEspecifico) {
-            $datosEspecificos = collect($registroEspecifico->toArray())
-                ->except(['id', 'created_at', 'updated_at', 'equipo'])
-                ->map(function ($valor, $key) use ($registroEspecifico) {
-                    if ($key === 'contraseña_bios' && $valor) {
-                        return Crypt::decryptString($valor);
-                    }
-                    return $valor ?? '';
-                })
-                ->toArray();
-        }
-
-        $ubicaciones = $this->getEstadosRegion();
+        $tiposLabels = $this->getTiposLabelsForArea($user);
 
         return [
             'equipo' => [
                 'id' => $equipo->id,
-                'tipo' => $tipoActual->value,
+                'tipo' => $equipo->tipo,
                 'estados' => $ubicacionActual?->estado ?? '',
-                'sedes' => $ubicacionActual?->sede?->value ?? '',
-                'pisos' => $ubicacionActual?->piso?->value ?? '',
+                'sedes' => $ubicacionActual?->sede ?? '',
+                'pisos' => $ubicacionActual?->piso ?? '',
                 'condicion' => $equipo->condicion->value ?? 'operativo',
                 'marca' => $equipo->marca ?? '',
                 'modelo' => $equipo->modelo,
                 'serial' => $equipo->serial,
+                'numero_inventario' => $equipo->numero_inventario ?? '',
                 'detalle' => $equipo->detalle ?? '',
-                'tiene_contrasena_bios' => (bool) ($registroEspecifico?->contraseña_bios ?? null),
+                'caracteristicas' => $equipo->caracteristicas ?? '',
                 'con_encargado'        => (bool) $equipo->userAsignado,
                 'asignado_cedula'     => $equipo->userAsignado?->cedula ?? '',
                 'asignado_nombre'     => $equipo->userAsignado?->nombre ?? '',
                 'asignado_apellido'   => $equipo->userAsignado?->apellido ?? '',
                 'asignado_telefono'   => $equipo->userAsignado?->telefono ?? '',
                 'asignado_gerencia'   => $equipo->userAsignado?->gerencia ?? '',
-                ...$datosEspecificos,
             ],
             'tiposLabels' => $tiposLabels,
-            'camposPorTipo' => $camposPorTipo,
-            'ubicaciones' => $ubicaciones,
+            'ubicaciones' => $this->getEstadosRegion(),
         ];
     }
 
@@ -525,75 +391,47 @@ class EquipoController extends Controller
         $allowedAreas = $this->getUserAllowedAreas($user);
         abort_unless(in_array($equipo->area->value, $allowedAreas), 403);
 
-        $tipo = $equipo->tipo;
-
-        if (! $tipo || $tipo->modulo() !== $equipo->area) {
-            return back()->withErrors(['tipo' => 'Tipo de equipo inválido para esta área.'])->withInput();
-        }
-   
-
-        $camposEspecificos = $tipo->camposEspecificos();
         $conEncargado = $request->boolean('con_encargado');
 
-        $rules = [
+        $validated = $request->validate([
+            // Igual que en store(): texto libre, ya no restringido al enum.
+            'tipo' => ['required', 'string', 'max:150'],
             'estados' => ['required', Rule::in(array_column(EstadoRegion::cases(), 'value'))],
-            'sedes' => ['required', Rule::in(array_column(Sede::cases(), 'value'))],
-            'pisos' => ['required', Rule::in(array_column(Piso::cases(), 'value'))],
+            'sedes' => ['required', 'string', 'max:150'],
+            'pisos' => ['required', 'string', 'max:150'],
             'condicion' => ['required', Rule::in(array_column(CondicionEquipo::cases(), 'value'))],
+            'numero_inventario' => ['nullable', 'string', 'max:100'],
             'detalle' => ['nullable', 'string'],
+            'caracteristicas' => ['nullable', 'string'],
             'con_encargado'     => ['nullable', 'boolean'],
             'asignado_cedula'   => $conEncargado ? ['required', 'string', 'max:20']  : ['nullable'],
             'asignado_nombre'   => $conEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
             'asignado_apellido' => $conEncargado ? ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'] : ['nullable'],
             'asignado_telefono' => ['nullable', 'string', 'max:20'],
             'asignado_gerencia' => ['nullable', 'string', 'max:255'],
-        ];
-
-        $reglasCampos = [
-            'anio' => ['nullable', 'digits:4'],
-            'ram' => ['required', 'string', 'max:50'],
-            'disco' => ['required', 'string', 'max:100'],
-            'direccion_mac' => ['nullable', 'string', 'regex:/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/'],
-            'sistema_operativo' => ['required', 'string', 'max:100'],
-            'numero_inventario' => ['required', 'string', 'max:100'],
-            'dominio' => ['nullable', 'string', 'max:255'],
-            'puerto' => ['required', 'string', 'max:50'],
-            'puerto_fibra' => ['nullable', 'string','max:50'],
-            'contraseña_bios' => ['nullable', 'string', 'min:4'],
-            'direccion_ip' => ['nullable', 'ip'],
-            'extension' => ['nullable', 'string', 'max:50'],
-            'ubicacion_puerto' => ['nullable', 'string', 'max:100'],
-            'potencia' => ['required', 'string', 'max:50'],
-            'rango_frecuencia' => ['required', 'string', 'max:100'],
-            'unidad_usuario' => ['required', 'string', 'max:255'],
-            'caracteristicas' => ['nullable', 'string'],
-        ];
-
-        foreach ($camposEspecificos as $campo) {
-            $rules[$campo] = $reglasCampos[$campo] ?? ['nullable', 'string', 'max:255'];
-        }
-
-        $validated = $request->validate($rules);
+        ]);
 
         $sedeSeleccionada = Sede::tryFrom($validated['sedes']);
-        if (! $sedeSeleccionada || $sedeSeleccionada->region()->value !== $validated['estados']) {
+        if ($sedeSeleccionada && $sedeSeleccionada->region()->value !== $validated['estados']) {
             return back()->withErrors(['sedes' => 'La sede seleccionada no pertenece al estado indicado.'])->withInput();
         }
 
-        DB::transaction(function () use ($validated, $tipo, $camposEspecificos, $equipo, $conEncargado) {
+        DB::transaction(function () use ($validated, $equipo, $conEncargado) {
             $changes = [];
 
-            $generalLabels = [
-                'detalle' => 'Observaciones',
+            $camposGenerales = [
+                'tipo' => 'Tipo',
                 'condicion' => 'Condición',
+                'numero_inventario' => 'N° de Inventario',
+                'detalle' => 'Observaciones',
+                'caracteristicas' => 'Características técnicas',
             ];
 
-            $fieldsGenerales = array_merge(array_keys($generalLabels), ['ubicacion_id', 'asignado_id']);
-
-            $before = [];
-            foreach ($fieldsGenerales as $f) {
-                $before[$f] = $equipo->getAttributes()[$f] ?? null;
-            }
+            $before = collect(array_keys($camposGenerales))
+                ->mapWithKeys(fn ($f) => [$f => $equipo->getAttributes()[$f] ?? null])
+                ->toArray();
+            $before['ubicacion_id'] = $equipo->ubicacion_id;
+            $before['asignado_id'] = $equipo->asignado_id;
 
             $asignadoId = null;
             if ($conEncargado && ! empty($validated['asignado_cedula'])) {
@@ -618,16 +456,20 @@ class EquipoController extends Controller
             $equipo->update([
                 'ubicacion_id' => $ubicacion->id,
                 'asignado_id' => $asignadoId,
+                'tipo' => trim($validated['tipo']),
                 'condicion' => $validated['condicion'],
+                'numero_inventario' => $validated['numero_inventario'] ?: null,
                 'detalle' => $validated['detalle'] ?: null,
+                'caracteristicas' => $validated['caracteristicas'] ?: null,
             ]);
 
-            $after = [];
-            foreach ($fieldsGenerales as $f) {
-                $after[$f] = $equipo->getAttributes()[$f] ?? null;
-            }
+            $after = collect(array_keys($camposGenerales))
+                ->mapWithKeys(fn ($f) => [$f => $equipo->getAttributes()[$f] ?? null])
+                ->toArray();
+            $after['ubicacion_id'] = $equipo->ubicacion_id;
+            $after['asignado_id'] = $equipo->asignado_id;
 
-            foreach ($generalLabels as $field => $label) {
+            foreach ($camposGenerales as $field => $label) {
                 $old = $before[$field];
                 $new = $after[$field];
 
@@ -640,7 +482,7 @@ class EquipoController extends Controller
                     $new = CondicionEquipo::tryFrom($new)?->label() ?? $new;
                 }
 
-                $changes[] = "{$label} ha sido cambiado de (" . ($old ?? ' ') . ") → (" . ($new ?? '—') . ")";
+                $changes[] = "{$label} ha sido cambiado de (" . ($old ?: '—') . ") → (" . ($new ?: '—') . ")";
             }
 
             if ($before['ubicacion_id'] != $after['ubicacion_id']) {
@@ -650,94 +492,12 @@ class EquipoController extends Controller
                 $changes[] = 'Encargado actualizado';
             }
 
-            // --- Campos específicos del área (sin cambios respecto a antes) ---
-            $modeloEspecifico = match ($tipo->modulo()) {
-                Area::INFRAESTRUCTURA => Infraestructura::class,
-                Area::REDES => Rede::class,
-                Area::TRANSMISION => Transmision::class,
-            };
-
-            $camposPosibles = match ($tipo->modulo()) {
-                Area::INFRAESTRUCTURA => ['anio', 'ram', 'disco', 'direccion_mac', 'sistema_operativo', 'numero_inventario', 'dominio'],
-                Area::REDES => ['puerto', 'puerto_fibra', 'contraseña_bios', 'direccion_ip', 'direccion_mac', 'extension', 'ubicacion_puerto'],
-                Area::TRANSMISION => ['potencia', 'rango_frecuencia', 'unidad_usuario', 'caracteristicas', 'numero_inventario'],
-            };
-
-            $camposLabels = [
-                'anio' => 'Año', 'ram' => 'RAM', 'disco' => 'Disco',
-                'direccion_mac' => 'Dirección MAC', 'sistema_operativo' => 'Sistema Operativo',
-                'numero_inventario' => 'Número de Inventario', 'dominio' => 'Dominio',
-                'puerto' => 'Puerto', 'puerto_fibra' => 'Puerto Fibra',
-                'direccion_ip' => 'Dirección IP', 'extension' => 'Extensión',
-                'ubicacion_puerto' => 'Ubicación del Puerto', 'potencia' => 'Potencia',
-                'rango_frecuencia' => 'Rango de Frecuencia', 'unidad_usuario' => 'Unidad / Usuario',
-                'caracteristicas' => 'Características',
-            ];
-
-            $datosEspecificos = array_fill_keys($camposPosibles, null);
-            foreach ($camposEspecificos as $campo) {
-                $datosEspecificos[$campo] = $validated[$campo] ?? null;
-            }
-
-            $registro = $modeloEspecifico::find($equipo->id);
-            $oldData = $registro?->getAttributes() ?? [];
-
-            $oldPasswordDecrypted = null;
-            if (!empty($oldData['contraseña_bios'] ?? null)) {
-                try {
-                $oldPasswordDecrypted = Crypt::decryptString($oldData['contraseña_bios']);
-                } catch (\Exception $e) {
-                    $oldPasswordDecrypted = null;
-                }
-            }
-
-            $passwordCambiada = false;
-            if (array_key_exists('contraseña_bios', $datosEspecificos)) {
-                $submitted = $datosEspecificos['contraseña_bios'];
-
-                if (!empty($submitted) && $submitted !== $oldPasswordDecrypted) {
-                    $passwordCambiada = true;
-                    $datosEspecificos['contraseña_bios'] = Crypt::encryptString($submitted);
-                } else {
-                    $datosEspecificos['contraseña_bios'] = $oldData['contraseña_bios'] ?? null;
-                }
-            }
-
-            if ($registro) {
-                $registro->forceFill($datosEspecificos)->save();
-            } else {
-                $registro = new $modeloEspecifico();
-                $registro->forceFill($datosEspecificos);
-                $registro->id = $equipo->id;
-                $registro->save();
-            }
-
-            $newData = $registro->getAttributes();
-
-            foreach ($camposPosibles as $field) {
-                if ($field === 'contraseña_bios') {
-                    continue;
-                }
-
-                $old = $oldData[$field] ?? null;
-                $new = $newData[$field] ?? null;
-
-                if ($old != $new) {
-                    $label = $camposLabels[$field] ?? $field;
-                    $changes[] = "{$label}: '" . ($old ?? '—') . "' → '" . ($new ?? '—') . "'";
-                }
-            }
-
-            if ($passwordCambiada) {
-                $changes[] = 'Contraseña BIOS: modificada';
-            }
-
             if (!empty($changes)) {
                 HistorialEquipo::create([
                     'usuario_id' => auth()->id(),
                     'equipo_id'  => $equipo->id,
                     'equipo_area' => $equipo->area->value,
-                    'equipo_tipo' => $tipo->value,
+                    'equipo_tipo' => $equipo->tipo,
                     'equipo_serial' => $equipo->serial,
                     'detalle'    => 'Equipo actualizado: ' . implode('; ', $changes),
                     'fecha_ajuste' => now(),
@@ -753,6 +513,42 @@ class EquipoController extends Controller
     public function destroy(Equipo $equipo)
     {
 
+    }
+
+    private function aplicarBusqueda($query, string $search): void
+    {
+        $matchLabel = fn (array $cases) => collect($cases)
+            ->filter(fn ($case) => str_contains(mb_strtolower($case->label()), mb_strtolower($search)))
+            ->map(fn ($case) => $case->value)
+            ->toArray();
+
+        $tiposPorLabel = $matchLabel(TipoEquipo::cases());
+        $sedesPorLabel = $matchLabel(Sede::cases());
+        $pisosPorLabel = $matchLabel(Piso::cases());
+        $estadosPorLabel = $matchLabel(EstadoRegion::cases());
+
+        $query->where(function ($q) use ($search, $tiposPorLabel, $sedesPorLabel, $pisosPorLabel, $estadosPorLabel) {
+            $q->where('serial', 'ILIKE', "%{$search}%")
+            ->orWhere('marca', 'ILIKE', "%{$search}%")
+            ->orWhere('modelo', 'ILIKE', "%{$search}%")
+            ->orWhere('tipo', 'ILIKE', "%{$search}%")
+            ->orWhere('numero_inventario', 'ILIKE', "%{$search}%")
+            ->orWhere('caracteristicas', 'ILIKE', "%{$search}%")
+            ->when(!empty($tiposPorLabel), fn ($qq) => $qq->orWhereIn('tipo', $tiposPorLabel))
+            ->orWhereHas('ubicacion', function ($uq) use ($search, $sedesPorLabel, $pisosPorLabel, $estadosPorLabel) {
+                $uq->where('sede', 'ILIKE', "%{$search}%")
+                    ->orWhere('piso', 'ILIKE', "%{$search}%")
+                    ->orWhere('estado', 'ILIKE', "%{$search}%")
+                    ->when(!empty($sedesPorLabel), fn ($qq) => $qq->orWhereIn('sede', $sedesPorLabel))
+                    ->when(!empty($pisosPorLabel), fn ($qq) => $qq->orWhereIn('piso', $pisosPorLabel))
+                    ->when(!empty($estadosPorLabel), fn ($qq) => $qq->orWhereIn('estado', $estadosPorLabel));
+            })
+            ->orWhereHas('userAsignado', function ($uq) use ($search) {
+                $uq->where('nombre', 'ILIKE', "%{$search}%")
+                    ->orWhere('apellido', 'ILIKE', "%{$search}%")
+                    ->orWhere('cedula', 'ILIKE', "%{$search}%");
+            });
+        });
     }
 
     public function desincorporar(Request $request)
@@ -794,7 +590,7 @@ class EquipoController extends Controller
 
         $equipos = collect();
         if (!empty($equipoIds)) {
-            $equipos = Equipo::with(['ubicacion', 'userAsignado', 'infraestructura', 'transmision'])
+            $equipos = Equipo::with(['ubicacion', 'userAsignado'])
                 ->whereIn('id', $equipoIds)
                 ->when(!$user->hasRole(Cargo::ADMINISTRADOR->value), function ($q) use ($allowedAreas) {
                     $q->whereIn('area', $allowedAreas);
@@ -819,12 +615,14 @@ class EquipoController extends Controller
                     'usuario_id' => auth()->id(),
                     'equipo_id' => $equipo->id,
                     'equipo_area' => $equipo->area->value,
-                    'equipo_tipo' => $equipo->tipo->value,
+                    'equipo_tipo' => $equipo->tipo,
                     'equipo_serial' => $equipo->serial,
                     'detalle' => 'Equipo desincorporado: '
                         . '; Motivo: ' . $validated['motivo']
                         . '; Modelo: ' . $equipo->modelo
-                        . '; Ubicación: ' . ($equipo->ubicacion?->locacion ?? '—')
+                        . '; Ubicación: ' . ($equipo->ubicacion
+                            ? ($equipo->ubicacion->sede_label . ' - ' . $equipo->ubicacion->piso_label)
+                            : '—')
                         . ($equipo->userAsignado
                             ? '; Encargado: ' . $equipo->userAsignado->nombre . ' ' . $equipo->userAsignado->apellido
                             : ''),
@@ -918,16 +716,16 @@ class EquipoController extends Controller
         $pdf->AddPage('P', [$size1['width'], $size1['height']]);
         $pdf->useTemplate($tpl1, 0, 0, $size1['width'], $size1['height']);
 
-        $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(102.02));
+        $pdf->SetXY($ptToMm(78.62 + 34.03) + 15, $ptToMm(106.98));
         $pdf->Cell(0, 4.5, $para);
 
-        $pdf->SetXY($ptToMm(78.62 + 18.91) + 20, $ptToMm(130.42));
+        $pdf->SetXY($ptToMm(78.62 + 18.91) + 20, $ptToMm(140.42));
         $pdf->Cell(0, 4.5, $de);
 
-        $pdf->SetXY($ptToMm(78.62 + 52.61) + 8, $ptToMm(156.82));
+        $pdf->SetXY($ptToMm(78.62 + 52.61) + 8, $ptToMm(167.58));
         $pdf->Cell(0, 4.5, $numero);
 
-        $pdf->SetXY($ptToMm(78.62 + 41.47) + 12, $ptToMm(177.02));
+        $pdf->SetXY($ptToMm(78.62 + 41.47) + 12, $ptToMm(191.10));
         $pdf->Cell(0, 4.5, now()->translatedFormat('j \d\e F \d\e\l Y'));
 
         // --- Helpers reutilizables para todas las tablas del documento ---
@@ -975,25 +773,27 @@ class EquipoController extends Controller
 
         // ---------- TABLA PRINCIPAL: equipos del sistema + equipos no registrados ----------
         $tablaX = $ptToMm(79.62);
-        $yInicioPagina1 = $ptToMm(274.83 + 12.00) + 6;
+        $yInicioPagina1 = $ptToMm(289.30 + 12.00) + 6;
         $limiteY = $size1['height'] - 60;
         $alturaFilaVacia = 6;
 
         $columnasPrincipal = [
-            ['header' => 'Nº',      'width' => 8,  'align' => 'C'],
-            ['header' => 'Tipo',   'width' => 32, 'align' => 'L'],
-            ['header' => 'Marca',  'width' => 30, 'align' => 'L'],
-            ['header' => 'Modelo', 'width' => 30, 'align' => 'L'],
-            ['header' => 'Serial', 'width' => 62, 'align' => 'L'],
+            ['header' => 'Nº',        'width' => 8,  'align' => 'C'],
+            ['header' => 'Tipo',      'width' => 25, 'align' => 'L'],
+            ['header' => 'Marca',     'width' => 25, 'align' => 'L'],
+            ['header' => 'Modelo',    'width' => 25, 'align' => 'L'],
+            ['header' => 'Inventario','width' => 25, 'align' => 'L'],
+            ['header' => 'Serial',    'width' => 50, 'align' => 'L'],
         ];
 
         $filasPrincipales = [];
 
         foreach ($equipos as $equipo) {
             $filasPrincipales[] = [
-                'tipo' => $equipo->tipo->label(),
+                'tipo' => $this->tipoLabel($equipo->tipo),
                 'marca' => $equipo->marca ?? '—',
                 'modelo' => $equipo->modelo,
+                'inventario' => $equipo->numero_inventario ?? '—',
                 'serial' => $equipo->serial,
             ];
         }
@@ -1003,6 +803,7 @@ class EquipoController extends Controller
                 'tipo' => $extra['tipo'] . ' (no registrado)',
                 'marca' => $extra['marca'] ?: '—',
                 'modelo' => $extra['modelo'],
+                'inventario' => '—',
                 'serial' => $extra['serial'] ?: '—',
             ];
         }
@@ -1017,7 +818,7 @@ class EquipoController extends Controller
         $size2 = null;
 
         foreach ($filasPrincipales as $fila) {
-            $valores = [(string) $numero, $fila['tipo'], $fila['marca'], $fila['modelo'], $fila['serial']];
+            $valores = [(string) $numero, $fila['tipo'], $fila['marca'], $fila['modelo'], $fila['inventario'], $fila['serial']];
 
             $altura = $calcularAlturaFila($valores, $columnasPrincipal);
             $limiteActual = $enPagina2 ? ($size2['height'] - 60) : $limiteY;
@@ -1240,13 +1041,7 @@ class EquipoController extends Controller
             });
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('serial', 'ILIKE', "%{$search}%")
-                ->orWhere('marca', 'ILIKE', "%{$search}%")
-                ->orWhere('modelo', 'ILIKE', "%{$search}%")
-                ->orWhere('tipo', 'ILIKE', "%{$search}%");
-            });
+            $this->aplicarBusqueda($query, $request->input('search'));
         }
 
         if ($request->filled('tipo') && $request->input('tipo') !== 'all') {
@@ -1323,14 +1118,14 @@ class EquipoController extends Controller
 
         foreach ($equipos as $equipo) {
             $ubicacion = $equipo->ubicacion
-                ? ($equipo->ubicacion->sede?->label() ?? '—') . ' / ' . ($equipo->ubicacion->piso?->label() ?? '—')
+                ? ($equipo->ubicacion->sede_label ?? '—') . ' / ' . ($equipo->ubicacion->piso_label ?? '—')
                 : '—';
 
             $html .= '<tr>
-                <td>' . e($equipo->tipo->label()) . '</td>
+                <td>' . e($this->tipoLabel($equipo->tipo)) . '</td>
                 <td>' . e($equipo->marca ?? '—') . '</td>
                 <td>' . e($equipo->modelo) . '</td>
-                <td>' . e($equipo_numero_inventario ?? '—') . '</td>
+                <td>' . e($equipo->numero_inventario ?? '—') . '</td>
                 <td>' . e($equipo->serial) . '</td>
                 <td>' . e($equipo->condicion->label()) . '</td>
                 <td>' . e($ubicacion) . '</td>
@@ -1370,7 +1165,7 @@ class EquipoController extends Controller
             $descripciones[] = 'Búsqueda: "' . e($request->input('search')) . '"';
         }
         if ($request->filled('tipo') && $request->input('tipo') !== 'all') {
-            $descripciones[] = 'Tipo: ' . (TipoEquipo::tryFrom($request->input('tipo'))?->label() ?? $request->input('tipo'));
+            $descripciones[] = 'Tipo: ' . $this->tipoLabel($request->input('tipo'));
         }
         if ($request->filled('condicion') && $request->input('condicion') !== 'all') {
             $descripciones[] = 'Condición: ' . (CondicionEquipo::tryFrom($request->input('condicion'))?->label() ?? $request->input('condicion'));
@@ -1428,6 +1223,20 @@ class EquipoController extends Controller
         ])->values();
     }
 
+    private function getTiposLabelsForArea($user): array
+    {
+        if ($user->hasRole(Cargo::ADMINISTRADOR->value)) {
+            return collect(TipoEquipo::cases())
+                ->mapWithKeys(fn ($tipo) => [$tipo->value => $tipo->label()])
+                ->toArray();
+        }
+
+        return collect(TipoEquipo::cases())
+            ->filter(fn ($tipo) => $tipo->area() === $user->area)
+            ->mapWithKeys(fn ($tipo) => [$tipo->value => $tipo->label()])
+            ->toArray();
+    }
+
     private function getUserAllowedAreas($user): array
     {
         if ($user->hasRole(Cargo::ADMINISTRADOR->value)) {
@@ -1441,27 +1250,18 @@ class EquipoController extends Controller
         return [];
     }
 
-    private function getRelacionEquipo($allowedAreas): array
+    /**
+     * Etiqueta legible para un "tipo" de equipo. Como "tipo" ahora es texto
+     * libre (puede no existir en el catálogo TipoEquipo), se usa tryFrom()
+     * y se cae al valor tal cual cuando es un tipo escrito a mano.
+     */
+    private function tipoLabel(?string $tipo): string
     {
-        $listAreas = collect(Area::cases())->map(fn($area) => $area->value)->toArray();
-        $relacion = [];
-
-        foreach ($listAreas as $area) {
-            if (in_array($area, $allowedAreas)) {
-                switch ($area) {
-                    case 'infraestructura':
-                        $relacion[] = 'infraestructura';
-                        break;
-                    case 'redes':
-                        $relacion[] = 'rede';
-                        break;
-                    case 'transmision_datos':
-                        $relacion[] = 'transmision';
-                        break;
-                }
-            }
+        if (! $tipo) {
+            return '—';
         }
-        return $relacion;
+
+        return TipoEquipo::tryFrom($tipo)?->label() ?? $tipo;
     }
 
 }

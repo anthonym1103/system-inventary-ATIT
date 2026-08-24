@@ -5,7 +5,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
-import { MapPin, User, Calendar, Phone, IdCard, Building2 } from 'lucide-react';
+import { MapPin, User, Calendar, Phone, IdCard, Building2, FileDigit } from 'lucide-react';
 
 interface EquipoDetailModalProps {
     equipoId: number | null;
@@ -43,58 +43,13 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
             .finally(() => setLoading(false));
     }, [isOpen, equipoId]);
 
-    const getDetallesEspecificos = () => {
-        if (!equipo) return [];
-        const detalles: Array<{ label: string; value: string | null }> = [];
-
-        if (equipo.infraestructura) {
-            detalles.push(
-                { label: 'Año', value: equipo.infraestructura.anio },
-                { label: 'RAM', value: equipo.infraestructura.ram },
-                { label: 'Disco', value: equipo.infraestructura.disco },
-                { label: 'Sistema Operativo', value: equipo.infraestructura.sistema_operativo },
-                { label: 'MAC', value: equipo.infraestructura.direccion_mac },
-                { label: 'N° Inventario', value: equipo.numero_inventario },
-                { label: 'Dominio', value: equipo.infraestructura.dominio },
-            );
-        }
-
-        if (equipo.rede) {
-            detalles.push(
-                { label: 'IP', value: equipo.rede.direccion_ip },
-                { label: 'MAC', value: equipo.rede.direccion_mac },
-                { label: 'Puerto', value: equipo.rede.puerto },
-                { label: 'Puerto Fibra', value: equipo.rede.puerto_fibra },
-                { label: 'Extensión', value: equipo.rede.extension},
-                { label: 'N° Inventario', value: equipo.numero_inventario },
-                { label: 'Ubicacion Puerto', value: equipo.rede.ubicacion_puerto },
-            );
-            if (equipo.rede.contraseña_bios) {
-                detalles.push({ label: 'Contraseña BIOS', value: equipo.rede.contraseña_bios });
-            }
-        }
-
-        if (equipo.transmision) {
-            detalles.push(
-                { label: 'Potencia', value: equipo.transmision.potencia },
-                { label: 'Frecuencia', value: equipo.transmision.rango_frecuencia },
-                { label: 'N° Inventario', value: equipo.numero_inventario },
-                { label: 'Características', value: equipo.transmision.caracteristicas },
-            );
-        }
-
-        return detalles;
-    };
-
-    const detalles = getDetallesEspecificos();
-
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto [&>button]:cursor-pointer">
                 
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        {equipo? (tiposLabels[equipo.tipo] || equipo.tipo) : 'Detalle del equipo' }
+                        {equipo ? (equipo.tipo_label || tiposLabels[equipo.tipo] || equipo.tipo) : 'Detalle del equipo'}
                         {equipo && !loading && (
                             <Badge variant={equipo.condicion === 'operativo' ? 'operativo' : 'no_operativo'} className="w-fit">
                                 {condidicionesLabels[equipo.condicion]}
@@ -103,7 +58,7 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
                     </DialogTitle>
                     <DialogDescription>
                         {equipo 
-                            ? `Marca: ${equipo.marca} • Modelo: ${equipo.modelo} • Serial: ${equipo.serial}`
+                            ? `Marca: ${equipo.marca ?? '—'} • Modelo: ${equipo.modelo} • Serial: ${equipo.serial}`
                             : 'Cargando información del equipo...'
                         }
                     </DialogDescription>
@@ -128,11 +83,21 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="flex items-center gap-2">
                                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                                        <span>{sedesLabels[equipo.ubicacion?.sede]} - {pisosLabels[equipo.ubicacion?.piso]}, {estadosLabels[equipo.ubicacion?.estado]}</span>
+                                        <span>
+                                            {equipo.ubicacion?.sede_label ?? sedesLabels[equipo.ubicacion?.sede] ?? equipo.ubicacion?.sede}
+                                            {' - '}
+                                            {equipo.ubicacion?.piso_label ?? pisosLabels[equipo.ubicacion?.piso] ?? equipo.ubicacion?.piso}
+                                            {', '}
+                                            {equipo.ubicacion?.estado_label ?? estadosLabels[equipo.ubicacion?.estado] ?? equipo.ubicacion?.estado}
+                                        </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Calendar className="h-4 w-4 text-muted-foreground" />
                                         <span>Registrado: {new Date(equipo.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <FileDigit className="h-4 w-4 text-muted-foreground" />
+                                        <span>{equipo.numero_inventario ?? 'S/A'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -164,19 +129,23 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
                                 </>
                             )}
 
-                            {detalles.length > 0 && (
+                            {/*
+                                Antes esta sección se armaba dinámicamente a partir de
+                                equipo.infraestructura / equipo.rede / equipo.transmision.
+                                Esas tablas ya no existen: ahora todo lo técnico vive en
+                                un solo campo de texto libre (equipo.caracteristicas),
+                                así que solo lo mostramos tal cual el usuario lo escribió.
+                            */}
+                            {equipo.caracteristicas && (
                                 <>
                                     <Separator className="col-span-2" />
                                     <div className="col-span-2">
-                                        <h4 className="font-medium mb-2 text-xs uppercase text-muted-foreground">Características Técnicas</h4>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {detalles.map((d, i) => d.value && (
-                                                <div key={i} className="flex items-center gap-2 text-muted-foreground">
-                                                    <span className="font-medium text-foreground">{d.label}:</span>
-                                                    <span>{d.value}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <h4 className="font-medium mb-2 text-xs uppercase text-muted-foreground">
+                                            Características Técnicas
+                                        </h4>
+                                        <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                                            {equipo.caracteristicas}
+                                        </p>
                                     </div>
                                 </>
                             )}
@@ -186,7 +155,7 @@ export function EquipoDetailModal({ equipoId, isOpen, onClose, tiposLabels, esta
                                     <Separator className="col-span-2" />
                                     <div className="col-span-2">
                                         <h4 className="font-medium mb-2 text-xs uppercase text-muted-foreground">Observaciones</h4>
-                                        <p className="text-sm text-muted-foreground">{equipo.detalle}</p>
+                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{equipo.detalle}</p>
                                     </div>
                                 </>
                             )}

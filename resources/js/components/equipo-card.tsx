@@ -9,13 +9,20 @@ interface EquipoCardProps {
     equipo: {
         id: number;
         tipo: string;
+        tipo_label?: string;
         marca: string;
         modelo: string;
         serial: string;
         condicion: 'operativo' | 'no_operativo';
         area: string;
         detalle: string;
-        ubicacion: { id: number; estado: string; sede: string; piso: string; };
+        ubicacion: { 
+            id: number; 
+            estado: string; 
+            sede: string; piso: string; 
+            sede_label?: string;
+            piso_label?: string; 
+        };
         user_asignado?: { cedula: string; nombre: string; apellido: string } | null;
     };
     tiposLabels: Record<string, string>;
@@ -78,7 +85,7 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, sedesLabls, piso
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-sm leading-tight">
-                                        {tiposLabels[equipo.tipo] || equipo.tipo}
+                                        {equipo.tipo_label || tiposLabels[equipo.tipo] || equipo.tipo}
                                     </h3>
                                     <p className="text-xs text-muted-foreground"> Marca: {equipo.marca}</p>
                                     <p className="text-xs text-muted-foreground"> Modelo: {equipo.modelo}</p>
@@ -97,7 +104,12 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, sedesLabls, piso
               
                         <div className="flex items-center text-sm text-muted-foreground gap-1">
                             <MapPin className="h-3.5 w-3.5" />
-                            <span>{sedesLabls[equipo.ubicacion?.sede]}, {pisosLabls[equipo.ubicacion?.piso]} — {estadosLabls[equipo.ubicacion?.estado]}</span>
+                            <span>
+                                {equipo.ubicacion?.sede_label ?? sedesLabls[equipo.ubicacion?.sede] ?? equipo.ubicacion?.sede}
+                                , {equipo.ubicacion?.piso_label ?? pisosLabls[equipo.ubicacion?.piso] ?? equipo.ubicacion?.piso}
+                                {' — '}
+                                {estadosLabls[equipo.ubicacion?.estado] ?? equipo.ubicacion?.estado}
+                            </span>
                         </div>
 
                         {equipo.user_asignado && (
@@ -137,14 +149,14 @@ export function EquipoCard({ equipo, tiposLabels, estadosLabls, sedesLabls, piso
                     <Button 
                         className="cursor-pointer" 
                         variant="outline"
-                        size="sm" 
+                        size="sm"
                         onClick={(e) => { 
                             e.stopPropagation(); 
                             onCardEditClick?.(equipo); 
                         }}
                     >
                         <Pencil className="h-3.5 w-3.5" />
-                        Editar
+                        Actualizar Equipo
                     </Button>
                 )}
                 {/*permissions.can_delete && (

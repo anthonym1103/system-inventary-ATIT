@@ -20,17 +20,24 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         $ubicaciones = Ubicacion::factory(20)->create();
- 
+
         $asignados = UserAsignado::factory(30)->create();
 
-        Equipo::factory(300)->afterMaking(function ($equipo) use ($ubicaciones, $asignados){
+        // NOTA: "tipo" ya no está casteado a TipoEquipo en el modelo Equipo,
+        // así que en memoria (afterMaking, antes de guardar) es un string
+        // plano. Antes se comparaba con $equipo->tipo->value; ahora se
+        // compara el string directamente.
+        Equipo::factory(300)->afterMaking(function ($equipo) use ($ubicaciones, $asignados) {
             $equipo->ubicacion_id = $ubicaciones->random()->id;
-            if($equipo->tipo->value === 'micro_escritorio' || $equipo->tipo->value === 'portatil' || $equipo->tipo->value === 'telefono_analogico' || $equipo->tipo->value === 'telefono_digital'){
+
+            $tiposConEncargado = ['micro_escritorio', 'portatil', 'telefono_analogico', 'telefono_digital'];
+
+            if (in_array($equipo->tipo, $tiposConEncargado, true)) {
                 $equipo->asignado_id = $asignados->random()->cedula;
-            }else{
+            } else {
                 $equipo->asignado_id = null;
             }
-            })->create();
+        })->create();
 
         User::factory()->create([
             'name' => 'Anthony Medina',
@@ -41,8 +48,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
-            RoleSeeder::class
+            RoleSeeder::class,
         ]);
-        
     }
 }

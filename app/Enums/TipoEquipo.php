@@ -4,7 +4,7 @@ namespace App\Enums;
 
 enum TipoEquipo: string
 {
-    //Equipos del area de infraestructura
+    // Equipos habituales del área de infraestructura
     case MICRO_ESCRITORIO = 'micro_escritorio';
     case PORTATIL = 'portatil';
     case SERVIDOR = 'servidor';
@@ -13,13 +13,13 @@ enum TipoEquipo: string
     case IMPRESORA_PLANOS = 'impresora_planos';
     case SCANNER = 'scanner';
 
-    //Equipos del area de redes
+    // Equipos habituales del área de redes
     case ROUTER = 'router';
     case SWITCHES = 'switch';
     case TELEFONO_ANALOGICO = 'telefono_analogico';
     case TELEFONO_DIGITAL = 'telefono_digital';
-    
-    //Equipos del area de transmision
+
+    // Equipos habituales del área de transmisión
     case RADIO_PORTATIL = 'radio_portatil';
     case RADIO_BASE = 'radio_base';
     case RADIO_MOVIL = 'radio_movil';
@@ -30,18 +30,9 @@ enum TipoEquipo: string
     case ESTACION_MOVIL = 'estacion_movil_mts';
     case SERVIDOR_MTS = 'servidor_mts';
 
-    public function modulo(): Area
-    {
-        return match($this){
-            self::MICRO_ESCRITORIO, self::PORTATIL, self::SERVIDOR, self::IMPRESORA_MULTI, self::IMPRESORA, self::IMPRESORA_PLANOS, self::SCANNER  => Area::INFRAESTRUCTURA,
-            self::ROUTER, self::SWITCHES, self::TELEFONO_ANALOGICO, self::TELEFONO_DIGITAL => Area::REDES,
-            self::RADIO_PORTATIL, self::RADIO_BASE, self::RADIO_MOVIL, self::MULTIPLEXOR, self::TRANSPORTE_MO, self::TRANSPORTE_FO, self::REPETIDOR_VHF, self::ESTACION_MOVIL, self::SERVIDOR_MTS => Area::TRANSMISION,
-        };
-    }
-
     public function label(): string
     {
-        return match($this){
+        return match ($this) {
             self::MICRO_ESCRITORIO => 'Computador de escritorio',
             self::PORTATIL => 'Computador portatil',
             self::SERVIDOR => 'Servidor',
@@ -65,32 +56,32 @@ enum TipoEquipo: string
             default => $this->value,
         };
     }
-
-    public function camposEspecificos(): array
+    
+    public function area(): Area
     {
-        return match($this) {
-            self::SERVIDOR => ['ram', 'disco', 'direccion_mac', 'numero_inventario'],
-            self::MICRO_ESCRITORIO, self::PORTATIL => ['anio', 'ram', 'disco', 'direccion_mac', 'sistema_operativo', 'numero_inventario', 'dominio'],
-            self::IMPRESORA_MULTI, self::IMPRESORA, self::IMPRESORA_PLANOS, self::SCANNER => ['numero_inventario'],
+        return match ($this) {
+            self::MICRO_ESCRITORIO,
+            self::PORTATIL,
+            self::SERVIDOR,
+            self::IMPRESORA_MULTI,
+            self::IMPRESORA,
+            self::IMPRESORA_PLANOS,
+            self::SCANNER => Area::INFRAESTRUCTURA,
 
-            self::TELEFONO_ANALOGICO => ['puerto', 'contraseña_bios', 'extension', 'ubicacion_puerto'],
-            self::TELEFONO_DIGITAL => ['puerto', 'contraseña_bios', 'direccion_ip', 'direccion_mac', 'extension'],
-            self::ROUTER, self::SWITCHES => ['puerto', 'contraseña_bios', 'direccion_ip', 'direccion_mac'],
+            self::ROUTER,
+            self::SWITCHES,
+            self::TELEFONO_ANALOGICO,
+            self::TELEFONO_DIGITAL => Area::REDES,
 
-            self::RADIO_PORTATIL, self::RADIO_BASE, self::RADIO_MOVIL => ['potencia', 'rango_frecuencia', 'unidad_usuario', 'caracteristicas'],
-            self::MULTIPLEXOR, self::TRANSPORTE_MO, self::TRANSPORTE_FO, self::REPETIDOR_VHF, self::ESTACION_MOVIL, self::SERVIDOR_MTS => ['numero_inventario'],
+            self::RADIO_PORTATIL,
+            self::RADIO_BASE,
+            self::RADIO_MOVIL,
+            self::MULTIPLEXOR,
+            self::TRANSPORTE_MO,
+            self::TRANSPORTE_FO,
+            self::REPETIDOR_VHF,
+            self::ESTACION_MOVIL,
+            self::SERVIDOR_MTS => Area::TRANSMISION,
         };
     }
-
-    /**
-     * Indica si este tipo de equipo requiere seleccionar un encargado (UserAsignado).
-     */
-    public function requiereEncargado(): bool
-    {
-        return match($this) {
-            self::MICRO_ESCRITORIO, self::PORTATIL, self::TELEFONO_ANALOGICO, self::TELEFONO_DIGITAL => true,
-            default => false,
-        };
-    }
-
 }

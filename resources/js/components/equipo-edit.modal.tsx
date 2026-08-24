@@ -8,15 +8,11 @@ import {
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { EquipoForm } from '@/components/equipo-form';
-import type {
-    EquipoFormData,
-    TipoConfig,
-} from '@/components/equipo-form';
+import type { EquipoFormData } from '@/components/equipo-form';
 
 interface EditData {
-    equipo: Partial<EquipoFormData> & { id: number; tiene_contrasena_bios?: boolean };
+    equipo: Partial<EquipoFormData> & { id: number };
     tiposLabels: Record<string, string>;
-    camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
     sedes: Array<{ value: string, label: string, region: string }>;
     pisos: Array<{ value: string, label: string }>;
@@ -79,13 +75,11 @@ export function EquipoEditModal({ equipoId, isOpen, onClose }: Props) {
                         mode="edit"
                         equipoId={data.equipo.id}
                         tiposLabels={data.tiposLabels}
-                        camposPorTipo={data.camposPorTipo}
                         ubicaciones={data.ubicaciones}
                         sedesOptions={data.sedes}
                         pisosOptions={data.pisos}
                         condiciones={data.condiciones}
                         initialData={data.equipo}
-                        tieneContrasenaBios={data.equipo.tiene_contrasena_bios}
                         onSuccess={onClose}
                         onCancel={onClose}
                     />

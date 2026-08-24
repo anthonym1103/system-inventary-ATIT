@@ -147,7 +147,7 @@ export function Notifications() {
                                         <div className="flex-1 space-y-0.5">
                                             <p className={`text-sm font-medium leading-tight cursor-text w-fit ${m.leido ? 'text-muted-foreground' : ''}`}>
                                                 {m.equipo
-                                                    ? `${m.equipo.tipo}`.trim()
+                                                    ? m.equipo.tipo_label
                                                     : 'Equipo'}
                                             </p>
                                             {m.equipo?.serial && (
@@ -157,7 +157,7 @@ export function Notifications() {
                                             )}
                                             
                                             <p className="text-xs text-muted-foreground mt-2 cursor-text w-fit">
-                                                Ubicacion: {`${m.equipo?.ubicacion?.sede} - ${m.equipo?.ubicacion?.piso} (${m.equipo?.ubicacion?.estado}) `}
+                                                Ubicacion: {`${m.equipo?.ubicacion?.sede_label} - ${m.equipo?.ubicacion?.piso_label} (${m.equipo?.ubicacion?.estado_label})`}
                                             </p>
 
                                             <p className="text-xs text-muted-foreground cursor-text w-fit">

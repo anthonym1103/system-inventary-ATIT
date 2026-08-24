@@ -65,14 +65,19 @@ function RamGbInput({
 }
 
 interface NotaEntregaFormData {
+    solicitud_otrs: string;
     personal: string;
     telefono: string;
     nombre_usuario: string;
     cedula: string;
     unidad: string;
+    ce_co: string;
+    reporta_a: string;
     ubicacion_fisica: string;
     aliado_atit: string;
+    aliado_ext: string;
     personal_enlace: string;
+    personal_enlace_ext: string;
 
     entrega_tipo_equipo: string;
     entrega_marca: string;
@@ -121,14 +126,20 @@ interface NotaEntregaFormData {
 }
 
 const initialForm: NotaEntregaFormData = {
+    
+    solicitud_otrs: '',
     personal: '',
     telefono: '',
     nombre_usuario: '',
     cedula: '',
     unidad: '',
+    ce_co: '',
+    reporta_a: '',
     ubicacion_fisica: '',
     aliado_atit: '',
+    aliado_ext: '',
     personal_enlace: '',
+    personal_enlace_ext: '',
 
     entrega_tipo_equipo: '',
     entrega_marca: '',
@@ -362,6 +373,14 @@ export default function Sustitucion() {
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
+                                    <Label>Solicitud OTRS</Label>
+                                    <Input
+                                        value={data.solicitud_otrs}
+                                        onChange={(e) => setField('solicitud_otrs', e.target.value)}
+                                        placeholder="Solicitud..."
+                                    />
+                                </div>
+                                <div className="grid gap-2">
                                     <Label>Nombre de usuario <span className="text-destructive">*</span></Label>
                                     <Input
                                         value={data.nombre_usuario}
@@ -404,6 +423,22 @@ export default function Sustitucion() {
                                     />
                                 </div>
                                 <div className="grid gap-2">
+                                    <Label>Centro de Costo</Label>
+                                    <Input
+                                        value={data.ce_co}
+                                        onChange={(e) => setField('ce_co', e.target.value)}
+                                        placeholder="Ce.Co..."
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Reporta A</Label>
+                                    <Input
+                                        value={data.reporta_a}
+                                        onChange={(e) => setField('reporta_a', e.target.value)}
+                                        placeholder="Reporta A..."
+                                    />
+                                </div>
+                                <div className="grid gap-2">
                                     <Label>Ubicación Física</Label>
                                     <Input 
                                         value={data.ubicacion_fisica} 
@@ -418,7 +453,14 @@ export default function Sustitucion() {
                                         onChange={(e) => setField('aliado_atit', e.target.value)} 
                                         placeholder="Aliado ATIT..."
                                     />
-                                    {/* TODO: campo "Ext" pendiente de confirmar significado */}
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Extension Aliado ATIT</Label>
+                                    <Input
+                                        value={data.aliado_ext}
+                                        onChange={(e) => setField('aliado_ext', e.target.value)}
+                                        placeholder="Extension..."
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Personal Enlace</Label>
@@ -427,7 +469,14 @@ export default function Sustitucion() {
                                         onChange={(e) => setField('personal_enlace', e.target.value)} 
                                         placeholder="Personal Enlace..."
                                     />
-                                    {/* TODO: campo "Ext" pendiente de confirmar significado */}
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Extension Personal Enlace</Label>
+                                    <Input
+                                        value={data.personal_enlace_ext}
+                                        onChange={(e) => setField('personal_enlace_ext', e.target.value)}
+                                        placeholder="Ext..."
+                                    />
                                 </div>
                             </div>
                         </CardContent>
@@ -489,7 +538,7 @@ export default function Sustitucion() {
                                             value={data.entrega_disco} 
                                             onChange={(e) => setField('entrega_disco', formatInput('numero', e.target.value))} 
                                             className="max-w-[calc(100%-6rem)]"
-                                            placeholder="Ej. 500 GB."
+                                            placeholder="Ej. 512 GB."
                                         />
                                         <Select
                                             value={data.entrega_disco_unidad}
@@ -731,7 +780,7 @@ export default function Sustitucion() {
                                             value={data.sustituir_disco_capacidad}
                                             onChange={(e) => setField('sustituir_disco_capacidad', formatInput('numero', e.target.value))}
                                             className="max-w-[49%] min-w-[33%]"
-                                            placeholder="Ej. 500 GB"
+                                            placeholder="Ej. 512 GB"
                                         />
                                         <Select
                                             value={data.sustituir_disco_unidad}

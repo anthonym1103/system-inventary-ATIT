@@ -284,7 +284,6 @@ export function EquipoDesincorporarDialog({
                                 placeholder="Tipo (Ej. CPU, Impresora...)"
                                 value={row.tipo}
                                 onChange={(e) => updateEquipoExtra(row.id, 'tipo', e.target.value)}
-                                className="sm:col-span-2"
                             />
                             <Input
                                 placeholder="Marca"

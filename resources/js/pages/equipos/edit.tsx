@@ -2,20 +2,19 @@ import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EquipoForm } from '@/components/equipo-form';
-import type { EquipoFormData, TipoConfig } from '@/components/equipo-form';
+import type { EquipoFormData } from '@/components/equipo-form';
 
 interface Props {
-    equipo: Partial<EquipoFormData> & { id: number; tiene_contrasena_bios?: boolean };
+    equipo: Partial<EquipoFormData> & { id: number };
     tiposLabels: Record<string, string>;
-    camposPorTipo: Record<string, TipoConfig>;
     ubicaciones: Array<{ value: string, label: string }>;
     sedes: Array<{ value: string; label: string; region: string }>;
     pisos: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>;
 }
 
-export default function EquipoEdit({ equipo, tiposLabels, camposPorTipo, ubicaciones, sedes, pisos, condiciones }: Props) {
-    const { id, tiene_contrasena_bios, ...initialData } = equipo;
+export default function EquipoEdit({ equipo, tiposLabels, ubicaciones, sedes, pisos, condiciones }: Props) {
+    const { id, ...initialData } = equipo;
 
     return (
         <>
@@ -34,13 +33,11 @@ export default function EquipoEdit({ equipo, tiposLabels, camposPorTipo, ubicaci
                     mode="edit"
                     equipoId={id}
                     tiposLabels={tiposLabels}
-                    camposPorTipo={camposPorTipo}
                     ubicaciones={ubicaciones}
                     sedesOptions={sedes}
                     pisosOptions={pisos}
                     condiciones= {condiciones}
                     initialData={initialData}
-                    tieneContrasenaBios={tiene_contrasena_bios}
                 />
             </div>
         </>

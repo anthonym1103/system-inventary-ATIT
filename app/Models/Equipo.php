@@ -4,16 +4,13 @@ namespace App\Models;
 
 use App\Models\Ubicacion;
 use App\Models\HistorialEquipo;
-use App\Models\Infraestructura;
 use App\Models\Notificacion;
-use App\Models\Rede;
-use App\Models\Transmision;
+use App\Enums\TipoEquipo;
 use App\Enums\Area;
 use App\Enums\CondicionEquipo;
-use App\Enums\TipoEquipo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -21,6 +18,9 @@ class Equipo extends Model
 {
     /** @use HasFactory<\Database\Factories\EquipoFactory> */
     use HasFactory;
+
+
+    protected $appends = ['tipo_label'];
 
     protected $fillable = [
         'ubicacion_id',
@@ -32,22 +32,20 @@ class Equipo extends Model
         'modelo',
         'serial',
         'numero_inventario',
+        'caracteristicas',
         'detalle',
     ];
 
     protected $casts = [
         'area' => Area::class,
-        'tipo' => TipoEquipo::class,
         'condicion' => CondicionEquipo::class,
     ];
 
-
-    protected static function booted()
+    protected function tipoLabel(): Attribute
     {
-        static::deleting(function ($equipo) {
-            $equipo->infraestructura()?->delete();
-        });
-
+        return Attribute::make(
+            get: fn () => TipoEquipo::tryFrom($this->tipo)?->label() ?? $this->tipo,
+        );
     }
 
     public function ubicacion(): BelongsTo
@@ -64,26 +62,9 @@ class Equipo extends Model
     {
         return $this->hasMany(HistorialEquipo::class, 'equipo_id');
     }
-    
-    public function infraestructura(): HasOne
-    {
-        return $this->hasOne(Infraestructura::class, 'id');
-    }
-    
-    public function rede(): HasOne
-    {
-        return $this->hasOne(Rede::class, 'id');
-    }
-
-    public function transmision(): HasOne
-    {
-        return $this->hasOne(Transmision::class, 'id');
-    }
 
     public function mantenimientos(): HasMany
     {
         return $this->hasMany(Notificacion::class);
     }
-
-    
 }

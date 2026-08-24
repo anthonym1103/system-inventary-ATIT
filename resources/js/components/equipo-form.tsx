@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRef } from 'react';
-import PasswordInput from '@/components/password-input';
 import {
     Select,
     SelectContent,
@@ -18,146 +16,14 @@ import InputError from '@/components/input-error';
 import { Spinner } from '@/components/ui/spinner';
 import { Checkbox } from './ui/checkbox';
 
-function RamGbInput({
-    value,
-    onChange,
-    placeholder,
-}: {
-    value: string;
-    onChange: (value: string) => void;
-    placeholder?: string;
-}) {
-    const clampCursor = (e: React.SyntheticEvent<HTMLInputElement>) => {
-        const target = e.currentTarget;
-        const digits = target.value.replace(/\D/g, '');
-        const maxPos = digits.length;
-
-        requestAnimationFrame(() => {
-            const start = target.selectionStart ?? maxPos;
-            const end = target.selectionEnd ?? maxPos;
-
-            const clampedStart = Math.min(start, maxPos);
-            const clampedEnd = Math.min(end, maxPos);
-
-            if (start > maxPos || end > maxPos) {
-                target.setSelectionRange(clampedStart, clampedEnd);
-            }
-        });
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const target = e.target;
-        const digits = target.value.replace(/\D/g, '').slice(0, 4);
-        const formatted = digits ? `${digits} GB` : '';
-
-        onChange(formatted);
-
-        // El cursor siempre queda justo antes de " GB".
-        requestAnimationFrame(() => {
-            target.setSelectionRange(digits.length, digits.length);
-        });
-    };
-
-    return (
-        <Input
-            value={value}
-            onChange={handleChange}
-            onClick={clampCursor}
-            onKeyUp={clampCursor}
-            onFocus={clampCursor}
-            placeholder={placeholder}
-            inputMode="numeric"
-        />
-    );
-}
-
-function DiscoInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
-  // Extraer número y unidad del valor existente (ej. "512 GB" → 512, "GB")
-  const parseValue = (val: string) => {
-    const match = val.match(/^(\d+)\s*(GB|TB)$/i);
-    if (match) {
-      return { number: match[1], unit: match[2].toUpperCase() };
-    }
-    return { number: '', unit: 'GB' }; // valor por defecto
-  };
-
-  const { number, unit } = parseValue(value);
-
-  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 6); // máximo 6 dígitos
-    const newValue = digits ? `${digits} ${unit}` : '';
-    onChange(newValue);
-  };
-
-  const handleUnitChange = (newUnit: string) => {
-    const newValue = number ? `${number} ${newUnit}` : '';
-    onChange(newValue);
-  };
-
-  return (
-    <div className="flex gap-2">
-      <Input
-        value={number}
-        onChange={handleNumberChange}
-        placeholder={placeholder || 'Ingrese la capacidad...'}
-        inputMode="numeric"
-        className="flex-1"
-      />
-      <Select value={unit} onValueChange={handleUnitChange}>
-        <SelectTrigger className="w-24 cursor-pointer">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="GB" className="cursor-pointer">GB</SelectItem>
-          <SelectItem value="TB" className="cursor-pointer">TB</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
+// Valor centinela para la opción "Otro" del <Select> de tipo. No se guarda
+// nunca en base de datos: solo sirve para alternar a modo "texto libre".
+const TIPO_PERSONALIZADO = '__personalizado__';
+const SEDE_PERSONALIZADA = '__sede_personalizada__';
+const PISO_PERSONALIZADA = '__piso_personalizada__';
 
 const asText = (value: string | boolean | undefined): string =>
     typeof value === 'string' ? value : '';
-
-interface CampoConfig {
-    label: string;
-    holdertext?: string;
-    type?: 'password';
-    textarea?: boolean;
-}
-
-const CAMPO_CONFIG: Record<string, CampoConfig> = {
-    anio: { label: 'Año', holdertext: 'Ingrese el año...' },
-    ram: { label: 'RAM', holdertext: 'Ingrese la cantidad de ram...' },
-    disco: { label: 'Disco', holdertext: 'Ingrese el tamaño del disco...' },
-    direccion_mac: { label: 'Dirección MAC', holdertext: 'Ej. 00:1A:2B:3C:4D:5E'},
-    sistema_operativo: { label: 'Sistema Operativo', holdertext: 'Ingrese el sistema operativo...' },
-    numero_inventario: { label: 'Número de Inventario', holdertext: 'Ingrese el numero de inventario...' },
-    dominio: { label: 'Dominio', holdertext: 'Ingrese el dominio...'},
-    puerto: { label: 'Puerto', holdertext: 'Ingrese el puerto...' },
-    contraseña_bios: { label: 'Contraseña BIOS', type: 'password'},
-    direccion_ip: { label: 'Dirección IP', holdertext: 'Ej. 192.168.100.256' },
-    extension: { label: 'Extensión', holdertext: 'Ingrese la extension...' },
-    ubicacion_puerto: { label: 'Ubicación del Puerto', holdertext: 'Ej. 03-04-05-06' },
-    potencia: { label: 'Potencia', holdertext: 'Ingrese la potencia...' },
-    rango_frecuencia: { label: 'Rango de Frecuencia', holdertext: 'Ingrese la frecuenia...' },
-    unidad_usuario: { label: 'Unidad / Usuario', holdertext: 'Ingrese unidad/usuario...' },
-    caracteristicas: { label: 'Características', textarea: true, holdertext: 'Ingrese caracteristicas...' },
-};
-
-export interface TipoConfig {
-    area: string;
-    campos: string[];
-}
-
 
 export type EquipoFormData = {
     tipo: string;
@@ -165,7 +31,7 @@ export type EquipoFormData = {
     sedes: string;
     pisos: string;
     condicion: string;
-    con_encargado:boolean;
+    con_encargado: boolean;
     asignado_cedula: string;
     asignado_nombre: string;
     asignado_apellido: string;
@@ -174,26 +40,38 @@ export type EquipoFormData = {
     marca: string;
     modelo: string;
     serial: string;
+    numero_inventario: string;
     detalle: string;
-    [campo: string]: string | boolean; 
+    // Reemplaza a los antiguos campos por tipo (ram, disco, puerto,
+    // dirección IP, etc). El usuario escribe libremente lo que necesite.
+    caracteristicas: string;
 };
 
 interface EquipoFormProps {
     mode: 'create' | 'edit';
     equipoId?: number;
     tiposLabels: Record<string, string>;
-    camposPorTipo: Record<string, TipoConfig>;
-    ubicaciones: Array<{ value: string, label: string }>;
+    ubicaciones: Array<{ value: string; label: string }>;
     sedesOptions: Array<{ value: string; label: string; region: string }>;
-    pisosOptions: Array<{ value: string, label: string }>;
+    pisosOptions: Array<{ value: string; label: string }>;
     condiciones: Array<{ value: string; label: string }>;
     initialData?: Partial<EquipoFormData>;
-    tieneContrasenaBios?: boolean;
     onSuccess?: () => void;
     onCancel?: () => void;
 }
 
-export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicaciones, sedesOptions, pisosOptions, condiciones, initialData, tieneContrasenaBios = false, onSuccess, onCancel }: EquipoFormProps) {
+export function EquipoForm({
+    mode,
+    equipoId,
+    tiposLabels,
+    ubicaciones,
+    sedesOptions,
+    pisosOptions,
+    condiciones,
+    initialData,
+    onSuccess,
+    onCancel,
+}: EquipoFormProps) {
     const { data, setData, post, put, processing, errors, reset, isDirty } = useForm<EquipoFormData>({
         tipo: '',
         estados: '',
@@ -209,107 +87,123 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
         marca: '',
         modelo: '',
         serial: '',
+        numero_inventario: '',
         detalle: '',
+        caracteristicas: '',
         ...initialData,
     });
 
-    const tipoConfig = data.tipo ? camposPorTipo[data.tipo] : undefined;
-    const camposActivos = useMemo(() => tipoConfig?.campos ?? [], [tipoConfig]);
+    // Si el tipo inicial no está en el catálogo (por ejemplo, alguien ya
+    // escribió uno personalizado antes), arrancamos directo en modo texto
+    // libre para que se vea tal cual se guardó.
+    const [tipoPersonalizado, setTipoPersonalizado] = useState<boolean>(
+        () => Boolean(initialData?.tipo) && !tiposLabels[initialData!.tipo as string],
+    );
+    const [sedePersonalizada, setSedePersonalizada] = useState<boolean>(
+        () => Boolean(initialData?.sedes) && !sedesOptions.some((s) => s.value === initialData!.sedes),
+    );
+    const [pisoPersonalizada, setPisoPersonalizada] = useState<boolean>(
+        () => Boolean(initialData?.pisos) && !pisosOptions.some((p) => p.value === initialData!.pisos),
+    );
+
+
     const sedesFiltradas = useMemo(
         () => sedesOptions.filter((s) => s.region === data.estados),
-            [sedesOptions, data.estados],
+        [sedesOptions, data.estados],
     );
     const mostrarEncargado = mode === 'edit' || Boolean(data.tipo);
     const cardForMode = mode === 'create' ? 'mx-[22%]' : '';
 
-    const handleTipoChange = (nuevoTipo: string) => {
-        const nuevosCampos = camposPorTipo[nuevoTipo]?.campos ?? [];
-        const limpios: Record<string, string> = {};
+    const handleTipoSelectChange = (valor: string) => {
+        if (valor === TIPO_PERSONALIZADO) {
+            setTipoPersonalizado(true);
+            setData('tipo', '');
+            return;
+        }
 
-        nuevosCampos.forEach((campo) => {
-            limpios[campo] = camposActivos.includes(campo) ? asText(data[campo]) ?? '' : '';
-        });
+        setTipoPersonalizado(false);
+        setData('tipo', valor);
+    };
 
-        setData((prev) => ({
-            ...prev,
-            tipo: nuevoTipo,
-            ...limpios,
-        }));
+    const handleSedeSelectChange = (valor: string) => {
+        if (valor === SEDE_PERSONALIZADA) {
+            setSedePersonalizada(true);
+            setData((prev) => ({ ...prev, sedes: '', pisos: '' }));
+            return;
+        }
+        setSedePersonalizada(false);
+        setData((prev) => ({ ...prev, sedes: valor, pisos: '' }));
+    };
+
+    const handlePisoSelectChange = (valor: string) => {
+        if (valor === PISO_PERSONALIZADA) {
+            setPisoPersonalizada(true);
+            setData('pisos', '');
+            return;
+        }
+        setPisoPersonalizada(false);
+        setData('pisos', valor);
     };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
         if (mode === 'create') {
-            post('/equipos', { onSuccess: () => {
-                reset();
-                onSuccess?.();
+            post('/equipos', {
+                onSuccess: () => {
+                    reset();
+                    onSuccess?.();
                 },
             });
         } else if (equipoId) {
-            put(`/equipos/${equipoId}`, { onSuccess: () => {
-                onSuccess?.();
+            put(`/equipos/${equipoId}`, {
+                onSuccess: () => {
+                    onSuccess?.();
                 },
             });
         }
     };
 
-    const formatInput = (type: string, value:string): string =>{
+    const formatInput = (type: string, value: string): string => {
         var limited = '';
-        var parts =  [];
-        switch(type){
-            case 'serial':
+        switch (type) {
+            case 'serial': {
                 const valueUpper = value.toUpperCase();
-                limited = valueUpper.slice(0,255);
+                limited = valueUpper.slice(0, 255);
                 return limited;
-            case 'direccion_mac':
-                const hexDigits = value.toUpperCase().replace(/[^0-9A-F]/g, '');
-                limited = hexDigits.slice(0, 12);
-                parts = limited.match(/.{1,2}/g) || [];
-                return parts.join(':');
-            case 'ubicacion_puerto':
-                const digits = value.replace(/\D/g, '');
-                limited = digits.slice(0, 8);
-                parts = limited.match(/.{1,2}/g) || [];
-                return parts.join('-');
-            case 'direccion_ip':
-                const ipDigits = value.replace(/\D/g, '');
-                limited = ipDigits.slice(0, 12);
-                parts = limited.match(/.{1,3}/g) || [];
-                return parts.join('.');
-            case 'telefono':
+            }
+            case 'telefono': {
                 const number = value.replace(/[^0-9]/g, '');
                 limited = number.slice(0, 11);
                 return limited;
-            case 'cedula':
+            }
+            case 'cedula': {
                 const ident = 'V- ';
-                const digCedula =value.replace(/[^0-9]/g, '');
+                const digCedula = value.replace(/[^0-9]/g, '');
                 limited = digCedula.slice(0, 9);
                 return ident + limited;
+            }
             default:
                 return value;
         }
-    }
+    };
 
     return (
         <form onSubmit={handleSubmit}>
-            <Card className = {cardForMode}>
+            <Card className={cardForMode}>
                 <CardHeader className="flex items-center gap-1">
                     <CardTitle className="text-base">Información General</CardTitle>
-                    {mode === 'edit' && (
-                        <div className="flex flex-row">
-                            <span className="ml-2 text-sm text-muted-foreground">
-                               • {tiposLabels[data.tipo] || data.tipo} •
-                            </span>
-                        </div>
-                        
-                    )}                    
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {mode === 'create' && (
                         <div className="grid gap-2">
-                            <Label className="cursor-text select-text w-fit">Tipo de Equipo <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
-                            <Select value={data.tipo} onValueChange={handleTipoChange}>
+                            <Label className="cursor-text select-text w-fit">
+                                Tipo de Equipo <span className="text-destructive cursor-text select-text w-fit">*</span>
+                            </Label>
+                            <Select
+                                value={tipoPersonalizado ? TIPO_PERSONALIZADO : data.tipo}
+                                onValueChange={handleTipoSelectChange}
+                            >
                                 <SelectTrigger className="w-full cursor-pointer">
                                     <SelectValue placeholder="Selecciona un tipo" />
                                 </SelectTrigger>
@@ -319,22 +213,38 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                             {label}
                                         </SelectItem>
                                     ))}
+                                    <SelectItem value={TIPO_PERSONALIZADO} className="cursor-pointer">
+                                        Otro (especificar)
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
+
+                            {tipoPersonalizado && (
+                                <Input
+                                    value={data.tipo}
+                                    onChange={(e) => setData('tipo', e.target.value)}
+                                    placeholder="Escribe el tipo de equipo..."
+                                    autoFocus
+                                />
+                            )}
                             <InputError message={errors.tipo} />
                         </div>
                     )}
 
                     <div className="grid gap-2">
-                        <Label className="cursor-text select-text w-fit">Estado/Region {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
+                        <Label className="cursor-text select-text w-fit">
+                            Estado/Region <span className="text-destructive cursor-text select-text w-fit">*</span>
+                        </Label>
                         <Select
                             value={data.estados}
-                            onValueChange={(val) => setData((prev) => ({
-                                ...prev,
-                                estados: val,
-                                sedes: '',
-                                pisos: '',
-                            }))}
+                            onValueChange={(val) =>
+                                setData((prev) => ({
+                                    ...prev,
+                                    estados: val,
+                                    sedes: '',
+                                    pisos: '',
+                                }))
+                            }
                         >
                             <SelectTrigger className="w-full cursor-pointer">
                                 <SelectValue placeholder="Selecciona una ubicación" />
@@ -352,10 +262,12 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                            <Label className="cursor-text select-text w-fit">Sede {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
+                            <Label className="cursor-text select-text w-fit">
+                                Sede <span className="text-destructive cursor-text select-text w-fit">*</span>
+                            </Label>
                             <Select
-                                value={data.sedes}
-                                onValueChange={(val) => setData((prev) => ({ ...prev, sedes: val, pisos: '' }))}
+                                value={sedePersonalizada ? SEDE_PERSONALIZADA : data.sedes}
+                                onValueChange={handleSedeSelectChange}
                                 disabled={!data.estados}
                             >
                                 <SelectTrigger className="w-full cursor-pointer">
@@ -367,16 +279,29 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                             {s.label}
                                         </SelectItem>
                                     ))}
+                                    <SelectItem value={SEDE_PERSONALIZADA} className="cursor-pointer">
+                                        Otro (especificar)
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
+                            {sedePersonalizada && (
+                                <Input
+                                    value={data.sedes}
+                                    onChange={(e) => setData((prev) => ({ ...prev, sedes: e.target.value, pisos: '' }))}
+                                    placeholder="Escribe la sede..."
+                                    autoFocus
+                                />
+                            )}
                             <InputError message={errors.sedes} />
                         </div>
 
                         <div className="grid gap-2">
-                            <Label className="cursor-text select-text w-fit">Piso {mode === 'create' && <span className="text-destructive cursor-text select-text w-fit">*</span>}</Label>
+                            <Label className="cursor-text select-text w-fit">
+                                Piso <span className="text-destructive cursor-text select-text w-fit">*</span>
+                            </Label>
                             <Select
-                                value={data.pisos}
-                                onValueChange={(val) => setData('pisos', val)}
+                                value={pisoPersonalizada ? PISO_PERSONALIZADA : data.pisos}
+                                onValueChange={handlePisoSelectChange}
                                 disabled={!data.sedes}
                             >
                                 <SelectTrigger className="w-full cursor-pointer">
@@ -388,8 +313,18 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                             {p.label}
                                         </SelectItem>
                                     ))}
+                                    <SelectItem value={PISO_PERSONALIZADA} className="cursor-pointer">
+                                        Otro (especificar)
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
+                            {pisoPersonalizada && (
+                                <Input
+                                    value={data.pisos}
+                                    onChange={(e) => setData('pisos', e.target.value)}
+                                    placeholder="Escribe el piso..."
+                                />
+                            )}
                             <InputError message={errors.pisos} />
                         </div>
                     </div>
@@ -409,7 +344,7 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                         checked={data.con_encargado}
                                         onCheckedChange={(checked) => {
                                             const value = Boolean(checked);
-                                            
+
                                             setData((prev) => ({
                                                 ...prev,
                                                 con_encargado: value,
@@ -433,12 +368,13 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                             {data.con_encargado && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label className="cursor-text select-text w-fit">Cédula <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                        <Label className="cursor-text select-text w-fit">
+                                            Cédula <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                        </Label>
                                         <Input
                                             value={data.asignado_cedula}
                                             onChange={(e) => {
-                                                const valor = e.target.value;
-                                                const formatted = formatInput('cedula', valor);
+                                                const formatted = formatInput('cedula', e.target.value);
                                                 setData('asignado_cedula', formatted);
                                             }}
                                             placeholder="Ej. 12345678"
@@ -447,7 +383,9 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label cursor-text select-text w-fit>Nombre <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                        <Label className="cursor-text select-text w-fit">
+                                            Nombre <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                        </Label>
                                         <Input
                                             value={data.asignado_nombre}
                                             onChange={(e) => setData('asignado_nombre', e.target.value)}
@@ -457,7 +395,9 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label className="cursor-text select-text w-fit"> Apellido <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                        <Label className="cursor-text select-text w-fit">
+                                            Apellido <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                        </Label>
                                         <Input
                                             value={data.asignado_apellido}
                                             onChange={(e) => setData('asignado_apellido', e.target.value)}
@@ -467,12 +407,16 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label className="cursor-text select-text w-fit">Teléfono {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
+                                        <Label className="cursor-text select-text w-fit">
+                                            Teléfono{' '}
+                                            {mode === 'create' && (
+                                                <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>
+                                            )}
+                                        </Label>
                                         <Input
                                             value={data.asignado_telefono}
                                             onChange={(e) => {
-                                                const valor = e.target.value;
-                                                const formatted = formatInput('telefono', valor);
+                                                const formatted = formatInput('telefono', e.target.value);
                                                 setData('asignado_telefono', formatted);
                                             }}
                                             placeholder="Ej. 04121234567"
@@ -481,7 +425,9 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                     </div>
 
                                     <div className="grid gap-2 sm:col-span-2">
-                                        <Label>Gerencia {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}</Label>
+                                        <Label>
+                                            Gerencia {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}
+                                        </Label>
                                         <Input
                                             value={data.asignado_gerencia}
                                             onChange={(e) => setData('asignado_gerencia', e.target.value)}
@@ -494,13 +440,12 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         </div>
                     )}
 
-                    {mode==='edit' && (
+                    {mode === 'edit' && (
                         <div className="grid gap-2">
-                            <Label className="cursor-text select-text w-fit">Condición <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
-                            <Select
-                                value={data.condicion}
-                                onValueChange={(val) => setData('condicion', val)}
-                            >
+                            <Label className="cursor-text select-text w-fit">
+                                Condición <span className="text-destructive cursor-text select-text w-fit">*</span>
+                            </Label>
+                            <Select value={data.condicion} onValueChange={(val) => setData('condicion', val)}>
                                 <SelectTrigger className="w-full cursor-pointer">
                                     <SelectValue placeholder="Selecciona una condición" />
                                 </SelectTrigger>
@@ -520,7 +465,9 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         <>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label className="cursor-text select-text w-fit">Marca <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span></Label>
+                                    <Label className="cursor-text select-text w-fit">
+                                        Marca <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>
+                                    </Label>
                                     <Input
                                         value={data.marca}
                                         onChange={(e) => setData('marca', e.target.value)}
@@ -530,7 +477,9 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label className="cursor-text select-text w-fit">Modelo <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
+                                    <Label className="cursor-text select-text w-fit">
+                                        Modelo <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                    </Label>
                                     <Input
                                         value={data.modelo}
                                         onChange={(e) => setData('modelo', e.target.value)}
@@ -540,35 +489,40 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="cursor-text select-text w-fit">Serial <span className="text-destructive cursor-text select-text w-fit">*</span></Label>
-                                    <Input
-                                        value={data.serial}
-                                        onChange={(e) => {
-                                            const valor = e.target.value;
-                                            const formatted = formatInput('serial', valor);
-                                            setData('serial', formatted)
-                                        }}
-                                        placeholder="Ingrese el serial del equipo..."
-                                    />
-                                    <InputError message={errors.serial} />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label className="cursor-text select-text w-fit">N° Inventario <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span></Label>
-                                    <Input
-                                        placeholder="Ingrese el numero de inventario del equipo..."
-                                    />
-                                    <InputError message={errors.serial} />
-                                </div>
+                            <div className="grid gap-2">
+                                <Label className="cursor-text select-text w-fit">
+                                    Serial <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                </Label>
+                                <Input
+                                    value={data.serial}
+                                    onChange={(e) => {
+                                        const formatted = formatInput('serial', e.target.value);
+                                        setData('serial', formatted);
+                                    }}
+                                    placeholder="Ingrese el serial del equipo..."
+                                />
+                                <InputError message={errors.serial} />
                             </div>
-
                         </>
                     )}
 
+                    <div className="grid gap-2">
+                        <Label className="cursor-text select-text w-fit">
+                            N° Inventario <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>
+                        </Label>
+                        <Input
+                            value={data.numero_inventario}
+                            onChange={(e) => setData('numero_inventario', e.target.value)}
+                            placeholder="Ingrese el numero de inventario del equipo..."
+                        />
+                        <InputError message={errors.numero_inventario} />
+                    </div>
 
                     <div className="grid gap-2">
-                        <Label className="cursor-text select-text w-fit">Observaciones {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}</Label>
+                        <Label className="cursor-text select-text w-fit">
+                            Observaciones{' '}
+                            {mode === 'create' && <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>}
+                        </Label>
                         <textarea
                             className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             value={data.detalle}
@@ -576,100 +530,35 @@ export function EquipoForm({mode, equipoId, tiposLabels, camposPorTipo, ubicacio
                         />
                         <InputError message={errors.detalle} />
                     </div>
-
-                    
                 </CardContent>
             </Card>
 
-            {camposActivos.length > 0 && (
-                <Card className={"mt-6 " + cardForMode}>
-                    <CardHeader className="flex items-center gap-2">
-                        <CardTitle className="text-base">Características Técnicas</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {camposActivos.map((campo) => {
-                            const config = CAMPO_CONFIG[campo] ?? { label: campo };
-                            const esPasswordEnEdicion = config.type === 'password' && mode === 'edit';
-                            const isRequired = ['puerto', 'contraseña_bios', 'ram', 'disco', 'sistema_operativo', 'numero_inventario', 'potencia', 'rango_frecuencia', 'unidad_usuario'];
+            <Card className={'mt-6 ' + cardForMode}>
+                <CardHeader className="flex items-center gap-2">
+                    <CardTitle className="text-base">Características Técnicas</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    <textarea
+                        className="border-input flex min-h-32 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                        value={data.caracteristicas}
+                        onChange={(e) => setData('caracteristicas', e.target.value)}
+                        placeholder="Indique las caracteristicas tecnicas del equipo..."
+                    />
+                    <InputError message={errors.caracteristicas} />
+                </CardContent>
+            </Card>
 
-                            return (
-                                <div
-                                    key={campo}
-                                    className={`grid gap-2 ${config.textarea ? 'sm:col-span-2' : ''}`}
-                                >
-                                    <Label className="cursor-text select-text w-fit">{config.label} {isRequired.includes(campo) ? (<span className="text-destructive cursor-text select-text w-fit">*</span>): (<span className="text-muted-foreground text-xs">(opcional)</span>)}</Label>
-                                    { campo ==='disco' ? (
-                                        <DiscoInput
-                                            value={asText(data[campo])}
-                                            onChange={(valor) => setData(campo, valor)}
-                                            placeholder={config.holdertext}
-                                        />
-                                    ) : campo === 'ram'? (
-                                        <RamGbInput
-                                            value={asText(data[campo])}
-                                            onChange={(valor) => setData(campo, valor)}
-                                            placeholder={config.holdertext}
-                                        />
-                                    ) : config.textarea ? (
-                                        <textarea
-                                            className="border-input flex min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                                            value={asText(data[campo])}
-                                            onChange={(e) => setData(campo, e.target.value)}
-                                            placeholder={config.holdertext}
-                                        />
-                                    ) : config.type === 'password' ? (
-                                        <>
-                                            <PasswordInput
-                                                value={asText(data[campo])}
-                                                onChange={(e) => setData(campo, e.target.value)}
-                                                placeholder={
-                                                    esPasswordEnEdicion
-                                                        ? 'Dejar en blanco para no cambiarla'
-                                                        : 'Ingrese la contraseña...'
-                                                }
-                                            />
-                                            {esPasswordEnEdicion && tieneContrasenaBios && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    Ya hay una contraseña guardada. Solo se reemplaza si escribes una nueva.
-                                                </p>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <Input
-                                            value={asText(data[campo])}
-                                            onChange={(e) => {
-                                                const valor = e.target.value;
-                                                const formatted = formatInput(campo, valor);
-                                                setData(campo, formatted);
-                                            }}
-                                            placeholder = {config.holdertext}
-                                        />
-                                    )}
-                                    <InputError message={errors[campo]} />
-                                </div>
-                            );
-                        })}
-                    </CardContent>
-                </Card>
-            )}
-
-            <div className= "flex justify-center gap-2 mt-6">
+            <div className="flex justify-center gap-2 mt-6">
                 {onCancel ? (
                     <Button type="button" variant="outline" onClick={onCancel}>
                         Cancelar
                     </Button>
-                ): (
+                ) : (
                     <Button type="button" variant="outline" asChild>
-                        <Link href="/equipos">
-                            Cancelar
-                        </Link>
+                        <Link href="/equipos">Cancelar</Link>
                     </Button>
                 )}
-                <Button
-                    className="cursor-pointer"
-                    type="submit"
-                    disabled={processing || (mode === 'edit' && !isDirty)}
-                >
+                <Button className="cursor-pointer" type="submit" disabled={processing || (mode === 'edit' && !isDirty)}>
                     {processing && <Spinner />}
                     {mode === 'create' ? 'Guardar Equipo' : 'Actualizar Equipo'}
                 </Button>

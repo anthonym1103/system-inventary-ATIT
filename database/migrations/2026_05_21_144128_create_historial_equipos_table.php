@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('equipo_area')->nullable();
             $table->string('equipo_serial')->nullable();
             $table->string('equipo_tipo')->nullable();
+            $table->string('numero_inventario')->nullable();
             $table->text('detalle')->nullable();
             $table->dateTime('fecha_ajuste');
             $table->timestamps();

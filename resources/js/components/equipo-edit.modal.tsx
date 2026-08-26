@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { EquipoForm } from '@/components/equipo-form';
-import type { EquipoFormData } from '@/components/equipo-form';
+import type { EquipoFormData, Encargado } from '@/components/equipo-form';
 
 interface EditData {
     equipo: Partial<EquipoFormData> & { id: number };
@@ -17,6 +17,7 @@ interface EditData {
     sedes: Array<{ value: string, label: string, region: string }>;
     pisos: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>
+    encargados: Encargado[];
 }
 
 interface Props {
@@ -79,6 +80,7 @@ export function EquipoEditModal({ equipoId, isOpen, onClose }: Props) {
                         sedesOptions={data.sedes}
                         pisosOptions={data.pisos}
                         condiciones={data.condiciones}
+                        encargados={data.encargados}
                         initialData={data.equipo}
                         onSuccess={onClose}
                         onCancel={onClose}

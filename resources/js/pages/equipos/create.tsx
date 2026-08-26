@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { EquipoForm } from '@/components/equipo-form';
+import { EquipoForm, Encargado} from '@/components/equipo-form';
 
 interface Props {
     tiposLabels: Record<string, string>;
@@ -9,9 +9,10 @@ interface Props {
     sedes: Array<{ value: string; label: string; region: string }>;
     pisos: Array<{ value: string, label: string }>;
     condiciones: Array<{ value: string; label: string }>;
+    encargados: Encargado[];
 }
 
-export default function EquipoCreate({ tiposLabels, ubicaciones, sedes, pisos, condiciones}: Props) {
+export default function EquipoCreate({ tiposLabels, ubicaciones, sedes, pisos, condiciones, encargados }: Props) {
 
     return (
         <>
@@ -33,6 +34,7 @@ export default function EquipoCreate({ tiposLabels, ubicaciones, sedes, pisos, c
                     sedesOptions={sedes}
                     pisosOptions={pisos}
                     condiciones = {condiciones}
+                    encargados={encargados}
                 />
             </div>
         </>

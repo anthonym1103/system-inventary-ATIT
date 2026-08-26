@@ -21,9 +21,19 @@ import { Checkbox } from './ui/checkbox';
 const TIPO_PERSONALIZADO = '__personalizado__';
 const SEDE_PERSONALIZADA = '__sede_personalizada__';
 const PISO_PERSONALIZADA = '__piso_personalizada__';
+const ENCARGADO_NUEVO = '__encargado_nuevo__';
 
 const asText = (value: string | boolean | undefined): string =>
     typeof value === 'string' ? value : '';
+
+
+export type Encargado = {
+    cedula: string;
+    nombre: string;
+    apellido: string;
+    telefono: string;
+    gerencia: string;
+};
 
 export type EquipoFormData = {
     tipo: string;
@@ -55,6 +65,7 @@ interface EquipoFormProps {
     sedesOptions: Array<{ value: string; label: string; region: string }>;
     pisosOptions: Array<{ value: string; label: string }>;
     condiciones: Array<{ value: string; label: string }>;
+    encargados: Encargado[];
     initialData?: Partial<EquipoFormData>;
     onSuccess?: () => void;
     onCancel?: () => void;
@@ -68,6 +79,7 @@ export function EquipoForm({
     sedesOptions,
     pisosOptions,
     condiciones,
+    encargados,
     initialData,
     onSuccess,
     onCancel,
@@ -105,6 +117,46 @@ export function EquipoForm({
     const [pisoPersonalizada, setPisoPersonalizada] = useState<boolean>(
         () => Boolean(initialData?.pisos) && !pisosOptions.some((p) => p.value === initialData!.pisos),
     );
+
+    const encargadoInicialExiste = Boolean(initialData?.asignado_cedula)
+        && encargados.some((e) => e.cedula === initialData!.asignado_cedula);
+
+    const [encargadoSeleccionado, setEncargadoSeleccionado] = useState<string>(() => {
+        if (initialData?.asignado_cedula) {
+            return encargadoInicialExiste ? initialData.asignado_cedula! : ENCARGADO_NUEVO;
+        }
+        return encargados.length > 0 ? '' : ENCARGADO_NUEVO;
+    });
+
+    const esEncargadoExistente = encargadoSeleccionado !== '' && encargadoSeleccionado !== ENCARGADO_NUEVO;
+
+    const handleEncargadoSelectChange = (valor: string) => {
+        setEncargadoSeleccionado(valor);
+
+        if (valor === ENCARGADO_NUEVO) {
+            setData((prev) => ({
+                ...prev,
+                asignado_cedula: '',
+                asignado_nombre: '',
+                asignado_apellido: '',
+                asignado_telefono: '',
+                asignado_gerencia: '',
+            }));
+            return;
+        }
+
+        const encargado = encargados.find((e) => e.cedula === valor);
+        if (encargado) {
+            setData((prev) => ({
+                ...prev,
+                asignado_cedula: encargado.cedula,
+                asignado_nombre: encargado.nombre,
+                asignado_apellido: encargado.apellido,
+                asignado_telefono: encargado.telefono,
+                asignado_gerencia: encargado.gerencia,
+            }));
+        }
+    };
 
 
     const sedesFiltradas = useMemo(
@@ -333,7 +385,7 @@ export function EquipoForm({
                         <div className="space-y-4 rounded-lg border p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium">Encargado del equipo</p>
+                                    <p className="text-sm font-medium">Responsable del equipo</p>
                                     <p className="text-xs text-muted-foreground">
                                         Indica si este equipo estará asignado a una persona.
                                     </p>
@@ -356,6 +408,10 @@ export function EquipoForm({
                                                     asignado_gerencia: '',
                                                 }),
                                             }));
+
+                                            if (!value) {
+                                                setEncargadoSeleccionado(encargados.length > 0 ? '' : ENCARGADO_NUEVO);
+                                            }
                                         }}
                                         className="cursor-pointer"
                                     />
@@ -366,74 +422,107 @@ export function EquipoForm({
                             </div>
 
                             {data.con_encargado && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
-                                        <Label className="cursor-text select-text w-fit">
-                                            Cédula <span className="text-destructive cursor-text select-text w-fit">*</span>
-                                        </Label>
-                                        <Input
-                                            value={data.asignado_cedula}
-                                            onChange={(e) => {
-                                                const formatted = formatInput('cedula', e.target.value);
-                                                setData('asignado_cedula', formatted);
-                                            }}
-                                            placeholder="Ej. 12345678"
-                                        />
-                                        <InputError message={errors.asignado_cedula} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label className="cursor-text select-text w-fit">
-                                            Nombre <span className="text-destructive cursor-text select-text w-fit">*</span>
-                                        </Label>
-                                        <Input
-                                            value={data.asignado_nombre}
-                                            onChange={(e) => setData('asignado_nombre', e.target.value)}
-                                            placeholder="Nombre"
-                                        />
-                                        <InputError message={errors.asignado_nombre} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label className="cursor-text select-text w-fit">
-                                            Apellido <span className="text-destructive cursor-text select-text w-fit">*</span>
-                                        </Label>
-                                        <Input
-                                            value={data.asignado_apellido}
-                                            onChange={(e) => setData('asignado_apellido', e.target.value)}
-                                            placeholder="Apellido"
-                                        />
-                                        <InputError message={errors.asignado_apellido} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label className="cursor-text select-text w-fit">
-                                            Teléfono{' '}
-                                            {mode === 'create' && (
-                                                <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>
+                                <div className="space-y-4">
+                                    {encargados.length > 0 && (
+                                        <div className="grid gap-2">
+                                            <Label className="cursor-text select-text w-fit">
+                                                Responsable <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                            </Label>
+                                            <Select value={encargadoSeleccionado} onValueChange={handleEncargadoSelectChange}>
+                                                <SelectTrigger className="w-full cursor-pointer">
+                                                    <SelectValue placeholder="Selecciona un responsable existente" />
+                                                </SelectTrigger>
+                                                <SelectContent className="max-h-60 overflow-y-auto">
+                                                    {encargados.map((e) => (
+                                                        <SelectItem key={e.cedula} value={e.cedula} className="cursor-pointer">
+                                                            {e.nombre} {e.apellido} — {e.cedula}
+                                                        </SelectItem>
+                                                    ))}
+                                                    <SelectItem value={ENCARGADO_NUEVO} className="cursor-pointer">
+                                                        Otro (agregar nuevo responsable)
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            {esEncargadoExistente && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Cédula, nombre y apellido pertenecen a un responsable ya registrado. Solo el teléfono y la gerencia se pueden actualizar aquí.
+                                                </p>
                                             )}
-                                        </Label>
-                                        <Input
-                                            value={data.asignado_telefono}
-                                            onChange={(e) => {
-                                                const formatted = formatInput('telefono', e.target.value);
-                                                setData('asignado_telefono', formatted);
-                                            }}
-                                            placeholder="Ej. 04121234567"
-                                        />
-                                        <InputError message={errors.asignado_telefono} />
-                                    </div>
+                                        </div>
+                                    )}
 
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label>
-                                            Gerencia {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}
-                                        </Label>
-                                        <Input
-                                            value={data.asignado_gerencia}
-                                            onChange={(e) => setData('asignado_gerencia', e.target.value)}
-                                            placeholder="Ej. Gerencia ATIT"
-                                        />
-                                        <InputError message={errors.asignado_gerencia} />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="grid gap-2">
+                                            <Label className="cursor-text select-text w-fit">
+                                                Cédula <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                            </Label>
+                                            <Input
+                                                value={data.asignado_cedula}
+                                                disabled={esEncargadoExistente}
+                                                onChange={(e) => {
+                                                    const formatted = formatInput('cedula', e.target.value);
+                                                    setData('asignado_cedula', formatted);
+                                                }}
+                                                placeholder="Ej. 12345678"
+                                            />
+                                            <InputError message={errors.asignado_cedula} />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label className="cursor-text select-text w-fit">
+                                                Nombre <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                            </Label>
+                                            <Input
+                                                value={data.asignado_nombre}
+                                                disabled={esEncargadoExistente}
+                                                onChange={(e) => setData('asignado_nombre', e.target.value)}
+                                                placeholder="Nombre"
+                                            />
+                                            <InputError message={errors.asignado_nombre} />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label className="cursor-text select-text w-fit">
+                                                Apellido <span className="text-destructive cursor-text select-text w-fit">*</span>
+                                            </Label>
+                                            <Input
+                                                value={data.asignado_apellido}
+                                                disabled={esEncargadoExistente}
+                                                onChange={(e) => setData('asignado_apellido', e.target.value)}
+                                                placeholder="Apellido"
+                                            />
+                                            <InputError message={errors.asignado_apellido} />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label className="cursor-text select-text w-fit">
+                                                Teléfono{' '}
+                                                {mode === 'create' && (
+                                                    <span className="text-muted-foreground text-xs cursor-text select-text w-fit">(opcional)</span>
+                                                )}
+                                            </Label>
+                                            <Input
+                                                value={data.asignado_telefono}
+                                                onChange={(e) => {
+                                                    const formatted = formatInput('telefono', e.target.value);
+                                                    setData('asignado_telefono', formatted);
+                                                }}
+                                                placeholder="Ej. 04121234567"
+                                            />
+                                            <InputError message={errors.asignado_telefono} />
+                                        </div>
+
+                                        <div className="grid gap-2 sm:col-span-2">
+                                            <Label>
+                                                Gerencia {mode === 'create' && <span className="text-muted-foreground text-xs">(opcional)</span>}
+                                            </Label>
+                                            <Input
+                                                value={data.asignado_gerencia}
+                                                onChange={(e) => setData('asignado_gerencia', e.target.value)}
+                                                placeholder="Ej. Gerencia ATIT"
+                                            />
+                                            <InputError message={errors.asignado_gerencia} />
+                                        </div>
                                     </div>
                                 </div>
                             )}

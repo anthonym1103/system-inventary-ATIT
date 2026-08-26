@@ -126,15 +126,13 @@ class EquipoController extends Controller
             $condicionesLabels[$condicion->value] = $condicion->label();
         }
 
-        $sedesLabels = [];
-        foreach (Sede::cases() as $sede) {
-            $sedesLabels[$sede->value] = $sede->label();
-        }
+        $sedesLabels = $this->getSedesForScope($allowedAreas, $user)
+            ->mapWithKeys(fn ($s) => [$s['value'] => $s['label']])
+            ->toArray();
 
-        $pisosLabels = [];
-        foreach (Piso::cases() as $piso) {
-            $pisosLabels[$piso->value] = $piso->label();
-        }
+        $pisosLabels = $this->getPisosForScope($allowedAreas, $user)
+            ->mapWithKeys(fn ($p) => [$p['value'] => $p['label']])
+            ->toArray();
 
         // 7. Obtener permisos del usuario para acciones (opcional)
         $permissions = [
@@ -155,8 +153,8 @@ class EquipoController extends Controller
             'condicionesLabels' => $condicionesLabels,
             'condiciones' => $condiciones,
             'ubicaciones' => $ubicaciones,
-            'sedes' => $this->getSedes(),
-            'pisos' => $this->getPisos(),
+            'sedes' => $this->getSedesForScope($allowedAreas, $user),
+            'pisos' => $this->getPisosForScope($allowedAreas, $user),
             'sedesLabels' => $sedesLabels,
             'pisosLabels' => $pisosLabels,
             'filters' => $request->only(['search', 'tipo', 'condicion', 'ubicacion_id']) +  ['area' => $areaFilter],
@@ -202,15 +200,16 @@ class EquipoController extends Controller
         $user = Auth::user();
         abort_unless($user->can('crear_equipos'), 403);
 
-
+        $allowedAreas = $this->getUserAllowedAreas($user);
         $tiposLabels = $this->getTiposLabelsForArea($user);
 
         return Inertia::render('equipos/create', [
             'tiposLabels' => $tiposLabels,
             'ubicaciones' => $this->getEstadosRegion(),
-            'sedes' => $this->getSedes(),
-            'pisos' => $this->getPisos(),
+            'sedes' => $this->getSedesForScope($allowedAreas, $user),
+            'pisos' => $this->getPisosForScope($allowedAreas, $user),
             'condiciones' => $this->getCondiciones(),
+            'encargados' => $this->getEncargadosDisponibles(),
         ]);
     }
 
@@ -292,6 +291,7 @@ class EquipoController extends Controller
                 "Tipo: {$equipo->tipo}",
                 "Marca: " . ($validated['marca'] ?: '—'),
                 "Modelo: {$validated['modelo']}",
+                "Número de Inventario: " . ($validated['numero_inventario'] ?: '—'),
                 "Ubicación: {$ubicacion->sede_label} - {$ubicacion->piso_label}",
             ];
             
@@ -305,6 +305,7 @@ class EquipoController extends Controller
                 'equipo_area' => $equipo->area->value,
                 'equipo_tipo' => $equipo->tipo,
                 'equipo_serial' => $equipo->serial,
+                'numero_inventario' => $equipo->numero_inventario,
                 'detalle'    => 'Equipo registrado: ' . implode('; ', $detalleCreacion),
                 'fecha_ajuste' => now(),
             ]);
@@ -320,8 +321,9 @@ class EquipoController extends Controller
         $this->authorizeEdit($equipo);
         $data = $this->buildEditData($equipo, Auth::user());
         $data['condiciones'] = $this->getCondiciones();
-        $data['sedes'] = $this->getSedes();
-        $data['pisos'] = $this->getPisos();
+        $allowedAreas = $this->getUserAllowedAreas(Auth::user());
+        $data['sedes'] = $this->getSedesForScope($allowedAreas, Auth::user());
+        $data['pisos'] = $this->getPisosForScope($allowedAreas, Auth::user());
 
         return Inertia::render('equipos/edit', $data );
     }
@@ -331,8 +333,9 @@ class EquipoController extends Controller
         $this->authorizeEdit($equipo);
         $data = $this->buildEditData($equipo, Auth::user());
         $data['condiciones'] = $this->getCondiciones();
-        $data['sedes'] = $this->getSedes();
-        $data['pisos'] = $this->getPisos();
+        $allowedAreas = $this->getUserAllowedAreas(Auth::user());
+        $data['sedes'] = $this->getSedesForScope($allowedAreas, Auth::user());
+        $data['pisos'] = $this->getPisosForScope($allowedAreas, Auth::user());
 
         return response()->json($data);
     }
@@ -380,6 +383,7 @@ class EquipoController extends Controller
             ],
             'tiposLabels' => $tiposLabels,
             'ubicaciones' => $this->getEstadosRegion(),
+            'encargados' => $this->getEncargadosDisponibles(),
         ];
     }
 
@@ -486,10 +490,10 @@ class EquipoController extends Controller
             }
 
             if ($before['ubicacion_id'] != $after['ubicacion_id']) {
-                $changes[] = 'Ubicación actualizada';
+                $changes[] = 'Ubicación actualizada' . ' (' . ($equipo->ubicacion?->sede_label ?? '—') . ' - ' . ($equipo->ubicacion?->piso_label ?? '—') . ')';
             }
             if ($before['asignado_id'] != $after['asignado_id']) {
-                $changes[] = 'Encargado actualizado';
+                $changes[] = 'Responsable actualizado';
             }
 
             if (!empty($changes)) {
@@ -499,6 +503,7 @@ class EquipoController extends Controller
                     'equipo_area' => $equipo->area->value,
                     'equipo_tipo' => $equipo->tipo,
                     'equipo_serial' => $equipo->serial,
+                    'numero_inventario' => $equipo->numero_inventario,
                     'detalle'    => 'Equipo actualizado: ' . implode('; ', $changes),
                     'fecha_ajuste' => now(),
                 ]);
@@ -617,9 +622,11 @@ class EquipoController extends Controller
                     'equipo_area' => $equipo->area->value,
                     'equipo_tipo' => $equipo->tipo,
                     'equipo_serial' => $equipo->serial,
+                    'numero_inventario' => $equipo->numero_inventario,
                     'detalle' => 'Equipo desincorporado: '
                         . '; Motivo: ' . $validated['motivo']
                         . '; Modelo: ' . $equipo->modelo
+                        . '; N° Inventario: ' . ($equipo->numero_inventario ?: '—')
                         . '; Ubicación: ' . ($equipo->ubicacion
                             ? ($equipo->ubicacion->sede_label . ' - ' . $equipo->ubicacion->piso_label)
                             : '—')
@@ -1188,6 +1195,59 @@ class EquipoController extends Controller
         $value = trim($value);
 
         return mb_strtoupper(mb_substr($value, 0, 1)) . mb_strtolower(mb_substr($value, 1));
+    }
+
+    private function getSedesForScope(array $allowedAreas, $user): Collection
+    {
+        $catalogo = $this->getSedes();
+
+        $personalizadas = Ubicacion::query()
+            ->whereHas('equipos', function ($q) use ($allowedAreas, $user) {
+                if (!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas)) {
+                    $q->whereIn('area', $allowedAreas);
+                }
+            })
+            ->whereNotIn('sede', array_column(Sede::cases(), 'value'))
+            ->get(['sede', 'estado'])
+            ->unique('sede')
+            ->map(fn ($u) => [
+                'value' => $u->sede,
+                'label' => $u->sede,
+                'region' => $u->estado, // usamos el estado real de la ubicación como "región"
+            ]);
+
+        return $catalogo->concat($personalizadas)->values();
+    }
+
+    private function getPisosForScope(array $allowedAreas, $user): Collection
+    {
+        $catalogo = $this->getPisos();
+
+        $personalizados = Ubicacion::query()
+            ->whereHas('equipos', function ($q) use ($allowedAreas, $user) {
+                if (!$user->hasRole(Cargo::ADMINISTRADOR->value) && !empty($allowedAreas)) {
+                    $q->whereIn('area', $allowedAreas);
+                }
+            })
+            ->whereNotIn('piso', array_column(Piso::cases(), 'value'))
+            ->distinct()
+            ->pluck('piso')
+            ->map(fn ($piso) => ['value' => $piso, 'label' => $piso]);
+
+        return $catalogo->concat($personalizados)->values();
+    }
+
+    private function getEncargadosDisponibles(): Collection
+    {
+        return UserAsignado::orderBy('nombre')
+            ->get(['cedula', 'nombre', 'apellido', 'telefono', 'gerencia'])
+            ->map(fn ($e) => [
+                'cedula' => $e->cedula,
+                'nombre' => $e->nombre,
+                'apellido' => $e->apellido,
+                'telefono' => $e->telefono ?? '',
+                'gerencia' => $e->gerencia ?? '',
+            ]);
     }
 
     private function getEstadosRegion(): Collection

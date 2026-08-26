@@ -18,6 +18,7 @@ class HistorialEquipo extends Model
         'equipo_area',
         'equipo_serial',
         'equipo_tipo',
+        'numero_inventario',
         'detalle',
         'fecha_ajuste',
     ];

@@ -209,16 +209,27 @@ class SustitucionController extends Controller
         // ---------- Encabezado ----------
         $write(420.62, 46.94, 23.31, now()->format('d/m/Y'));
         $pdf->SetFont('dejavusans', 'B', 10);
-        $write(400.66, 81.01, 24.19, $data['solicitud_otrs'] ?? null);
+        $write(373.09, 81.01, 24.19, $data['solicitud_otrs'] ?? null);
         $write(454.71, 81.01, 35.50, $data['entrega_modelo'] ?? null);
         $pdf->SetFont('dejavusans', '', 8);
         $write(344.09, 116.76, 42.45, $data['personal'] ?? null);
         $write(431.90, 116.76, 42.21, $data['telefono'] ?? null);
         $write(82.18, 113.56, 35.71, $data['nombre_usuario'] ?? null);
-        $write(277.73, 113.56, 33.82, $data['cedula'] ?? null);
+        $write(270.93, 113.56, 33.82, $data['cedula'] ?? null);
         $write(44.36, 139.24, 34.76, $data['unidad'] ?? null);
-        $write(272.93, 138.36, 31.20, $data['ce_co'] ?? null);
-        $write(468.65, 136.32, 9.47, $data['reporta_a'] ?? null);
+        $this->escribirTextoDosLineas(
+            $pdf,
+            $write,
+            270.93,   // X primera línea
+            135.31,   // Y primera línea
+            31.20,    // Tamaño
+            $data['ce_co'] ?? '',
+            388.01,   // límite derecho (máximo X)
+            235.93,   // X segunda línea
+            145.31,   // Y segunda línea
+            '…'       // sufijo de truncamiento (opcional)
+        );
+        $this->escribirTextoDosLineas($pdf, $write, 466.65, 133.66, 9.47, $data['reporta_a'] ?? '', 552.20, 420.10, 145.31, '…');
         $write(75.09, 164.00, 43.63, $data['ubicacion_fisica'] ?? null);
         $write(67.20, 179.30, 28.18, $data['aliado_atit'] ?? null);
         $write(182.54, 179.30, 17.63, $data['aliado_ext'] ?? null); 
@@ -290,6 +301,108 @@ class SustitucionController extends Controller
         $pdf->Output($outputPath, 'F');
 
         return $outputPath;
+    }
+
+    private function escribirTextoDosLineas($pdf, $write, $x, $y, $fontSize, $text, $maxX, $nextX, $nextY, $truncateSuffix = '…')
+    {
+        if (empty($text)) {
+            return;
+        }
+
+        // Conversión de puntos a milímetros
+        $ptToMm = fn($pt) => $pt * 0.3527778;
+
+        $xMm = $ptToMm($x + $fontSize + 4);
+        $maxXMm = $ptToMm($maxX);
+        $nextXMm = $ptToMm($nextX + $fontSize + 4);
+
+        $ancho1 = $maxXMm - $xMm;
+        $ancho2 = $maxXMm - $nextXMm;
+
+        // --- Primera línea: extraer el máximo que cabe ---
+        $longitud = mb_strlen($text, 'UTF-8');
+        $posicionCorte = 0;
+
+        for ($i = 1; $i <= $longitud; $i++) {
+            $sub = mb_substr($text, 0, $i, 'UTF-8');
+            if ($pdf->GetStringWidth($sub) <= $ancho1) {
+                $posicionCorte = $i;
+            } else {
+                break;
+            }
+        }
+
+        // Si no cabe ni un carácter, forzar al menos 1
+        if ($posicionCorte == 0) {
+            for ($i = 1; $i <= $longitud; $i++) {
+                $sub = mb_substr($text, 0, $i, 'UTF-8');
+                if ($pdf->GetStringWidth($sub) <= $ancho1) {
+                    $posicionCorte = $i;
+                    break;
+                }
+            }
+            if ($posicionCorte == 0) {
+                $posicionCorte = 1;
+            }
+        }
+
+        // Buscar último espacio para no cortar palabra
+        $subCandidato = mb_substr($text, 0, $posicionCorte, 'UTF-8');
+        $ultimoEspacio = mb_strrpos($subCandidato, ' ', 0, 'UTF-8');
+        if ($ultimoEspacio !== false && $ultimoEspacio > 0) {
+            $posicionCorte = $ultimoEspacio;
+        }
+
+        $textoPrimera = mb_substr($text, 0, $posicionCorte, 'UTF-8');
+        $resto = ltrim(mb_substr($text, $posicionCorte, null, 'UTF-8'));
+
+        // Escribir primera línea
+        $write($x, $y, $fontSize, $textoPrimera);
+
+        // --- Segunda línea: escribir el resto (o truncar si excede) ---
+        if (!empty($resto)) {
+            $anchoResto = $pdf->GetStringWidth($resto);
+            if ($anchoResto <= $ancho2) {
+                // Cabe completo
+                $write($nextX, $nextY, $fontSize, $resto);
+            } else {
+                // Truncar para que quepa en segunda línea
+                $longitudResto = mb_strlen($resto, 'UTF-8');
+                $posicionCorte2 = 0;
+
+                for ($i = 1; $i <= $longitudResto; $i++) {
+                    $sub = mb_substr($resto, 0, $i, 'UTF-8');
+                    if ($pdf->GetStringWidth($sub) <= $ancho2) {
+                        $posicionCorte2 = $i;
+                    } else {
+                        break;
+                    }
+                }
+
+                if ($posicionCorte2 == 0) {
+                    for ($i = 1; $i <= $longitudResto; $i++) {
+                        $sub = mb_substr($resto, 0, $i, 'UTF-8');
+                        if ($pdf->GetStringWidth($sub) <= $ancho2) {
+                            $posicionCorte2 = $i;
+                            break;
+                        }
+                    }
+                    if ($posicionCorte2 == 0) {
+                        $posicionCorte2 = 1;
+                    }
+                }
+
+                $subCandidato2 = mb_substr($resto, 0, $posicionCorte2, 'UTF-8');
+                $ultimoEspacio2 = mb_strrpos($subCandidato2, ' ', 0, 'UTF-8');
+                if ($ultimoEspacio2 !== false && $ultimoEspacio2 > 0) {
+                    $posicionCorte2 = $ultimoEspacio2;
+                }
+
+                $textoSegunda = mb_substr($resto, 0, $posicionCorte2, 'UTF-8') . $truncateSuffix;
+
+                $write($nextX, $nextY, $fontSize, $textoSegunda);
+            }
+        }
     }
 
     private function formatPeriferico(array $data, string $prefix): ?string

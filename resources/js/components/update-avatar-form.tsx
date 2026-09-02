@@ -90,7 +90,7 @@ export function UpdateAvatarForm({ user }: Props) {
                                 <button
                                     type="button"
                                     onClick={triggerFileSelect}
-                                    className="px-3 py-1.5 text-sm font-medium bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition"
+                                    className="cursor-pointer px-3 py-1.5 text-sm font-medium bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition"
                                 >
                                     Seleccionar imagen
                                 </button>
@@ -99,7 +99,7 @@ export function UpdateAvatarForm({ user }: Props) {
                                 {avatarFile && (
                                     <Button
                                         type="submit"
-                                        className="bg-green-600 hover:bg-green-700 text-white"
+                                        className="cursor-pointer bg-green-600 hover:bg-green-700 text-white"
                                     >
                                         {processing && <Spinner />}
                                         Guardar cambios

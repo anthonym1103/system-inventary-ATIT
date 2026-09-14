@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        $ubicaciones = Ubicacion::factory(20)->create();
+        /*$ubicaciones = Ubicacion::factory(20)->create();
 
         $asignados = UserAsignado::factory(30)->create();
 
@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
             } else {
                 $equipo->asignado_id = null;
             }
-        })->create();
+        })->create();*/
 
         User::factory()->create([
             'name' => 'Anthony Medina',

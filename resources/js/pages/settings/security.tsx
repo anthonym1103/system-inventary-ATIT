@@ -225,7 +225,8 @@ export default function Security({
                                         <Button
                                             variant="destructive"
                                             type="submit"
-                                            disabled={processing}
+                                            className="cursor-pointer"
+                                            disabled={true}
                                         >
                                             Disable 2FA
                                         </Button>
@@ -266,7 +267,8 @@ export default function Security({
                                         {({ processing }) => (
                                             <Button
                                                 type="submit"
-                                                disabled={processing}
+                                                className="cursor-pointer"
+                                                disabled={true}
                                             >
                                                 Habilitar 2FA
                                             </Button>

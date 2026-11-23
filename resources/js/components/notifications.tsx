@@ -157,7 +157,7 @@ export function Notifications() {
                                             )}
                                             
                                             <p className="text-xs text-muted-foreground mt-2 cursor-text w-fit">
-                                                Ubicacion: {`${m.equipo?.ubicacion?.sede_label} - ${m.equipo?.ubicacion?.piso_label} (${m.equipo?.ubicacion?.estado_label})`}
+                                                Ubicacion: {`${m.equipo?.ubicacion?.sede_label} - ${m.equipo?.ubicacion?.piso_label ? m.equipo?.ubicacion?.piso_label : ''} (${m.equipo?.ubicacion?.estado_label})`}
                                             </p>
 
                                             <p className="text-xs text-muted-foreground cursor-text w-fit">
